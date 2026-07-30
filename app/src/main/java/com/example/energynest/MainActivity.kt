@@ -45,4 +45,4 @@ fun GreetingPreview() {
         Greeting("Android")
     }
 }
-//hi_teejin
+//hi_teeji
