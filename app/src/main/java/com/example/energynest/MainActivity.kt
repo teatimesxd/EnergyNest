@@ -12,8 +12,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             EnergyNestTheme {
-                SmartSell() //call SmartSell function
-                LoginPage() //call LoginPage function
+                //SmartSell() //call SmartSell function
+                //LoginPage() //call LoginPage function
+                RegisterPage()
             }
         }
     }
