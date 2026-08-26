@@ -58,6 +58,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.example.energynest.ui.theme.EnergyNestTheme
 import java.io.File
@@ -87,6 +89,7 @@ fun RegisterPage() {
     var zipcode by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
     var state by remember { mutableStateOf("") }
+    var showMapPicker by remember { mutableStateOf(false) }
 
     var supportingDocument by remember { mutableStateOf<File?>(null) }
     var password by remember { mutableStateOf("") }
@@ -122,21 +125,12 @@ fun RegisterPage() {
         }
     }
 
-    // Location permission launcher
+    // Location permission launcher – now opens map picker when granted
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            // Permission granted – you can now open a map or fetch location.
-            // For this demo, we simulate filling address fields with a sample location.
-            // In a real app, replace this with:
-            // - Start an activity to pick a location on a map (e.g., via Google Maps intent or a custom map fragment).
-            // - Or use FusedLocationProviderClient to get current coordinates and reverse‑geocode.
-            street = "123 Main Street"
-            zipcode = "50050"
-            city = "Kuala Lumpur"
-            state = "Wilayah Persekutuan"
-            registerMessage = "Location detected (simulated)."
+            showMapPicker = true
         } else {
             registerMessage = "Location permission denied. Please enable it in settings."
         }
@@ -283,7 +277,7 @@ fun RegisterPage() {
                 )
             )
 
-            // --- Address: Street, Zipcode, City, State (with location button) ---
+            // --- Address: Street, Zipcode, City, State (with location button next to State) ---
             Text(
                 text = "Address",
                 fontSize = 15.sp,
@@ -352,7 +346,7 @@ fun RegisterPage() {
                 )
             }
 
-            // State with location button
+            // State with location icon on the same row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -374,23 +368,16 @@ fun RegisterPage() {
                         unfocusedLabelColor = textGray
                     )
                 )
+                // Location button – now placed right next to State
                 IconButton(
                     onClick = {
-                        // Check location permission.
                         if (ContextCompat.checkSelfPermission(
                                 context,
                                 Manifest.permission.ACCESS_FINE_LOCATION
                             ) == PackageManager.PERMISSION_GRANTED
                         ) {
-                            // Permission already granted – here you would open a map or fetch location.
-                            // For demo, we simulate filling address fields.
-                            street = "123 Main Street"
-                            zipcode = "50050"
-                            city = "Kuala Lumpur"
-                            state = "Wilayah Persekutuan"
-                            registerMessage = "Location detected (simulated)."
+                            showMapPicker = true
                         } else {
-                            // Request permission – after grant, the launcher will run the code above.
                             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                         }
                     },
@@ -398,8 +385,30 @@ fun RegisterPage() {
                 ) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Get Current Location",
+                        contentDescription = "Choose on Map",
                         tint = primaryGreen
+                    )
+                }
+            }
+
+            // Show the map picker as a full-screen dialog
+            if (showMapPicker) {
+                Dialog(
+                    onDismissRequest = { showMapPicker = false },
+                    properties = DialogProperties(
+                        usePlatformDefaultWidth = false,
+                        decorFitsSystemWindows = false
+                    )
+                ) {
+                    MapPicker(
+                        onAddressSelected = { addressResult ->
+                            street = addressResult.street
+                            zipcode = addressResult.zipcode
+                            city = addressResult.city
+                            state = addressResult.state
+                            registerMessage = "Address picked from map"
+                        },
+                        onDismiss = { showMapPicker = false }
                     )
                 }
             }
@@ -636,7 +645,7 @@ fun RegisterPage() {
             if (registerMessage.isNotEmpty()) {
                 Text(
                     text = registerMessage,
-                    color = if (registerMessage.contains("successful") || registerMessage.contains("detected")) primaryGreen else errorRed,
+                    color = if (registerMessage.contains("successful") || registerMessage.contains("picked")) primaryGreen else errorRed,
                     fontSize = 16.sp,
                     modifier = Modifier.padding(top = 4.dp)
                 )
