@@ -200,9 +200,9 @@ fun RegisterPage() {
         ) {
             // Logo
             Image(
-                painter = painterResource(id = R.drawable.energynest_icon),
+                painter = painterResource(id = R.drawable.energynest_icon_1),
                 contentDescription = "App logo",
-                modifier = Modifier.size(90.dp)
+                modifier = Modifier.size(150.dp)
             )
 
             // App name
