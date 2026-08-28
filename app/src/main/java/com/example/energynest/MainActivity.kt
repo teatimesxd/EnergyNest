@@ -21,7 +21,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             EnergyNestTheme {
-                SupabaseConnectionScreen()
+                ProfileScreenWrapper()
+                //SupabaseConnectionScreen()
             }
         }
     }
