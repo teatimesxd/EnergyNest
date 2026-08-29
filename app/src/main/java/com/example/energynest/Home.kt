@@ -2,486 +2,374 @@ package com.example.energynest
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.WbSunny
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.automirrored.outlined.ViewSidebar
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// ---- Colours from Figma ----
-private val Background = Color(0xFFF7F9FB)
-private val BorderLight = Color(0xFFBBCABF)
+private val Background = Color(0xFFF6F8F7)
 private val TextDark = Color(0xFF191C1E)
-private val TextGray = Color(0xFF3C4A42)
-private val TextGrayLight = Color(0xFF505F76)
-private val BrandGreenColour = Color(0xFF10B981)
-private val ProgressBg = Color(0xFFE2E8F0)
-private val CardBg = Color(0xFFF7F9FB)
+private val TextGray = Color(0xFF5A6065)
+private val BrandGreenColour = Color(0xFF00B87C)
+private val LightGreenBg = Color(0xFFD8F3E5)
+private val ProgressBg = Color(0xFFE5E7EB)
 private val AvatarBg = Color(0xFFE6E8EA)
-private val White = Color.White
+private val BorderLight = Color(0xFFE2E8F0)
 
-@Suppress("DEPRECATION")   // for CircularProgressIndicator progress parameter
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    onOpenDrawer: () -> Unit = {}
+) {
     val storedEnergyPercent = 0.75f
-    val solarGenerated = 8.4
-    val gridConsumed = 11.6
-    val estimatedDuration =
-        "Based on current stored energy, your home can run for approximately 12 hours."
 
-    Box(
+    // Memoize AnnotatedString so it isn't re-built on every frame/recomposition
+    val estimatedUsageText = remember {
+        buildAnnotatedString {
+            append("Based on your daily average consumption, your stored energy can power your home for another ")
+            withStyle(style = SpanStyle(color = BrandGreenColour, fontWeight = FontWeight.Bold)) {
+                append("8 hours and 15 minutes.")
+            }
+        }
+    }
+
+    // LazyColumn measures items lazily on navigation, eliminating screen-switch jank
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Background)
+            .background(Background),
+        contentPadding = PaddingValues(bottom = 24.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 80.dp)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // 1. Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Smart Sell",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.SansSerif,
-                        color = TextDark,
-                        letterSpacing = (-0.24).sp
-                    )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(9.33.dp)
-                                .background(TextGray)
+        // Top App Bar
+        item {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onOpenDrawer) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.ViewSidebar,
+                            contentDescription = "Sidebar",
+                            tint = TextDark
                         )
-                        Text(
-                            text = "Peninsular Malaysia",
-                            fontSize = 14.sp,
-                            fontFamily = FontFamily.SansSerif,
-                            color = TextGray,
-                            lineHeight = 20.sp
+                    }
+                    IconButton(onClick = { /* Open Notifications */ }) {
+                        Icon(
+                            imageVector = Icons.Outlined.Notifications,
+                            contentDescription = "Notifications",
+                            tint = TextDark
                         )
                     }
                 }
+                HorizontalDivider(thickness = 1.dp, color = BorderLight)
+            }
+        }
+
+        // Main Content Container
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                // Greeting Header & Profile Avatar
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Hello, Homeowner",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextDark
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.LocationOn,
+                                contentDescription = "Location",
+                                tint = TextGray,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Peninsular Malaysia",
+                                fontSize = 14.sp,
+                                color = TextGray
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(AvatarBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Profile",
+                            tint = TextDark,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+
+                // Main Circular Gauge
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(AvatarBg),
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(16.dp)
-                            .background(TextDark)
-                    )
-                }
-            }
-
-            // 2. Circular Gauge
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(245.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier.size(256.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        progress = 1f,
-                        modifier = Modifier.fillMaxSize(),
-                        color = ProgressBg,
-                        strokeWidth = 20.48.dp,
-                        trackColor = Color.Transparent
-                    )
-                    CircularProgressIndicator(
-                        progress = storedEnergyPercent,
-                        modifier = Modifier.fillMaxSize(),
-                        color = BrandGreenColour,
-                        strokeWidth = 20.48.dp,
-                        trackColor = Color.Transparent,
-                    )
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                            .size(220.dp)
+                            .border(width = 16.dp, color = BrandGreenColour, shape = CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(26.67.dp)
-                                .background(BrandGreenColour)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Today",
-                            fontSize = 14.sp,
-                            fontFamily = FontFamily.SansSerif,
-                            color = TextGray,
-                            letterSpacing = 0.7.sp,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(
-                            verticalAlignment = Alignment.Bottom,
-                            horizontalArrangement = Arrangement.Center
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
-                            Text(
-                                text = "12.2",
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.SansSerif,
-                                color = TextDark,
-                                letterSpacing = (-0.24).sp
+                            Icon(
+                                imageVector = Icons.Outlined.SolarPower,
+                                contentDescription = "Solar Generated",
+                                tint = BrandGreenColour,
+                                modifier = Modifier.size(36.dp)
                             )
+                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = " kWh",
+                                text = "GENERATED",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextGray,
+                                letterSpacing = 1.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                verticalAlignment = Alignment.Bottom,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "4.8",
+                                    fontSize = 34.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextDark
+                                )
+                                Text(
+                                    text = " kWh",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = TextDark,
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Today",
                                 fontSize = 14.sp,
-                                fontFamily = FontFamily.SansSerif,
-                                color = TextDark,
-                                letterSpacing = (-0.24).sp,
-                                modifier = Modifier.padding(start = 2.dp)
+                                color = TextGray
                             )
                         }
                     }
                 }
-            }
 
-            // 3. Stored Energy Card
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(76.dp)
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+                // Stored Energy Row (Using Native LinearProgressIndicator for GPU hardware acceleration)
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(LightGreenBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.BatteryChargingFull,
+                            contentDescription = "Stored Energy Icon",
+                            tint = BrandGreenColour,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Stored Energy",
+                            fontSize = 13.sp,
+                            color = TextGray
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "75%",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextDark
+                            )
+                            Text(
+                                text = "(12.2 kWh)",
+                                fontSize = 14.sp,
+                                color = TextGray
+                            )
+                        }
+                    }
+
+                    LinearProgressIndicator(
+                        progress = { storedEnergyPercent },
+                        modifier = Modifier
+                            .width(100.dp)
+                            .height(8.dp)
+                            .clip(CircleShape),
+                        color = BrandGreenColour,
+                        trackColor = ProgressBg,
+                        strokeCap = StrokeCap.Round
+                    )
+                }
+
+                // Estimated Usage Duration (Insight Box)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(BrandGreenColour.copy(alpha = 0.2f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(13.dp)
-                                .background(BrandGreenColour)
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = "Stored Energy",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = FontFamily.SansSerif,
-                            color = TextGray,
-                            letterSpacing = 0.6.sp
-                        )
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "12.2",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                fontFamily = FontFamily.SansSerif,
-                                color = TextDark,
-                                lineHeight = 28.sp
-                            )
-                            Text(
-                                text = " kWh",
-                                fontSize = 14.sp,
-                                fontFamily = FontFamily.SansSerif,
-                                color = TextGray,
-                                modifier = Modifier.padding(start = 2.dp)
-                            )
-                        }
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .width(96.dp)
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(9999.dp))
-                        .background(ProgressBg)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(fraction = storedEnergyPercent)
-                            .fillMaxSize()
+                            .width(4.dp)
+                            .height(72.dp)
+                            .clip(RoundedCornerShape(2.dp))
                             .background(BrandGreenColour)
                     )
-                }
-            }
 
-            // 4. AI Insight
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(86.dp)
-                    .border(
-                        width = 4.dp,
-                        color = BrandGreenColour,
-                        shape = RoundedCornerShape(0.dp)
-                    )
-                    .background(CardBg),
-                colors = CardDefaults.cardColors(containerColor = CardBg),
-                elevation = CardDefaults.cardElevation(0.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Box(
+                    Icon(
+                        imageVector = Icons.Outlined.Lightbulb,
+                        contentDescription = "Insight Icon",
+                        tint = BrandGreenColour,
                         modifier = Modifier
-                            .size(22.dp)
-                            .padding(top = 4.dp)
-                            .background(BrandGreenColour)
+                            .size(24.dp)
+                            .padding(top = 2.dp)
                     )
+
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
                             text = "Estimated Usage Duration",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = FontFamily.SansSerif,
-                            color = TextGray,
-                            letterSpacing = 0.6.sp
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextGray
                         )
                         Text(
-                            text = estimatedDuration,
-                            fontSize = 14.sp,
-                            fontFamily = FontFamily.SansSerif,
+                            text = estimatedUsageText,
+                            fontSize = 13.sp,
                             color = TextDark,
-                            lineHeight = 20.sp
+                            lineHeight = 18.sp
+                        )
+                    }
+                }
+
+                // Stats Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Eco,
+                            contentDescription = "Carbon Reduced",
+                            tint = TextDark,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "Carbon Reduced",
+                            fontSize = 13.sp,
+                            color = TextGray
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "12kg",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextDark
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "CO2",
+                                fontSize = 14.sp,
+                                color = TextGray
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Savings,
+                            contentDescription = "Today's Savings",
+                            tint = TextDark,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "Today's Savings",
+                            fontSize = 13.sp,
+                            color = TextGray
+                        )
+                        Text(
+                            text = "RM 15.40",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextDark
                         )
                     }
                 }
             }
-
-            // 5. Stats Grid – weight now resolves because we imported it
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                StatItem(
-                    label = "Solar Generated",
-                    value = solarGenerated.toString(),   // .toString() avoids string template warning
-                    modifier = Modifier.weight(1f)       // ✅ works with the import
-                )
-                StatItem(
-                    label = "Grid Consumed",
-                    value = gridConsumed.toString(),
-                    modifier = Modifier.weight(1f)
-                )
-            }
         }
-
-        BottomNavBar(
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
-    }
-}
-
-@Composable
-private fun StatItem(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .height(111.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
-        elevation = CardDefaults.cardElevation(0.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .background(TextGray)
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = label,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                fontFamily = FontFamily.SansSerif,
-                color = TextGray,
-                letterSpacing = 0.6.sp
-            )
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = value,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    fontFamily = FontFamily.SansSerif,
-                    color = TextDark,
-                    lineHeight = 28.sp
-                )
-                Text(
-                    text = "kWh",
-                    fontSize = 14.sp,
-                    fontFamily = FontFamily.SansSerif,
-                    color = TextDark
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun BottomNavBar(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(80.dp)
-            .background(White)
-            .border(width = 1.dp, color = BorderLight)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(95.dp)
-                    .height(51.dp)
-                    .clip(RoundedCornerShape(9999.dp))
-                    .background(BrandGreenColour),
-                contentAlignment = Alignment.Center
-            ) {
-                NavItem(
-                    icon = Icons.Outlined.WbSunny,
-                    label = "Home",
-                    iconTint = White,
-                    textColor = White
-                )
-            }
-            NavItem(
-                icon = Icons.Outlined.WbSunny,
-                label = "Smart Sell",
-                iconTint = TextGrayLight,
-                textColor = TextGrayLight,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(9999.dp))
-                    .background(White)
-                    .padding(horizontal = 24.dp, vertical = 8.dp)
-            )
-            NavItem(
-                icon = Icons.Outlined.WbSunny,
-                label = "CREAM",
-                iconTint = TextGrayLight,
-                textColor = TextGrayLight,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-            NavItem(
-                icon = Icons.Outlined.WbSunny,
-                label = "Services",
-                iconTint = TextGray,
-                textColor = TextGray,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(9999.dp))
-                    .background(White)
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun NavItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    iconTint: Color,
-    textColor: Color,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = iconTint,
-            modifier = Modifier.size(18.dp)
-        )
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            fontFamily = FontFamily.SansSerif,
-            color = textColor,
-            letterSpacing = 0.6.sp,
-            textAlign = TextAlign.Center
-        )
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun HomeScreenPreview() {
+fun homeScreenPreview(){
     HomeScreen()
 }

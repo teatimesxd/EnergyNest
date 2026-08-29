@@ -1,93 +1,103 @@
 package com.example.energynest
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ViewSidebar
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.CleaningServices
+import androidx.compose.material.icons.outlined.Handyman
+import androidx.compose.material.icons.outlined.Headset
+import androidx.compose.material.icons.outlined.HomeRepairService
 import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// ---- Colours from Figma ----
-private val Background = Color(0xFFF7F9FB)
-private val BorderLight = Color(0xFFBBCABF)
+private val Background = Color(0xFFF6F8F7)
 private val TextDark = Color(0xFF191C1E)
-private val TextGray = Color(0xFF3C4A42)
-private val BrandGreenColour = Color(0xFF10B981)
+private val TextGray = Color(0xFF5A6065)
+private val BrandGreenColour = Color(0xFF00B87C)
 private val White = Color.White
-private val IconBg = Color(0xFFECEEF0)
-private val DarkGreen = Color(0xFF006C49)
+private val IconBg = Color(0xFFE8ECE9)
+private val BorderLight = Color(0xFFE2E8F0)
 
 @Composable
-fun ServicesScreen() {
-    Box(
+fun ServicesScreen(
+    onOpenDrawer: () -> Unit = {}
+) {
+    // Cache static lists to eliminate heap allocations on recomposition
+    val faqs = remember {
+        listOf(
+            "How to track savings?",
+            "What is CREAM?",
+            "Service response time?"
+        )
+    }
+
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Background)
+            .background(Background),
+        contentPadding = PaddingValues(bottom = 24.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 80.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            // ---- Top App Bar ----
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+        // Top App Bar
+        item {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
-                        .background(Background.copy(alpha = 0.9f))
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
-                        onClick = { /* navigate back */ },
-                        modifier = Modifier.size(36.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                        IconButton(onClick = onOpenDrawer) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.ViewSidebar,
+                                contentDescription = "Sidebar",
+                                tint = TextDark
+                            )
+                        }
+                        Text(
+                            text = "Services",
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextDark
                         )
                     }
-                    Text(
-                        text = "Services",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.SansSerif,
-                        color = TextDark
-                    )
-                    IconButton(onClick = { /* notifications */ }) {
+                    IconButton(onClick = { /* Notifications */ }) {
                         Icon(
                             imageVector = Icons.Outlined.Notifications,
-                            contentDescription = "Notifications"
+                            contentDescription = "Notifications",
+                            tint = TextDark
                         )
                     }
                 }
                 HorizontalDivider(thickness = 1.dp, color = BorderLight)
             }
+        }
 
-            // ---- Service Cards Grid (2 columns) ----
+        // Service Cards Grid
+        item {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -102,14 +112,14 @@ fun ServicesScreen() {
                         title = "Customer Service",
                         description = "Get help with your account, billing inquiries, and general support for...",
                         buttonText = "CONTACT US",
-                        iconColor = DarkGreen,
+                        icon = Icons.Outlined.Headset,
                         modifier = Modifier.weight(1f)
                     )
                     ServiceCard(
                         title = "Consultation",
                         description = "Schedule a session with our energy experts to optimize your home for...",
                         buttonText = "BOOK SESSION",
-                        iconColor = DarkGreen,
+                        icon = Icons.Outlined.Handyman,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -122,72 +132,63 @@ fun ServicesScreen() {
                         title = "Maintenance",
                         description = "Regular check-ups for your solar panels and battery storage to ensure",
                         buttonText = "SCHEDULE CHECK",
-                        iconColor = DarkGreen,
+                        icon = Icons.Outlined.HomeRepairService,
                         modifier = Modifier.weight(1f)
                     )
                     ServiceCard(
                         title = "Cleaning",
                         description = "Professional cleaning for solar arrays to maintain optimal sunlight...",
                         buttonText = "BOOK CLEANING",
-                        iconColor = DarkGreen,
+                        icon = Icons.Outlined.CleaningServices,
                         modifier = Modifier.weight(1f)
                     )
                 }
             }
+        }
 
-            // ---- Common Questions Section ----
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    text = "Common Questions",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.SansSerif,
-                    color = TextDark
-                )
+        // FAQs Section Header
+        item {
+            Text(
+                text = "Common Questions",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextDark,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+        }
 
-                val faqs = listOf(
-                    "How to track savings?",
-                    "What is CREAM?",
-                    "Service response time?"
-                )
-                faqs.forEach { question ->
-                    FAQItem(question = question)
-                }
+        // Lazy FAQ Items
+        items(faqs) { question ->
+            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                FAQItem(question = question)
+            }
+        }
 
-                // ✅ Fixed OutlinedButton – no extra border parameters
+        // View All Button
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                 OutlinedButton(
                     onClick = { /* View all FAQs */ },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(39.dp),
-                    shape = RoundedCornerShape(8.dp),
+                        .height(44.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, BrandGreenColour),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = DarkGreen,
-                        containerColor = Color.Transparent
+                        contentColor = BrandGreenColour,
+                        containerColor = White
                     )
                 ) {
                     Text(
                         text = "View All FAQs",
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = FontFamily.SansSerif,
-                        color = DarkGreen
+                        fontWeight = FontWeight.Bold,
+                        color = BrandGreenColour
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
-
-        // ---- Bottom Navigation ----
-        BottomNavBar(
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
 }
 
@@ -196,22 +197,21 @@ private fun ServiceCard(
     title: String,
     description: String,
     buttonText: String,
-    iconColor: Color,
+    icon: ImageVector,
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier
-            .height(155.dp)
-            .border(1.dp, BorderLight, RoundedCornerShape(12.dp))
-            .background(White),
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = White),
+        border = BorderStroke(1.dp, BorderLight),
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(12.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -219,54 +219,54 @@ private fun ServiceCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(34.dp)
                         .clip(CircleShape)
                         .background(IconBg),
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(16.dp)
-                            .background(iconColor)
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = title,
+                        tint = BrandGreenColour,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
                 Text(
                     text = title,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    fontFamily = FontFamily.SansSerif,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
                     color = TextDark,
-                    lineHeight = 18.sp
+                    lineHeight = 16.sp,
+                    modifier = Modifier.weight(1f)
                 )
             }
 
             Text(
                 text = description,
                 fontSize = 12.sp,
-                fontFamily = FontFamily.SansSerif,
                 color = TextGray,
-                lineHeight = 15.sp,
-                maxLines = 3,
-                modifier = Modifier.weight(1f)
+                lineHeight = 16.sp,
+                minLines = 3,
+                maxLines = 3
             )
 
             Button(
                 onClick = { /* action */ },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(29.dp),
+                    .height(32.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = BrandGreenColour,
                     contentColor = White
                 ),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
             ) {
                 Text(
                     text = buttonText,
                     fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    fontFamily = FontFamily.SansSerif,
-                    letterSpacing = 0.275.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.3.sp,
                     textAlign = TextAlign.Center
                 )
             }
@@ -277,130 +277,36 @@ private fun ServiceCard(
 @Composable
 private fun FAQItem(question: String) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(47.dp)
-            .border(1.dp, BorderLight, RoundedCornerShape(12.dp))
-            .background(White),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(containerColor = White),
+        border = BorderStroke(1.dp, BorderLight),
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp),
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = question,
                 fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                fontFamily = FontFamily.SansSerif,
-                color = TextDark,
-                lineHeight = 21.sp
+                fontWeight = FontWeight.Bold,
+                color = TextDark
             )
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .background(TextGray)
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = "Expand",
+                tint = TextDark
             )
         }
-    }
-}
-
-@Composable
-private fun BottomNavBar(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(80.dp)
-            .background(White)
-            .border(width = 1.dp, color = BorderLight)
-            .shadow(elevation = 4.dp, shape = RoundedCornerShape(0.dp))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            NavItem(
-                icon = Icons.Outlined.WbSunny,
-                label = "Home",
-                iconTint = TextGray,
-                textColor = TextGray,
-                modifier = Modifier.weight(1f)
-            )
-            NavItem(
-                icon = Icons.Outlined.WbSunny,
-                label = "Smart Sell",
-                iconTint = TextGray,
-                textColor = TextGray,
-                modifier = Modifier.weight(1f)
-            )
-            NavItem(
-                icon = Icons.Outlined.WbSunny,
-                label = "CREAM",
-                iconTint = TextGray,
-                textColor = TextGray,
-                modifier = Modifier.weight(1f)
-            )
-            // Services (active – green pill)
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(46.dp)
-                    .clip(RoundedCornerShape(9999.dp))
-                    .background(BrandGreenColour)
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                NavItem(
-                    icon = Icons.Outlined.WbSunny,
-                    label = "Services",
-                    iconTint = White,
-                    textColor = White
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun NavItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    iconTint: Color,
-    textColor: Color,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = iconTint,
-            modifier = Modifier.size(18.dp)
-        )
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            fontFamily = FontFamily.SansSerif,
-            color = textColor,
-            letterSpacing = 0.6.sp,
-            textAlign = TextAlign.Center
-        )
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun PreviewServicesScreen() {
+fun ServiceScreenPreview(){
     ServicesScreen()
 }

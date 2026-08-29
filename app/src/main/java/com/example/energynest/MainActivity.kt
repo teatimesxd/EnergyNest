@@ -3,64 +3,97 @@ package com.example.energynest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.*
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import com.example.SupabaseClient
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.example.energynest.ui.components.AppBottomNavBar
 import com.example.energynest.ui.theme.EnergyNestTheme
-import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        enableEdgeToEdge()
         setContent {
             EnergyNestTheme {
-                //ProfileScreenWrapper()
-                SupabaseConnectionScreen()
+                val navController = rememberNavController()
+                val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+                val scope = rememberCoroutineScope()
+
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = navBackStackEntry?.destination?.route
+
+                ModalNavigationDrawer(
+                    drawerState = drawerState,
+                    drawerContent = {
+                        SidebarDrawerContent(
+                            currentRoute = currentRoute,
+                            onCloseDrawer = { scope.launch { drawerState.close() } },
+                            onNavigate = { route: String ->
+                                scope.launch { drawerState.close() }
+                                if (currentRoute != route) {
+                                    navController.navigate(route) {
+                                        popUpTo(Screen.Home.route) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            }
+                        )
+                    }
+                ) {
+                    Scaffold(
+                        bottomBar = {
+                            AppBottomNavBar(
+                                currentRoute = currentRoute ?: Screen.Home.route,
+                                onNavigateTo = { route: String ->
+                                    if (currentRoute != route) {
+                                        navController.navigate(route) {
+                                            popUpTo(Screen.Home.route) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    ) { innerPadding ->
+                        NavHost(
+                            navController = navController,
+                            startDestination = Screen.Home.route,
+                            modifier = Modifier.padding(innerPadding)
+                        ) {
+                            composable(Screen.Home.route) {
+                                HomeScreen(
+                                    onOpenDrawer = { scope.launch { drawerState.open() } }
+                                )
+                            }
+                            composable(Screen.SmartSell.route) {
+                                SmartSellScreen(
+                                    onOpenDrawer = { scope.launch { drawerState.open() } }
+                                )
+                            }
+                            composable(Screen.Cream.route) {
+                                CreamScreen(
+                                    onOpenDrawer = { scope.launch { drawerState.open() } }
+                                )
+                            }
+                            composable(Screen.Services.route) {
+                                ServicesScreen(
+                                    onOpenDrawer = { scope.launch { drawerState.open() } }
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
-}
-
-@Composable
-fun SupabaseConnectionScreen() {
-
-    var result by remember {
-        mutableStateOf("Connecting...")
-    }
-
-    LaunchedEffect(Unit) {
-        try {
-            val response = SupabaseClient.client
-                .from("test")
-                .select()
-
-            result = """
-                SUCCESS!
-                
-                Test Table Result:
-                ${response.data}
-            """.trimIndent()
-
-        } catch (e: Throwable) {
-
-            e.printStackTrace()
-
-            result = """
-                FAILED!
-                
-                Error: ${e.message}
-                
-                Type: ${e::class.simpleName}
-            """.trimIndent()
-        }
-    }
-
-    Text(text = result)
 }

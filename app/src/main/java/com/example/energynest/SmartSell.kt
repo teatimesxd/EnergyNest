@@ -1,207 +1,198 @@
 package com.example.energynest
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.AltRoute
+import androidx.compose.material.icons.automirrored.outlined.ViewSidebar
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.BatteryChargingFull
+import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.util.Locale
 
-// ---- Colours from Figma ----
-private val Background = Color(0xFFF7F9FB)
-private val BorderLight = Color(0xFFBBCABF)
+private val Background = Color(0xFFF6F8F7)
 private val TextDark = Color(0xFF191C1E)
-private val TextGray = Color(0xFF3C4A42)
-private val TextGrayLight = Color(0xFF505F76)
-private val BrandGreenColour = Color(0xFF10B981)
-private val ProgressBg = Color(0xFFE0E3E5)
-private val CardBg = Color(0xFFF7F9FB)
+private val TextGray = Color(0xFF5A6065)
+private val BrandGreenColour = Color(0xFF00B87C)
+private val LightGreenBg = Color(0xFFD8F3E5)
+private val ProgressBg = Color(0xFFE5E7EB)
+private val CardBorderColor = Color(0xFFE2E8F0)
+private val ActiveBlue = Color(0xFF2563EB)
+private val CreditBoxBg = Color(0xFFF3F4F6)
+private val FloorCircleBg = Color(0xFFEAECEE)
 private val White = Color.White
-private val LightGreenBg = Color(0xFFF2F4F6)
 
 @Composable
-fun SmartSellScreen() {
-    // Static data
+fun SmartSellScreen(
+    onOpenDrawer: () -> Unit = {}
+) {
     val storedEnergyPercent = 0.75f
     val storedEnergyKwh = 12.2
-    val accumulatedCredits = 45.20
+    val accumulatedCredits = "45.20"
     val totalPowerUsage = 20
     var autoSellEnabled by remember { mutableStateOf(true) }
+    val floors = remember { listOf("Floor 1", "Floor 2") }
 
-    Box(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Background)
+            .background(Background),
+        contentPadding = PaddingValues(bottom = 24.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 80.dp)         // space for bottom nav
-                .verticalScroll(rememberScrollState())
-        ) {
-            // ---- Top App Bar ----
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+        // ---- Top App Bar ----
+        item {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
-                        .background(Background.copy(alpha = 0.9f))
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Back button
-                    IconButton(
-                        onClick = { /* navigate back */ },
-                        modifier = Modifier.size(36.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                        IconButton(onClick = onOpenDrawer) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.ViewSidebar,
+                                contentDescription = "Sidebar",
+                                tint = TextDark
+                            )
+                        }
+                        Text(
+                            text = "Smart Sell",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextDark
                         )
                     }
-                    Text(
-                        text = "Smart Sell",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = FontFamily.SansSerif,
-                        color = TextDark
-                    )
-                    IconButton(onClick = { /* notifications */ }) {
+                    IconButton(onClick = { /* Notifications */ }) {
                         Icon(
                             imageVector = Icons.Outlined.Notifications,
-                            contentDescription = "Notifications"
+                            contentDescription = "Notifications",
+                            tint = TextDark
                         )
                     }
                 }
-                // Bottom border
-                HorizontalDivider(
-                    thickness = 1.dp,
-                    color = BorderLight
-                )
+                HorizontalDivider(thickness = 1.dp, color = CardBorderColor)
             }
+        }
 
-            // ---- Main Content ----
+        // ---- Main Screen Content ----
+        item {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 1. Stored Energy Card
+                // ---- Stored Energy Card ----
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = White),
+                    border = BorderStroke(1.dp, CardBorderColor),
                     elevation = CardDefaults.cardElevation(0.dp)
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(76.dp)
                             .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.weight(1f)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(44.dp)
                                     .clip(CircleShape)
-                                    .background(BrandGreenColour.copy(alpha = 0.2f)),
+                                    .background(LightGreenBg),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(13.dp)
-                                        .background(BrandGreenColour)
+                                Icon(
+                                    imageVector = Icons.Outlined.BatteryChargingFull,
+                                    contentDescription = "Stored Energy Icon",
+                                    tint = BrandGreenColour,
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
+
                             Column {
                                 Text(
                                     text = "Stored Energy",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontFamily = FontFamily.SansSerif,
-                                    color = TextGray,
-                                    letterSpacing = 0.6.sp
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = TextGray
                                 )
                                 Row(
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalAlignment = Alignment.Bottom,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Text(
                                         text = "${(storedEnergyPercent * 100).toInt()}%",
                                         fontSize = 20.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontFamily = FontFamily.SansSerif,
-                                        color = TextDark,
-                                        lineHeight = 28.sp
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextDark
                                     )
                                     Text(
-                                        text = " ($storedEnergyKwh kWh)",
+                                        text = "($storedEnergyKwh kWh)",
                                         fontSize = 14.sp,
-                                        fontFamily = FontFamily.SansSerif,
                                         color = TextGray
                                     )
                                 }
                             }
                         }
-                        // Progress bar
-                        Box(
+
+                        // Hardware-accelerated Progress Bar
+                        LinearProgressIndicator(
+                            progress = { storedEnergyPercent },
                             modifier = Modifier
-                                .width(96.dp)
+                                .width(110.dp)
                                 .height(8.dp)
-                                .clip(RoundedCornerShape(9999.dp))
-                                .background(ProgressBg)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(fraction = storedEnergyPercent)
-                                    .fillMaxSize()
-                                    .background(BrandGreenColour)
-                            )
-                        }
+                                .clip(CircleShape),
+                            color = BrandGreenColour,
+                            trackColor = ProgressBg,
+                            strokeCap = StrokeCap.Round
+                        )
                     }
                 }
 
-                // 2. Auto-Sell Excess Electricity
+                // ---- Auto-Sell Excess Electricity Card ----
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = White),
+                    border = BorderStroke(1.dp, CardBorderColor),
                     elevation = CardDefaults.cardElevation(0.dp)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        // Header with toggle
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -209,129 +200,120 @@ fun SmartSellScreen() {
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.weight(1f)
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(16.dp)
-                                        .background(BrandGreenColour)
+                                Icon(
+                                    imageVector = Icons.Outlined.Bolt,
+                                    contentDescription = "Bolt",
+                                    tint = BrandGreenColour,
+                                    modifier = Modifier.size(24.dp)
                                 )
                                 Text(
                                     text = "Auto-Sell Excess Electricity",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
-                                    fontFamily = FontFamily.SansSerif,
                                     color = TextDark
                                 )
                             }
-                            Switch(
-                                checked = autoSellEnabled,
-                                onCheckedChange = { autoSellEnabled = it },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = White,
-                                    checkedTrackColor = BrandGreenColour,
-                                    uncheckedThumbColor = White,
-                                    uncheckedTrackColor = TextGrayLight
-                                )
+
+                            Icon(
+                                imageVector = Icons.Filled.CheckCircle,
+                                contentDescription = "Auto-Sell Toggle",
+                                tint = if (autoSellEnabled) ActiveBlue else TextGray,
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .clickable { autoSellEnabled = !autoSellEnabled }
                             )
                         }
 
-                        // Description
                         Text(
                             text = "Automatically sell excess power to TNB under the 1:1 Solar ATAP credit program.",
-                            fontSize = 14.sp,
-                            fontFamily = FontFamily.SansSerif,
+                            fontSize = 13.sp,
                             color = TextGray,
-                            lineHeight = 23.sp
+                            lineHeight = 18.sp
                         )
 
-                        // Accumulated Bill Credits
+                        // Accumulated Bill Credits Box
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(LightGreenBg)
-                                .border(1.dp, BorderLight, RoundedCornerShape(8.dp))
-                                .padding(12.dp),
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(CreditBoxBg)
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = "Accumulated Bill Credits",
                                 fontSize = 14.sp,
-                                fontFamily = FontFamily.SansSerif,
                                 color = TextGray
                             )
                             Text(
-                                text = "RM ${String.format(Locale.US, "%.2f", accumulatedCredits)}",
+                                text = "RM $accumulatedCredits",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.SansSerif,
-                                color = Color(0xFF006C49)
+                                color = BrandGreenColour
                             )
                         }
 
-                        // Sell Excess Manually Now button
-                        Box(
+                        // Sell Excess Manually Button
+                        OutlinedButton(
+                            onClick = { /* Action */ },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(48.dp)
-                                .background(Background)
-                                .border(1.dp, BorderLight, RoundedCornerShape(12.dp))
-                                .padding(horizontal = 16.dp),
-                            contentAlignment = Alignment.Center
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, CardBorderColor),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = TextDark)
                         ) {
                             Text(
                                 text = "Sell Excess Manually Now",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                fontFamily = FontFamily.SansSerif,
-                                color = TextDark
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 }
 
-                // 3. Power Usage
+                // ---- Power Usage Card ----
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = White),
+                    border = BorderStroke(1.dp, CardBorderColor),
                     elevation = CardDefaults.cardElevation(0.dp)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        // Header
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .background(TextGrayLight)
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.AltRoute,
+                                contentDescription = "Power Flow",
+                                tint = TextDark,
+                                modifier = Modifier.size(22.dp)
                             )
                             Text(
                                 text = "Power Usage",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.SansSerif,
                                 color = TextDark
                             )
                         }
 
-                        // Floor items
-                        val floors = listOf("Floor 1", "Floor 2")
                         floors.forEachIndexed { index, floor ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(CardBg)
-                                    .border(1.dp, BorderLight, RoundedCornerShape(8.dp))
-                                    .padding(12.dp),
+                                    .border(1.dp, CardBorderColor, RoundedCornerShape(12.dp))
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -341,55 +323,51 @@ fun SmartSellScreen() {
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(40.dp)
+                                            .size(38.dp)
                                             .clip(CircleShape)
-                                            .background(Color(0xFFECEEF0)),
+                                            .background(FloorCircleBg),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
                                             text = "${index + 1}",
-                                            fontSize = 24.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = Color(0x80000000)
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextGray
                                         )
                                     }
                                     Text(
                                         text = floor,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontFamily = FontFamily.SansSerif,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
                                         color = TextDark
                                     )
                                 }
-                                Box(
-                                    modifier = Modifier
-                                        .background(BrandGreenColour, RoundedCornerShape(9999.dp))
-                                        .padding(horizontal = 12.dp, vertical = 4.dp)
+
+                                Surface(
+                                    color = BrandGreenColour,
+                                    shape = CircleShape
                                 ) {
                                     Text(
                                         text = "Solar",
+                                        color = White,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        fontFamily = FontFamily.SansSerif,
-                                        color = White,
-                                        letterSpacing = 0.6.sp
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
                                     )
                                 }
                             }
                         }
 
-                        // Total
+                        HorizontalDivider(thickness = 1.dp, color = CardBorderColor)
+
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 4.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.End
                         ) {
                             Text(
-                                text = "Total : $totalPowerUsage kWh/day",
+                                text = "Total : ${totalPowerUsage}kWh/day",
                                 fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                fontFamily = FontFamily.SansSerif,
+                                fontWeight = FontWeight.Bold,
                                 color = TextDark
                             )
                         }
@@ -397,107 +375,6 @@ fun SmartSellScreen() {
                 }
             }
         }
-
-        // ---- Bottom Navigation ----
-        BottomNavBar(
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
-    }
-}
-
-@Composable
-private fun BottomNavBar(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(80.dp)
-            .background(White)
-            .border(width = 1.dp, color = BorderLight)
-            .shadow(elevation = 4.dp, shape = RoundedCornerShape(0.dp))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Home (inactive)
-            NavItem(
-                icon = Icons.Outlined.WbSunny,
-                label = "Home",
-                iconTint = TextGrayLight,
-                textColor = TextGrayLight,
-                modifier = Modifier.weight(1f)
-            )
-
-            // Smart Sell (active – green pill)
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(50.dp)
-                    .clip(RoundedCornerShape(9999.dp))
-                    .background(BrandGreenColour)
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                NavItem(
-                    icon = Icons.Outlined.WbSunny,
-                    label = "Smart Sell",
-                    iconTint = White,
-                    textColor = White
-                )
-            }
-
-            // CREAM (inactive)
-            NavItem(
-                icon = Icons.Outlined.WbSunny,
-                label = "CREAM",
-                iconTint = TextGrayLight,
-                textColor = TextGrayLight,
-                modifier = Modifier.weight(1f)
-            )
-
-            // Services (inactive)
-            NavItem(
-                icon = Icons.Outlined.WbSunny,
-                label = "Services",
-                iconTint = TextGray,
-                textColor = TextGray,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun NavItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    iconTint: Color,
-    textColor: Color,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = iconTint,
-            modifier = Modifier.size(18.dp)
-        )
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            fontFamily = FontFamily.SansSerif,
-            color = textColor,
-            letterSpacing = 0.6.sp,
-            textAlign = TextAlign.Center
-        )
     }
 }
 

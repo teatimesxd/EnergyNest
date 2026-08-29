@@ -4,21 +4,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ViewSidebar
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -26,162 +25,166 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 
-// ---- Colours from Figma ----
-private val Background = Color(0xFFF7F9FB)
-private val BorderLight = Color(0xFFBBCABF)
+private val Background = Color(0xFFF6F8F7)
 private val TextDark = Color(0xFF191C1E)
-private val TextGray = Color(0xFF3C4A42)
-private val TextGrayLight = Color(0xFF505F76)
-private val BrandGreenColour = Color(0xFF10B981)
-private val White = Color.White
+private val TextGray = Color(0xFF5A6065)
+private val BrandGreenColour = Color(0xFF00B87C)
 private val LightGrayBg = Color(0xFFF2F4F6)
+private val BorderLight = Color(0xFFE2E8F0)
+private val White = Color.White
 
 @Composable
-fun CreamScreen() {
+fun CreamScreen(
+    onOpenDrawer: () -> Unit = {}
+) {
     var propertyType by remember { mutableStateOf("Terrace") }
-    var roofSpace by remember { mutableFloatStateOf(1200f) } // in sq ft
-    val propertyTypes = listOf("Terrace", "Semi-D", "Bungalow", "Apartment", "Others")
+    var roofSpace by remember { mutableFloatStateOf(1200f) }
+    val propertyTypes = remember { listOf("Terrace", "Semi-D", "Bungalow", "Apartment", "Others") }
 
-    // Calculate potential monthly income (rough estimate)
-    val minIncome = (roofSpace * 0.25).roundToInt()
-    val maxIncome = (roofSpace * 0.40).roundToInt()
+    // Memoize mathematical calculations & string formatting to avoid allocations during UI rendering
+    val minIncome = remember(roofSpace) { (roofSpace * 0.208).roundToInt() }
+    val maxIncome = remember(roofSpace) { (roofSpace * 0.333).roundToInt() }
+    val formattedRoofSpace = remember(roofSpace) { "${"%,d".format(roofSpace.roundToInt())} sq ft" }
 
-    Box(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Background)
+            .background(Background),
+        contentPadding = PaddingValues(bottom = 24.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 80.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            // ---- Top App Bar ----
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+        // ---- Top App Bar ----
+        item {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
-                        .background(Background.copy(alpha = 0.9f))
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
-                        onClick = { /* navigate back */ },
-                        modifier = Modifier.size(36.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                        IconButton(onClick = onOpenDrawer) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.ViewSidebar,
+                                contentDescription = "Sidebar",
+                                tint = TextDark
+                            )
+                        }
+                        Text(
+                            text = "CREAM Rooftop Leasing",
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextDark
                         )
                     }
-                    Text(
-                        text = "CREAM Rooftop Leasing",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = FontFamily.SansSerif,
-                        color = TextDark
-                    )
-                    IconButton(onClick = { /* notifications */ }) {
+                    IconButton(onClick = { /* Notifications */ }) {
                         Icon(
                             imageVector = Icons.Outlined.Notifications,
-                            contentDescription = "Notifications"
+                            contentDescription = "Notifications",
+                            tint = TextDark
                         )
                     }
                 }
                 HorizontalDivider(thickness = 1.dp, color = BorderLight)
             }
+        }
 
-            // ---- Main Content ----
+        // ---- Main Content ----
+        item {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // Banner
+                // ---- Zero Cost Banner Card (Removed Intrinsic Measurement) ----
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(97.dp)
-                        .border(4.dp, BrandGreenColour, RoundedCornerShape(0.dp))
-                        .background(LightGrayBg),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = LightGrayBg),
                     elevation = CardDefaults.cardElevation(0.dp)
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.Top
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(20.dp)
-                                .padding(top = 4.dp)
+                                .width(4.dp)
+                                .height(76.dp)
                                 .background(BrandGreenColour)
                         )
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.Top
                         ) {
-                            Text(
-                                text = "Zero Installation Cost. Zero Maintenance.",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                fontFamily = FontFamily.SansSerif,
-                                color = TextDark,
-                                lineHeight = 24.sp
-                            )
-                            Text(
-                                text = "Earn Rental Income effortlessly by leasing your unused roof space.",
-                                fontSize = 14.sp,
-                                fontFamily = FontFamily.SansSerif,
-                                color = TextGray,
-                                lineHeight = 20.sp
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(BrandGreenColour),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "$",
+                                    color = White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
+                                )
+                            }
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text = "Zero Installation Cost. Zero Maintenance.",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextDark,
+                                    lineHeight = 20.sp
+                                )
+                                Text(
+                                    text = "Earn Rental Income effortlessly by leasing your unused roof space.",
+                                    fontSize = 13.sp,
+                                    color = TextGray,
+                                    lineHeight = 18.sp
+                                )
+                            }
                         }
                     }
                 }
 
-                // Calculator Section
+                // ---- Calculator Section ----
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = White),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderLight),
                     elevation = CardDefaults.cardElevation(0.dp)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(24.dp)
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
                         Text(
                             text = "Calculate Potential Income",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = FontFamily.SansSerif,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
                             color = TextDark
                         )
 
                         // Property Type Dropdown
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(
                                 text = "PROPERTY TYPE",
                                 fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                fontFamily = FontFamily.SansSerif,
+                                fontWeight = FontWeight.Bold,
                                 color = TextGray,
-                                letterSpacing = 0.6.sp
+                                letterSpacing = 0.5.sp
                             )
-                            // Simple dropdown (using a button that shows options)
                             var expanded by remember { mutableStateOf(false) }
                             Box(
                                 modifier = Modifier
@@ -190,43 +193,44 @@ fun CreamScreen() {
                                     .border(1.dp, BorderLight, RoundedCornerShape(8.dp))
                                     .background(White)
                                     .clickable { expanded = !expanded }
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    .padding(horizontal = 16.dp),
                                 contentAlignment = Alignment.CenterStart
                             ) {
-                                Text(
-                                    text = propertyType,
-                                    fontSize = 16.sp,
-                                    fontFamily = FontFamily.SansSerif,
-                                    color = TextDark
-                                )
-                                // Dropdown arrow
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.CenterEnd)
-                                        .size(12.dp)
-                                        .background(TextGray)
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false }
-                            ) {
-                                propertyTypes.forEach { type ->
-                                    DropdownMenuItem(
-                                        text = { Text(type) },
-                                        onClick = {
-                                            propertyType = type
-                                            expanded = false
-                                        }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = propertyType,
+                                        fontSize = 15.sp,
+                                        color = TextDark
                                     )
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowDropDown,
+                                        contentDescription = "Select Property Type",
+                                        tint = TextDark
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }
+                                ) {
+                                    propertyTypes.forEach { type ->
+                                        DropdownMenuItem(
+                                            text = { Text(type) },
+                                            onClick = {
+                                                propertyType = type
+                                                expanded = false
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
 
-                        // Slider for roof space
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
+                        // Roof Space Slider
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -235,40 +239,36 @@ fun CreamScreen() {
                                 Text(
                                     text = "ESTIMATED ROOF SPACE",
                                     fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontFamily = FontFamily.SansSerif,
+                                    fontWeight = FontWeight.Bold,
                                     color = TextGray,
-                                    letterSpacing = 0.6.sp
+                                    letterSpacing = 0.5.sp
                                 )
                                 Box(
                                     modifier = Modifier
-                                        .background(LightGrayBg, RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        .background(LightGrayBg, RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 10.dp, vertical = 4.dp)
                                 ) {
                                     Text(
-                                        text = "${roofSpace.roundToInt()} sq ft",
-                                        fontSize = 14.sp,
+                                        text = formattedRoofSpace,
+                                        fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        fontFamily = FontFamily.SansSerif,
                                         color = BrandGreenColour
                                     )
                                 }
                             }
 
-                            // Slider
                             Slider(
                                 value = roofSpace,
                                 onValueChange = { roofSpace = it },
                                 valueRange = 500f..5000f,
-                                steps = 9, // increments of 500
                                 colors = SliderDefaults.colors(
                                     thumbColor = BrandGreenColour,
-                                    activeTrackColor = BrandGreenColour
+                                    activeTrackColor = BrandGreenColour,
+                                    inactiveTrackColor = LightGrayBg
                                 ),
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            // Min/Max labels
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
@@ -276,29 +276,24 @@ fun CreamScreen() {
                                 Text(
                                     text = "500",
                                     fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontFamily = FontFamily.SansSerif,
-                                    color = TextGray,
-                                    letterSpacing = 0.6.sp
+                                    color = TextGray
                                 )
                                 Text(
-                                    text = "5000+",
+                                    text = "5,000+",
                                     fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontFamily = FontFamily.SansSerif,
-                                    color = TextGray,
-                                    letterSpacing = 0.6.sp
+                                    color = TextGray
                                 )
                             }
                         }
                     }
                 }
 
-                // Output Box – Potential Monthly Rental Income
+                // ---- Income Result Box ----
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = White),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderLight),
                     elevation = CardDefaults.cardElevation(0.dp)
                 ) {
                     Column(
@@ -308,55 +303,37 @@ fun CreamScreen() {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Decorative subtle pattern (simulated with a Box)
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(2.dp)
-                                .background(BrandGreenColour.copy(alpha = 0.1f))
-                        )
                         Text(
                             text = "POTENTIAL MONTHLY RENTAL INCOME",
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = FontFamily.SansSerif,
+                            fontWeight = FontWeight.Bold,
                             color = TextGray,
-                            letterSpacing = 0.6.sp,
+                            letterSpacing = 0.5.sp,
                             textAlign = TextAlign.Center
                         )
                         Text(
                             text = "RM $minIncome - RM $maxIncome",
-                            fontSize = 24.sp,
+                            fontSize = 26.sp,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.SansSerif,
                             color = BrandGreenColour,
-                            letterSpacing = (-0.24).sp,
                             textAlign = TextAlign.Center
                         )
                         Text(
-                            text = "Estimates vary based on roof condition and final assessment.",
-                            fontSize = 14.sp,
-                            fontFamily = FontFamily.SansSerif,
+                            text = "*Estimates vary based on roof condition and final assessment.",
+                            fontSize = 13.sp,
                             color = TextGray,
-                            lineHeight = 20.sp,
+                            lineHeight = 18.sp,
                             textAlign = TextAlign.Center
                         )
                     }
                 }
-            }
 
-            // CTA Button – fixed at bottom of scrollable content (but above bottom nav)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .padding(top = 8.dp, bottom = 16.dp)
-            ) {
+                // ---- CTA Button ----
                 Button(
                     onClick = { /* Check Eligibility */ },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(52.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = BrandGreenColour,
                         contentColor = White
@@ -368,128 +345,26 @@ fun CreamScreen() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.WbSunny,
+                            imageVector = Icons.Filled.Verified,
                             contentDescription = null,
                             tint = White,
                             modifier = Modifier.size(22.dp)
                         )
                         Text(
                             text = "Check Roof Eligibility with LEGA",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = FontFamily.SansSerif,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
                             color = White
                         )
                     }
                 }
             }
         }
-
-        // ---- Bottom Navigation ----
-        BottomNavBar(
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
-    }
-}
-
-@Composable
-private fun BottomNavBar(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(80.dp)
-            .background(White)
-            .border(width = 1.dp, color = BorderLight)
-            .shadow(elevation = 4.dp, shape = RoundedCornerShape(0.dp))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Home (inactive)
-            NavItem(
-                icon = Icons.Outlined.WbSunny,
-                label = "Home",
-                iconTint = TextGrayLight,
-                textColor = TextGrayLight,
-                modifier = Modifier.weight(1f)
-            )
-
-            // Smart Sell (inactive)
-            NavItem(
-                icon = Icons.Outlined.WbSunny,
-                label = "Smart Sell",
-                iconTint = TextGrayLight,
-                textColor = TextGrayLight,
-                modifier = Modifier.weight(1f)
-            )
-
-            // CREAM (active – green pill)
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(50.dp)
-                    .clip(RoundedCornerShape(9999.dp))
-                    .background(BrandGreenColour)
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                NavItem(
-                    icon = Icons.Outlined.WbSunny,
-                    label = "CREAM",
-                    iconTint = White,
-                    textColor = White
-                )
-            }
-
-            // Services (inactive)
-            NavItem(
-                icon = Icons.Outlined.WbSunny,
-                label = "Services",
-                iconTint = TextGray,
-                textColor = TextGray,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun NavItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    iconTint: Color,
-    textColor: Color,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = iconTint,
-            modifier = Modifier.size(18.dp)
-        )
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            fontFamily = FontFamily.SansSerif,
-            color = textColor,
-            letterSpacing = 0.6.sp,
-            textAlign = TextAlign.Center
-        )
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun PreviewCreamScreen() {
+fun creamScreenPreview(){
     CreamScreen()
 }
