@@ -2,22 +2,20 @@ package com.example.energynest
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ViewSidebar
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.CleaningServices
-import androidx.compose.material.icons.outlined.Handyman
-import androidx.compose.material.icons.outlined.Headset
-import androidx.compose.material.icons.outlined.HomeRepairService
-import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +26,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 private val Background = Color(0xFFF6F8F7)
 private val TextDark = Color(0xFF191C1E)
@@ -37,16 +41,156 @@ private val White = Color.White
 private val IconBg = Color(0xFFE8ECE9)
 private val BorderLight = Color(0xFFE2E8F0)
 
+private enum class ServicePage {
+    HOME,
+    CUSTOMER_SERVICE,
+    CONSULTATION,
+    MAINTENANCE,
+    CLEANING,
+    FAQ
+}
+
+private data class FAQData(
+    val question: String,
+    val answer: String
+)
+
 @Composable
 fun ServicesScreen(
     onOpenDrawer: () -> Unit = {}
 ) {
-    // Cache static lists to eliminate heap allocations on recomposition
+    var currentPage by remember {
+        mutableStateOf(ServicePage.HOME)
+    }
+
+    when (currentPage) {
+
+        ServicePage.HOME -> ServicesHome(
+            onOpenDrawer = onOpenDrawer,
+            onOpenPage = {
+                currentPage = it
+            }
+        )
+
+        ServicePage.CUSTOMER_SERVICE -> CustomerServicePage(
+            onBack = {
+                currentPage = ServicePage.HOME
+            }
+        )
+
+        ServicePage.CONSULTATION -> ConsultationPage(
+            onBack = {
+                currentPage = ServicePage.HOME
+            }
+        )
+
+        ServicePage.MAINTENANCE -> MaintenancePage(
+            onBack = {
+                currentPage = ServicePage.HOME
+            }
+        )
+
+        ServicePage.CLEANING -> CleaningPage(
+            onBack = {
+                currentPage = ServicePage.HOME
+            }
+        )
+
+        ServicePage.FAQ -> FAQPage(
+            onBack = {
+                currentPage = ServicePage.HOME
+            }
+        )
+    }
+}
+
+@Composable
+private fun ServicesHome(
+    onOpenDrawer: () -> Unit,
+    onOpenPage: (ServicePage) -> Unit
+) {
     val faqs = remember {
         listOf(
-            "How to track savings?",
-            "What is CREAM?",
-            "Service response time?"
+            FAQData(
+                "How do I track my energy savings?",
+                "Open View Electric Analysis to see your energy usage, estimated savings, and recent performance."
+            ),
+            FAQData(
+                "What is CREAM?",
+                "CREAM is the leasing service used to help customers access renewable energy solutions through a flexible leasing arrangement."
+            ),
+            FAQData(
+                "How long does customer service take to respond?",
+                "Most general enquiries are reviewed within one business day. Urgent service issues may be prioritised."
+            ),
+            FAQData(
+                "How can I book an energy consultation?",
+                "Tap Consultation on this page, select a preferred date and time, and submit the request."
+            ),
+            FAQData(
+                "Can I reschedule a consultation?",
+                "Yes. Contact Customer Service with your booking details and preferred new time."
+            ),
+            FAQData(
+                "How often should solar panels be maintained?",
+                "A routine inspection is recommended periodically to check system performance, connections, and panel condition."
+            ),
+            FAQData(
+                "Why does my energy production change?",
+                "Production can change because of sunlight, weather, panel condition, system performance, and household usage."
+            ),
+            FAQData(
+                "How do I request solar panel cleaning?",
+                "Tap Cleaning, choose a preferred date, provide your location, and submit the cleaning request."
+            ),
+            FAQData(
+                "What happens during maintenance?",
+                "A technician can inspect the solar panels, connections, battery equipment, and general system condition."
+            ),
+            FAQData(
+                "Can I contact support about billing?",
+                "Yes. Customer Service can assist with general billing questions and direct you to the appropriate account information."
+            ),
+            FAQData(
+                "Where can I view my payment history?",
+                "Payment History is available from the main navigation menu of the EnergyNest application."
+            ),
+            FAQData(
+                "Where can I view my electricity analysis?",
+                "Use View Electric Analysis from the main navigation menu to review your electricity information."
+            ),
+            FAQData(
+                "Can I request a service for another date?",
+                "Yes. Choose your preferred date when submitting a consultation, maintenance, or cleaning request."
+            ),
+            FAQData(
+                "What information should I provide to support?",
+                "Providing a short description of the issue can help support assist you faster."
+            ),
+            FAQData(
+                "Do I need to be at home for maintenance?",
+                "It depends on the type of service and access required."
+            ),
+            FAQData(
+                "How do I cancel a service request?",
+                "Contact Customer Service with your request details before the scheduled appointment."
+            ),
+            FAQData(
+                "How can I improve my household energy efficiency?",
+                "Review your electricity analysis, identify high-usage periods, and consider energy-efficient appliances and habits."
+            ),
+            FAQData(
+                "Can I request help choosing a service?",
+                "Yes. Customer Service can explain the available services and help you choose the most suitable option."
+            ),
+            FAQData(
+                "How will I know if my service request is submitted?",
+                "A confirmation message will appear after a request is successfully submitted."
+            ),
+            FAQData(
+                "Where can I get more help?",
+                "Use Customer Service to contact the EnergyNest support team for account, service, or general assistance."
+            )
         )
     }
 
@@ -56,47 +200,15 @@ fun ServicesScreen(
             .background(Background),
         contentPadding = PaddingValues(bottom = 24.dp)
     ) {
-        // Top App Bar
+
         item {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        IconButton(onClick = onOpenDrawer) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.ViewSidebar,
-                                contentDescription = "Sidebar",
-                                tint = TextDark
-                            )
-                        }
-                        Text(
-                            text = "Services",
-                            fontSize = 19.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextDark
-                        )
-                    }
-                    IconButton(onClick = { /* Notifications */ }) {
-                        Icon(
-                            imageVector = Icons.Outlined.Notifications,
-                            contentDescription = "Notifications",
-                            tint = TextDark
-                        )
-                    }
-                }
-                HorizontalDivider(thickness = 1.dp, color = BorderLight)
-            }
+            TopBar(
+                title = "Services",
+                onOpenDrawer = onOpenDrawer,
+                onNotification = {}
+            )
         }
 
-        // Service Cards Grid
         item {
             Column(
                 modifier = Modifier
@@ -104,23 +216,32 @@ fun ServicesScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+
                     ServiceCard(
                         title = "Customer Service",
-                        description = "Get help with your account, billing inquiries, and general support for...",
+                        description = "Get help with your account, billing inquiries, and general support.",
                         buttonText = "CONTACT US",
                         icon = Icons.Outlined.Headset,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            onOpenPage(ServicePage.CUSTOMER_SERVICE)
+                        }
                     )
+
                     ServiceCard(
                         title = "Consultation",
-                        description = "Schedule a session with our energy experts to optimize your home for...",
+                        description = "Schedule a session with our energy experts for your home.",
                         buttonText = "BOOK SESSION",
                         icon = Icons.Outlined.Handyman,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            onOpenPage(ServicePage.CONSULTATION)
+                        }
                     )
                 }
 
@@ -128,53 +249,77 @@ fun ServicesScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+
                     ServiceCard(
                         title = "Maintenance",
-                        description = "Regular check-ups for your solar panels and battery storage to ensure",
+                        description = "Regular check-ups for your solar panels and battery storage.",
                         buttonText = "SCHEDULE CHECK",
                         icon = Icons.Outlined.HomeRepairService,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            onOpenPage(ServicePage.MAINTENANCE)
+                        }
                     )
+
                     ServiceCard(
                         title = "Cleaning",
-                        description = "Professional cleaning for solar arrays to maintain optimal sunlight...",
+                        description = "Professional cleaning for solar panels to maintain performance.",
                         buttonText = "BOOK CLEANING",
                         icon = Icons.Outlined.CleaningServices,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            onOpenPage(ServicePage.CLEANING)
+                        }
                     )
                 }
             }
         }
 
-        // FAQs Section Header
         item {
             Text(
                 text = "Common Questions",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextDark,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                modifier = Modifier.padding(
+                    horizontal = 16.dp,
+                    vertical = 8.dp
+                )
             )
         }
 
-        // Lazy FAQ Items
-        items(faqs) { question ->
-            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                FAQItem(question = question)
+        items(faqs.take(5)) { faq ->
+
+            Box(
+                modifier = Modifier.padding(
+                    horizontal = 16.dp,
+                    vertical = 4.dp
+                )
+            ) {
+                FAQItem(faq)
             }
         }
 
-        // View All Button
         item {
+
             Spacer(modifier = Modifier.height(8.dp))
-            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+
+            Box(
+                modifier = Modifier.padding(horizontal = 16.dp)
+            ) {
+
                 OutlinedButton(
-                    onClick = { /* View all FAQs */ },
+                    onClick = {
+                        onOpenPage(ServicePage.FAQ)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(44.dp),
                     shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, BrandGreenColour),
+                    border = BorderStroke(
+                        1.dp,
+                        BrandGreenColour
+                    ),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = BrandGreenColour,
                         containerColor = White
@@ -183,12 +328,91 @@ fun ServicesScreen(
                     Text(
                         text = "View All FAQs",
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = BrandGreenColour
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TopBar(
+    title: String,
+    onOpenDrawer: (() -> Unit)? = null,
+    onBack: (() -> Unit)? = null,
+    onNotification: () -> Unit = {}
+) {
+
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 12.dp,
+                    vertical = 8.dp
+                ),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+
+                IconButton(
+                    onClick = {
+                        if (onBack != null) {
+                            onBack()
+                        } else {
+                            onOpenDrawer?.invoke()
+                        }
+                    }
+                ) {
+
+                    Icon(
+                        imageVector = if (onBack != null) {
+                            Icons.AutoMirrored.Outlined.ArrowBack
+                        } else {
+                            Icons.AutoMirrored.Outlined.ViewSidebar
+                        },
+                        contentDescription = if (onBack != null) {
+                            "Back"
+                        } else {
+                            "Sidebar"
+                        },
+                        tint = TextDark
+                    )
+                }
+
+                Text(
+                    text = title,
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark
+                )
+            }
+
+            IconButton(
+                onClick = onNotification
+            ) {
+
+                Icon(
+                    imageVector = Icons.Outlined.Notifications,
+                    contentDescription = "Notifications",
+                    tint = TextDark
+                )
+            }
+        }
+
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = BorderLight
+        )
     }
 }
 
@@ -198,25 +422,35 @@ private fun ServiceCard(
     description: String,
     buttonText: String,
     icon: ImageVector,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
 ) {
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
-        border = BorderStroke(1.dp, BorderLight),
+        colors = CardDefaults.cardColors(
+            containerColor = White
+        ),
+        border = BorderStroke(
+            1.dp,
+            BorderLight
+        ),
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+
                 Box(
                     modifier = Modifier
                         .size(34.dp)
@@ -224,6 +458,7 @@ private fun ServiceCard(
                         .background(IconBg),
                     contentAlignment = Alignment.Center
                 ) {
+
                     Icon(
                         imageVector = icon,
                         contentDescription = title,
@@ -231,6 +466,7 @@ private fun ServiceCard(
                         modifier = Modifier.size(18.dp)
                     )
                 }
+
                 Text(
                     text = title,
                     fontSize = 13.sp,
@@ -251,7 +487,7 @@ private fun ServiceCard(
             )
 
             Button(
-                onClick = { /* action */ },
+                onClick = onClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(32.dp),
@@ -260,8 +496,12 @@ private fun ServiceCard(
                     contentColor = White
                 ),
                 shape = RoundedCornerShape(8.dp),
-                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                contentPadding = PaddingValues(
+                    horizontal = 4.dp,
+                    vertical = 0.dp
+                )
             ) {
+
                 Text(
                     text = buttonText,
                     fontSize = 11.sp,
@@ -275,38 +515,1607 @@ private fun ServiceCard(
 }
 
 @Composable
-private fun FAQItem(question: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
-        border = BorderStroke(1.dp, BorderLight),
-        elevation = CardDefaults.cardElevation(0.dp)
+private fun ServiceHeader(
+    icon: ImageVector,
+    title: String,
+    description: String
+) {
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(
+
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(IconBg),
+            contentAlignment = Alignment.Center
         ) {
+
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = BrandGreenColour,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+
             Text(
-                text = question,
-                fontSize = 14.sp,
+                title,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextDark
             )
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = "Expand",
-                tint = TextDark
+
+            Text(
+                description,
+                fontSize = 13.sp,
+                color = TextGray,
+                lineHeight = 18.sp
             )
+        }
+    }
+}
+
+@Composable
+private fun SectionTitle(
+    text: String
+) {
+
+    Text(
+        text = text,
+        fontSize = 15.sp,
+        fontWeight = FontWeight.Bold,
+        color = TextDark
+    )
+}
+
+@Composable
+private fun InfoRow(
+    icon: ImageVector,
+    title: String,
+    value: String
+) {
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(CircleShape)
+                .background(IconBg),
+            contentAlignment = Alignment.Center
+        ) {
+
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = BrandGreenColour,
+                modifier = Modifier.size(19.dp)
+            )
+        }
+
+        Column {
+
+            Text(
+                title,
+                fontSize = 12.sp,
+                color = TextGray
+            )
+
+            Text(
+                value,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextDark
+            )
+        }
+    }
+}
+
+@Composable
+private fun FormTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String
+) {
+
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = {
+            Text(label)
+        },
+        placeholder = {
+            Text(placeholder)
+        },
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = BrandGreenColour,
+            focusedLabelColor = BrandGreenColour,
+            cursorColor = BrandGreenColour
+        )
+    )
+}
+
+@Composable
+private fun DateTimePickerField(
+    value: String,
+    label: String,
+    placeholder: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    enabled: Boolean = true
+) {
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled) {
+                onClick()
+            },
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (enabled) {
+                White
+            } else {
+                Color.LightGray.copy(alpha = 0.3f)
+            }
+        ),
+        border = BorderStroke(
+            1.dp,
+            if (enabled) {
+                BorderLight
+            } else {
+                Color.LightGray
+            }
+        ),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 16.dp,
+                    vertical = 14.dp
+                ),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text = label,
+                    fontSize = 12.sp,
+                    color = if (enabled) {
+                        TextGray
+                    } else {
+                        Color.LightGray
+                    }
+                )
+
+                Text(
+                    text = if (value.isNotEmpty()) {
+                        value
+                    } else {
+                        placeholder
+                    },
+                    fontSize = 14.sp,
+                    color = if (value.isNotEmpty()) {
+                        TextDark
+                    } else {
+                        TextGray.copy(alpha = 0.6f)
+                    }
+                )
+            }
+
+            Icon(
+                imageVector = icon,
+                contentDescription = "Select $label",
+                tint = if (enabled) {
+                    BrandGreenColour
+                } else {
+                    Color.LightGray
+                }
+            )
+        }
+    }
+}
+
+/*
+ * DATE VALIDATION
+ *
+ * This function gets today's date at midnight.
+ * Previous dates will be disabled in the calendar.
+ */
+private fun getTodayMillis(): Long {
+
+    val today = LocalDate.now()
+
+    return today
+        .atStartOfDay(ZoneId.systemDefault())
+        .toInstant()
+        .toEpochMilli()
+}
+
+/*
+ * DATE PICKER
+ *
+ * Previous dates are disabled.
+ * Today and future dates are allowed.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ServiceDatePickerDialog(
+    onDateSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+
+    val todayMillis = remember {
+        getTodayMillis()
+    }
+
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = todayMillis,
+
+        selectableDates = object : SelectableDates {
+
+            override fun isSelectableDate(
+                utcTimeMillis: Long
+            ): Boolean {
+
+                return utcTimeMillis >= todayMillis
+            }
+
+            override fun isSelectableYear(
+                year: Int
+            ): Boolean {
+
+                val currentYear = LocalDate.now().year
+
+                return year >= currentYear
+            }
+        }
+    )
+
+    androidx.compose.material3.DatePickerDialog(
+        onDismissRequest = onDismiss,
+
+        confirmButton = {
+
+            TextButton(
+                onClick = {
+
+                    val selectedMillis =
+                        datePickerState.selectedDateMillis
+
+                    if (selectedMillis != null &&
+                        selectedMillis >= todayMillis
+                    ) {
+
+                        val selectedDate =
+                            Instant
+                                .ofEpochMilli(selectedMillis)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDate()
+
+                        /*
+                         * Extra validation:
+                         * Make absolutely sure selected date
+                         * is not before today.
+                         */
+                        if (!selectedDate.isBefore(LocalDate.now())) {
+
+                            val formatter =
+                                DateTimeFormatter.ofPattern(
+                                    "dd MMM yyyy",
+                                    Locale.US
+                                )
+
+                            onDateSelected(
+                                selectedDate.format(formatter)
+                            )
+
+                            onDismiss()
+                        }
+                    }
+                }
+            ) {
+
+                Text(
+                    text = "SELECT",
+                    color = BrandGreenColour,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+
+        dismissButton = {
+
+            TextButton(
+                onClick = onDismiss
+            ) {
+
+                Text(
+                    text = "CANCEL",
+                    color = TextGray
+                )
+            }
+        }
+    ) {
+
+        DatePicker(
+            state = datePickerState,
+            showModeToggle = false,
+
+            title = {
+
+                Text(
+                    text = "Select Date",
+                    modifier = Modifier.padding(
+                        start = 24.dp,
+                        top = 16.dp
+                    ),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        )
+    }
+}
+
+/*
+ * TIME PICKER
+ *
+ * Available times:
+ *
+ * 09:00 AM
+ * 09:30 AM
+ * 10:00 AM
+ * ...
+ * 04:30 PM
+ * 05:00 PM
+ */
+@Composable
+private fun ServiceTimePickerDialog(
+    onTimeSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+
+    val timeSlots = listOf(
+        "09:00 AM",
+        "09:30 AM",
+        "10:00 AM",
+        "10:30 AM",
+        "11:00 AM",
+        "11:30 AM",
+        "12:00 PM",
+        "12:30 PM",
+        "01:00 PM",
+        "01:30 PM",
+        "02:00 PM",
+        "02:30 PM",
+        "03:00 PM",
+        "03:30 PM",
+        "04:00 PM",
+        "04:30 PM",
+        "05:00 PM"
+    )
+
+    var selectedTime by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss
+    ) {
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = White
+            ),
+            elevation = CardDefaults.cardElevation(4.dp)
+        ) {
+
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+
+                Text(
+                    text = "Select Time",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark,
+                    modifier = Modifier.padding(
+                        bottom = 4.dp
+                    )
+                )
+
+                Text(
+                    text = "Available from 9:00 AM to 5:00 PM",
+                    fontSize = 12.sp,
+                    color = TextGray,
+                    modifier = Modifier.padding(
+                        bottom = 12.dp
+                    )
+                )
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(280.dp)
+                ) {
+
+                    items(timeSlots) { time ->
+
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 3.dp)
+                                .clickable {
+                                    selectedTime = time
+                                },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor =
+                                    if (selectedTime == time) {
+                                        BrandGreenColour.copy(
+                                            alpha = 0.10f
+                                        )
+                                    } else {
+                                        White
+                                    }
+                            ),
+                            border =
+                                if (selectedTime == time) {
+                                    BorderStroke(
+                                        1.dp,
+                                        BrandGreenColour
+                                    )
+                                } else {
+                                    BorderStroke(
+                                        1.dp,
+                                        BorderLight
+                                    )
+                                },
+                            elevation = CardDefaults.cardElevation(0.dp)
+                        ) {
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        horizontal = 16.dp,
+                                        vertical = 12.dp
+                                    ),
+                                verticalAlignment =
+                                    Alignment.CenterVertically,
+                                horizontalArrangement =
+                                    Arrangement.Center
+                            ) {
+
+                                Icon(
+                                    imageVector =
+                                        Icons.Outlined.AccessTime,
+                                    contentDescription = null,
+                                    tint =
+                                        if (selectedTime == time) {
+                                            BrandGreenColour
+                                        } else {
+                                            TextGray
+                                        },
+                                    modifier =
+                                        Modifier.size(18.dp)
+                                )
+
+                                Spacer(
+                                    modifier =
+                                        Modifier.width(10.dp)
+                                )
+
+                                Text(
+                                    text = time,
+                                    fontSize = 14.sp,
+                                    color =
+                                        if (selectedTime == time) {
+                                            BrandGreenColour
+                                        } else {
+                                            TextDark
+                                        },
+                                    fontWeight =
+                                        if (selectedTime == time) {
+                                            FontWeight.Bold
+                                        } else {
+                                            FontWeight.Normal
+                                        }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(
+                    modifier = Modifier.height(16.dp)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(8.dp)
+                ) {
+
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+
+                        Text("CANCEL")
+                    }
+
+                    Button(
+                        onClick = {
+
+                            selectedTime?.let {
+
+                                onTimeSelected(it)
+
+                                onDismiss()
+                            }
+                        },
+                        enabled = selectedTime != null,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor =
+                                BrandGreenColour,
+                            contentColor = White,
+                            disabledContainerColor =
+                                Color.LightGray
+                        )
+                    ) {
+
+                        Text(
+                            text = "SELECT",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SubmitButton(
+    text: String,
+    onClick: () -> Unit
+) {
+
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(46.dp),
+        shape = RoundedCornerShape(10.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = BrandGreenColour,
+            contentColor = White
+        )
+    ) {
+
+        Text(
+            text,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun CustomerServicePage(
+    onBack: () -> Unit
+) {
+
+    var message by remember {
+        mutableStateOf("")
+    }
+
+    var submitted by remember {
+        mutableStateOf(false)
+    }
+
+    var showError by remember {
+        mutableStateOf(false)
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Background),
+        contentPadding = PaddingValues(
+            bottom = 28.dp
+        )
+    ) {
+
+        item {
+
+            TopBar(
+                title = "Customer Service",
+                onBack = onBack
+            )
+        }
+
+        item {
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = White
+                ),
+                border = BorderStroke(
+                    1.dp,
+                    BorderLight
+                ),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(18.dp),
+                    verticalArrangement =
+                        Arrangement.spacedBy(15.dp)
+                ) {
+
+                    ServiceHeader(
+                        Icons.Outlined.Headset,
+                        "How can we help?",
+                        "Our support team is ready to assist with your EnergyNest account."
+                    )
+
+                    HorizontalDivider(
+                        color = BorderLight
+                    )
+
+                    InfoRow(
+                        Icons.Outlined.CalendarMonth,
+                        "Support hours",
+                        "Mon – Fri, 9:00 AM – 5:00 PM"
+                    )
+
+                    SectionTitle(
+                        "Send an enquiry"
+                    )
+
+                    OutlinedTextField(
+                        value = message,
+                        onValueChange = {
+
+                            if (it.length <= 100) {
+
+                                message = it
+
+                                showError = false
+                            }
+                        },
+                        label = {
+                            Text("Message")
+                        },
+                        placeholder = {
+                            Text(
+                                "Describe your question or issue (max 100 chars)"
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        maxLines = 4,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor =
+                                BrandGreenColour,
+                            focusedLabelColor =
+                                BrandGreenColour,
+                            cursorColor =
+                                BrandGreenColour
+                        )
+                    )
+
+                    Text(
+                        text = "${message.length}/100 characters",
+                        fontSize = 11.sp,
+                        color =
+                            if (message.length > 90) {
+                                Color.Red
+                            } else {
+                                TextGray
+                            },
+                        modifier =
+                            Modifier.align(Alignment.End)
+                    )
+
+                    if (showError) {
+
+                        Text(
+                            text =
+                                "Message cannot exceed 100 characters",
+                            fontSize = 12.sp,
+                            color = Color.Red
+                        )
+                    }
+
+                    SubmitButton(
+                        text =
+                            if (submitted) {
+                                "ENQUIRY SENT"
+                            } else {
+                                "SEND ENQUIRY"
+                            },
+                        onClick = {
+
+                            if (
+                                message.isNotBlank() &&
+                                message.length <= 100
+                            ) {
+
+                                submitted = true
+                                showError = false
+
+                            } else if (
+                                message.length > 100
+                            ) {
+
+                                showError = true
+                            }
+                        }
+                    )
+
+                    if (submitted) {
+
+                        Text(
+                            "Thank you. Your enquiry has been submitted successfully.",
+                            fontSize = 13.sp,
+                            color = BrandGreenColour,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConsultationPage(
+    onBack: () -> Unit
+) {
+
+    var date by remember {
+        mutableStateOf("")
+    }
+
+    var time by remember {
+        mutableStateOf("")
+    }
+
+    var submitted by remember {
+        mutableStateOf(false)
+    }
+
+    var showDatePicker by remember {
+        mutableStateOf(false)
+    }
+
+    var showTimePicker by remember {
+        mutableStateOf(false)
+    }
+
+    ServiceFormPage(
+        title = "Consultation",
+        icon = Icons.Outlined.Handyman,
+        description =
+            "Speak with an energy expert about your home's energy needs.",
+        onBack = onBack
+    ) {
+
+        DateTimePickerField(
+            value = date,
+            label = "Preferred Date",
+            placeholder = "Select a date",
+            icon = Icons.Outlined.CalendarMonth,
+            onClick = {
+                showDatePicker = true
+            }
+        )
+
+        DateTimePickerField(
+            value = time,
+            label = "Preferred Time",
+            placeholder = "Select a time",
+            icon = Icons.Outlined.AccessTime,
+            onClick = {
+
+                if (date.isNotEmpty()) {
+                    showTimePicker = true
+                }
+            },
+            enabled = date.isNotEmpty()
+        )
+
+        SectionTitle(
+            "Consultation topics"
+        )
+
+        listOf(
+            "Energy usage review",
+            "Solar system advice",
+            "Energy-saving recommendations"
+        ).forEach {
+
+            Text(
+                "•  $it",
+                fontSize = 13.sp,
+                color = TextGray
+            )
+        }
+
+        SubmitButton(
+            text =
+                if (submitted) {
+                    "SESSION REQUESTED"
+                } else {
+                    "BOOK SESSION"
+                },
+            onClick = {
+
+                if (
+                    date.isNotEmpty() &&
+                    time.isNotEmpty()
+                ) {
+
+                    submitted = true
+                }
+            }
+        )
+
+        if (submitted) {
+
+            Text(
+                "Your consultation request has been recorded. We will contact you to confirm the session.",
+                fontSize = 13.sp,
+                color = BrandGreenColour
+            )
+        }
+
+        if (showDatePicker) {
+
+            ServiceDatePickerDialog(
+
+                onDateSelected = {
+                        selectedDate ->
+
+                    /*
+                     * Extra protection:
+                     * only save date if it is today or later.
+                     */
+                    val formatter =
+                        DateTimeFormatter.ofPattern(
+                            "dd MMM yyyy",
+                            Locale.US
+                        )
+
+                    val parsedDate =
+                        try {
+                            LocalDate.parse(
+                                selectedDate,
+                                formatter
+                            )
+                        } catch (
+                            e: Exception
+                        ) {
+                            null
+                        }
+
+                    if (
+                        parsedDate != null &&
+                        !parsedDate.isBefore(
+                            LocalDate.now()
+                        )
+                    ) {
+
+                        date = selectedDate
+                        time = ""
+                    }
+                },
+
+                onDismiss = {
+                    showDatePicker = false
+                }
+            )
+        }
+
+        if (showTimePicker) {
+
+            ServiceTimePickerDialog(
+
+                onTimeSelected = {
+                        selectedTime ->
+
+                    time = selectedTime
+                },
+
+                onDismiss = {
+                    showTimePicker = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun MaintenancePage(
+    onBack: () -> Unit
+) {
+
+    var date by remember {
+        mutableStateOf("")
+    }
+
+    var time by remember {
+        mutableStateOf("")
+    }
+
+    var issue by remember {
+        mutableStateOf("")
+    }
+
+    var submitted by remember {
+        mutableStateOf(false)
+    }
+
+    var showDatePicker by remember {
+        mutableStateOf(false)
+    }
+
+    var showTimePicker by remember {
+        mutableStateOf(false)
+    }
+
+    ServiceFormPage(
+        title = "Maintenance",
+        icon = Icons.Outlined.HomeRepairService,
+        description =
+            "Keep your renewable energy equipment operating reliably.",
+        onBack = onBack
+    ) {
+
+        InfoRow(
+            Icons.Outlined.HomeRepairService,
+            "Service type",
+            "Solar & battery inspection"
+        )
+
+        DateTimePickerField(
+            value = date,
+            label = "Preferred Date",
+            placeholder = "Select a date",
+            icon = Icons.Outlined.CalendarMonth,
+            onClick = {
+                showDatePicker = true
+            }
+        )
+
+        DateTimePickerField(
+            value = time,
+            label = "Preferred Time",
+            placeholder = "Select a time",
+            icon = Icons.Outlined.AccessTime,
+            onClick = {
+
+                if (date.isNotEmpty()) {
+                    showTimePicker = true
+                }
+            },
+            enabled = date.isNotEmpty()
+        )
+
+        FormTextField(
+            issue,
+            {
+                issue = it
+            },
+            "Issue / notes",
+            "Optional: describe anything unusual"
+        )
+
+        SectionTitle(
+            "Maintenance checklist"
+        )
+
+        listOf(
+            "Solar panel condition",
+            "System connections",
+            "Battery condition",
+            "General performance check"
+        ).forEach {
+
+            Text(
+                "✓  $it",
+                fontSize = 13.sp,
+                color = TextGray
+            )
+        }
+
+        SubmitButton(
+            text =
+                if (submitted) {
+                    "REQUEST SUBMITTED"
+                } else {
+                    "SCHEDULE CHECK"
+                },
+            onClick = {
+
+                if (
+                    date.isNotEmpty() &&
+                    time.isNotEmpty()
+                ) {
+
+                    submitted = true
+                }
+            }
+        )
+
+        if (submitted) {
+
+            Text(
+                "Maintenance request submitted successfully.",
+                fontSize = 13.sp,
+                color = BrandGreenColour
+            )
+        }
+
+        if (showDatePicker) {
+
+            ServiceDatePickerDialog(
+
+                onDateSelected = {
+                        selectedDate ->
+
+                    val formatter =
+                        DateTimeFormatter.ofPattern(
+                            "dd MMM yyyy",
+                            Locale.US
+                        )
+
+                    val parsedDate =
+                        try {
+                            LocalDate.parse(
+                                selectedDate,
+                                formatter
+                            )
+                        } catch (
+                            e: Exception
+                        ) {
+                            null
+                        }
+
+                    if (
+                        parsedDate != null &&
+                        !parsedDate.isBefore(
+                            LocalDate.now()
+                        )
+                    ) {
+
+                        date = selectedDate
+                        time = ""
+                    }
+                },
+
+                onDismiss = {
+                    showDatePicker = false
+                }
+            )
+        }
+
+        if (showTimePicker) {
+
+            ServiceTimePickerDialog(
+
+                onTimeSelected = {
+                        selectedTime ->
+
+                    time = selectedTime
+                },
+
+                onDismiss = {
+                    showTimePicker = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun CleaningPage(
+    onBack: () -> Unit
+) {
+
+    var address by remember {
+        mutableStateOf("")
+    }
+
+    var date by remember {
+        mutableStateOf("")
+    }
+
+    var time by remember {
+        mutableStateOf("")
+    }
+
+    var submitted by remember {
+        mutableStateOf(false)
+    }
+
+    var showDatePicker by remember {
+        mutableStateOf(false)
+    }
+
+    var showTimePicker by remember {
+        mutableStateOf(false)
+    }
+
+    ServiceFormPage(
+        title = "Cleaning",
+        icon = Icons.Outlined.CleaningServices,
+        description =
+            "Professional solar panel cleaning to help maintain good performance.",
+        onBack = onBack
+    ) {
+
+        FormTextField(
+            address,
+            {
+                address = it
+            },
+            "Service location",
+            "Enter your service location"
+        )
+
+        DateTimePickerField(
+            value = date,
+            label = "Preferred Date",
+            placeholder = "Select a date",
+            icon = Icons.Outlined.CalendarMonth,
+            onClick = {
+                showDatePicker = true
+            }
+        )
+
+        DateTimePickerField(
+            value = time,
+            label = "Preferred Time",
+            placeholder = "Select a time",
+            icon = Icons.Outlined.AccessTime,
+            onClick = {
+
+                if (date.isNotEmpty()) {
+                    showTimePicker = true
+                }
+            },
+            enabled = date.isNotEmpty()
+        )
+
+        InfoRow(
+            Icons.Outlined.CleaningServices,
+            "Estimated service",
+            "Solar panel cleaning"
+        )
+
+        SubmitButton(
+            text =
+                if (submitted) {
+                    "BOOKING REQUESTED"
+                } else {
+                    "BOOK CLEANING"
+                },
+            onClick = {
+
+                if (
+                    address.isNotBlank() &&
+                    date.isNotEmpty() &&
+                    time.isNotEmpty()
+                ) {
+
+                    submitted = true
+                }
+            }
+        )
+
+        if (submitted) {
+
+            Text(
+                "Cleaning request submitted successfully. Your appointment will be confirmed by support.",
+                fontSize = 13.sp,
+                color = BrandGreenColour
+            )
+        }
+
+        if (showDatePicker) {
+
+            ServiceDatePickerDialog(
+
+                onDateSelected = {
+                        selectedDate ->
+
+                    val formatter =
+                        DateTimeFormatter.ofPattern(
+                            "dd MMM yyyy",
+                            Locale.US
+                        )
+
+                    val parsedDate =
+                        try {
+                            LocalDate.parse(
+                                selectedDate,
+                                formatter
+                            )
+                        } catch (
+                            e: Exception
+                        ) {
+                            null
+                        }
+
+                    if (
+                        parsedDate != null &&
+                        !parsedDate.isBefore(
+                            LocalDate.now()
+                        )
+                    ) {
+
+                        date = selectedDate
+                        time = ""
+                    }
+                },
+
+                onDismiss = {
+                    showDatePicker = false
+                }
+            )
+        }
+
+        if (showTimePicker) {
+
+            ServiceTimePickerDialog(
+
+                onTimeSelected = {
+                        selectedTime ->
+
+                    time = selectedTime
+                },
+
+                onDismiss = {
+                    showTimePicker = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ServiceFormPage(
+    title: String,
+    icon: ImageVector,
+    description: String,
+    onBack: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Background),
+        contentPadding = PaddingValues(
+            bottom = 28.dp
+        )
+    ) {
+
+        item {
+
+            TopBar(
+                title = title,
+                onBack = onBack
+            )
+        }
+
+        item {
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = White
+                ),
+                border = BorderStroke(
+                    1.dp,
+                    BorderLight
+                ),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(18.dp),
+                    verticalArrangement =
+                        Arrangement.spacedBy(15.dp)
+                ) {
+
+                    ServiceHeader(
+                        icon,
+                        title,
+                        description
+                    )
+
+                    HorizontalDivider(
+                        color = BorderLight
+                    )
+
+                    content()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FAQPage(
+    onBack: () -> Unit
+) {
+
+    val faqs = remember {
+
+        listOf(
+            FAQData(
+                "How do I track my energy savings?",
+                "Open View Electric Analysis to see your energy usage, estimated savings, and recent performance."
+            ),
+            FAQData(
+                "What is CREAM?",
+                "CREAM is the leasing service used to help customers access renewable energy solutions through a flexible leasing arrangement."
+            ),
+            FAQData(
+                "How long does customer service take to respond?",
+                "Most general enquiries are reviewed within one business day."
+            ),
+            FAQData(
+                "How can I book an energy consultation?",
+                "Tap Consultation on the Services page, select a preferred date and time, and submit the request."
+            ),
+            FAQData(
+                "Can I reschedule a consultation?",
+                "Yes. Contact Customer Service with your booking details and preferred new time."
+            ),
+            FAQData(
+                "How often should solar panels be maintained?",
+                "A routine inspection is recommended periodically."
+            ),
+            FAQData(
+                "Why does my energy production change?",
+                "Production can change because of sunlight, weather, panel condition, system performance, and household usage."
+            ),
+            FAQData(
+                "How do I request solar panel cleaning?",
+                "Tap Cleaning, choose a preferred date, provide your location, and submit the cleaning request."
+            ),
+            FAQData(
+                "What happens during maintenance?",
+                "A technician can inspect the solar panels, connections, battery equipment, and general system condition."
+            ),
+            FAQData(
+                "Can I contact support about billing?",
+                "Yes. Customer Service can assist with general billing questions."
+            ),
+            FAQData(
+                "Where can I view my payment history?",
+                "Payment History is available from the main navigation menu."
+            ),
+            FAQData(
+                "Where can I view my electricity analysis?",
+                "Use View Electric Analysis from the main navigation menu."
+            ),
+            FAQData(
+                "Can I request a service for another date?",
+                "Yes. Choose your preferred date when submitting a service request."
+            ),
+            FAQData(
+                "What information should I provide to support?",
+                "Providing a short description of the issue can help support assist you faster."
+            ),
+            FAQData(
+                "Do I need to be at home for maintenance?",
+                "It depends on the type of service and access required."
+            ),
+            FAQData(
+                "How do I cancel a service request?",
+                "Contact Customer Service with your request details before the scheduled appointment."
+            ),
+            FAQData(
+                "How can I improve my household energy efficiency?",
+                "Review your electricity analysis and identify high-usage periods."
+            ),
+            FAQData(
+                "Can I request help choosing a service?",
+                "Yes. Customer Service can explain the available services."
+            ),
+            FAQData(
+                "How will I know if my service request is submitted?",
+                "A confirmation message will appear after a request is successfully submitted."
+            ),
+            FAQData(
+                "Where can I get more help?",
+                "Use Customer Service to contact the EnergyNest support team."
+            )
+        )
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Background),
+        contentPadding = PaddingValues(
+            bottom = 28.dp
+        )
+    ) {
+
+        item {
+
+            TopBar(
+                title = "Frequently Asked Questions",
+                onBack = onBack
+            )
+        }
+
+        item {
+
+            Text(
+                "20 common questions about EnergyNest services",
+                fontSize = 14.sp,
+                color = TextGray,
+                modifier = Modifier.padding(
+                    horizontal = 16.dp,
+                    vertical = 14.dp
+                )
+            )
+        }
+
+        items(faqs) { faq ->
+
+            Box(
+                modifier = Modifier.padding(
+                    horizontal = 16.dp,
+                    vertical = 4.dp
+                )
+            ) {
+
+                FAQItem(faq)
+            }
+        }
+    }
+}
+
+@Composable
+private fun FAQItem(
+    faq: FAQData
+) {
+
+    var expanded by remember {
+        mutableStateOf(false)
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                expanded = !expanded
+            },
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = White
+        ),
+        border = BorderStroke(
+            1.dp,
+            BorderLight
+        ),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 16.dp,
+                        vertical = 14.dp
+                    ),
+                horizontalArrangement =
+                    Arrangement.SpaceBetween,
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Text(
+                    text = faq.question,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Icon(
+                    imageVector =
+                        if (expanded) {
+                            Icons.Default.KeyboardArrowUp
+                        } else {
+                            Icons.Default.KeyboardArrowDown
+                        },
+                    contentDescription =
+                        if (expanded) {
+                            "Collapse"
+                        } else {
+                            "Expand"
+                        },
+                    tint = BrandGreenColour
+                )
+            }
+
+            if (expanded) {
+
+                HorizontalDivider(
+                    color = BorderLight
+                )
+
+                Text(
+                    text = faq.answer,
+                    fontSize = 13.sp,
+                    color = TextGray,
+                    lineHeight = 19.sp,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
         }
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun ServiceScreenPreview(){
+fun ServiceScreenPreview() {
     ServicesScreen()
 }
