@@ -2,6 +2,7 @@ package com.example.energynest
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private val Background = Color(0xFFF6F8F7)
 private val TextDark = Color(0xFF191C1E)
@@ -40,6 +43,8 @@ fun LegaEligibilityScreen(
     var isAnalyzing by remember { mutableStateOf(false) }
     var isEligible by remember { mutableStateOf<Boolean?>(null) }
 
+    val coroutineScope = rememberCoroutineScope()
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -54,7 +59,10 @@ fun LegaEligibilityScreen(
                     .padding(horizontal = 8.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onBack) {
+                IconButton(
+                    onClick = onBack,
+                    enabled = !isAnalyzing
+                ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
@@ -62,7 +70,7 @@ fun LegaEligibilityScreen(
                     )
                 }
                 Text(
-                    text = "LEGA AI Roof Assessment",
+                    text = "LEGA Roof Assessment",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextDark
@@ -113,11 +121,15 @@ fun LegaEligibilityScreen(
 
                 OutlinedTextField(
                     value = address,
-                    onValueChange = { address = it },
+                    onValueChange = {
+                        address = it
+                        if (isEligible != null) isEligible = null
+                    },
                     label = { Text("Property Address / Postcode") },
                     leadingIcon = { Icon(Icons.Outlined.Home, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
+                    enabled = !isAnalyzing,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = BrandGreen,
                         unfocusedContainerColor = White,
@@ -144,6 +156,10 @@ fun LegaEligibilityScreen(
                                     color = if (shadingLevel == level) BrandGreen else BorderLight,
                                     shape = RoundedCornerShape(8.dp)
                                 )
+                                .clickable(enabled = !isAnalyzing) {
+                                    shadingLevel = level
+                                    if (isEligible != null) isEligible = null
+                                }
                                 .padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -157,21 +173,40 @@ fun LegaEligibilityScreen(
                             }
                             RadioButton(
                                 selected = (shadingLevel == level),
-                                onClick = { shadingLevel = level },
+                                onClick = {
+                                    shadingLevel = level
+                                    if (isEligible != null) isEligible = null
+                                },
+                                enabled = !isAnalyzing,
                                 colors = RadioButtonDefaults.colors(selectedColor = BrandGreen)
                             )
                         }
                     }
                 }
 
+                // Progress Indicator
                 if (isAnalyzing) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        contentAlignment = Alignment.Center
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = White),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderLight)
                     ) {
-                        CircularProgressIndicator(color = BrandGreen)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            CircularProgressIndicator(color = BrandGreen)
+                            Text(
+                                text = "LEGA scanning rooftop satellite data...",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = TextDark
+                            )
+                        }
                     }
                 } else if (isEligible == true) {
                     Card(
@@ -211,20 +246,27 @@ fun LegaEligibilityScreen(
                         if (isEligible == true) {
                             onCompleteAssessment()
                         } else {
-                            isAnalyzing = true
-                            isEligible = true
-                            isAnalyzing = false
+                            coroutineScope.launch {
+                                isAnalyzing = true
+                                delay(2500)
+                                isAnalyzing = false
+                                isEligible = true
+                            }
                         }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    enabled = address.isNotBlank(),
+                    enabled = address.isNotBlank() && !isAnalyzing,
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = BrandGreen)
                 ) {
                     Text(
-                        text = if (isEligible == true) "Submit Leasing Application" else "Analyze Roof via LEGA AI",
+                        text = when {
+                            isAnalyzing -> "Analyzing..."
+                            isEligible == true -> "Submit Leasing Application"
+                            else -> "Analyze Roof via LEGA"
+                        },
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = White

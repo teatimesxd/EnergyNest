@@ -102,8 +102,8 @@ fun SidebarDrawerContent(
                 DrawerMenuItem("Home", Icons.Default.Home, Screen.Home.route),
                 DrawerMenuItem("Smart Sell", Icons.Default.Sell, Screen.SmartSell.route),
                 DrawerMenuItem("CREAM Leasing", Icons.Outlined.BarChart, Screen.Cream.route),
-                DrawerMenuItem("View Electric Analysis", Icons.Default.Analytics),
-                DrawerMenuItem("View Payment History", Icons.Default.History),
+                DrawerMenuItem("View Electric Analysis", Icons.Default.Analytics, "electric_analysis"),
+                DrawerMenuItem("View Payment History", Icons.Default.History, "payment_history"),
                 DrawerMenuItem("Services", Icons.Default.Build, Screen.Services.route)
             )
 
@@ -160,8 +160,6 @@ fun SidebarDrawerContent(
             }
         }
     }
-
-
 }
 
 @Composable
@@ -257,5 +255,4 @@ fun AnimatedSidebarItem(
             }
         }
     }
-
 }

@@ -30,7 +30,6 @@ class MainActivity : ComponentActivity() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
 
-                // Top-level destinations that display the bottom navigation bar
                 val showBottomBar = currentRoute in listOf(
                     Screen.Home.route,
                     Screen.SmartSell.route,
@@ -103,11 +102,21 @@ class MainActivity : ComponentActivity() {
                                     onOpenDrawer = { scope.launch { drawerState.open() } }
                                 )
                             }
-                            // Destination screen for LEGA assessment
                             composable("lega_eligibility") {
                                 LegaEligibilityScreen(
                                     onBack = { navController.popBackStack() },
                                     onCompleteAssessment = { navController.popBackStack() }
+                                )
+                            }
+                            composable("electric_analysis") {
+                                ElectricAnalysisScreen(
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+                            // Payment History Route
+                            composable("payment_history") {
+                                PaymentHistoryScreen(
+                                    onBack = { navController.popBackStack() }
                                 )
                             }
                         }
