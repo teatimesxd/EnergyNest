@@ -30,6 +30,14 @@ class MainActivity : ComponentActivity() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
 
+                // Top-level destinations that display the bottom navigation bar
+                val showBottomBar = currentRoute in listOf(
+                    Screen.Home.route,
+                    Screen.SmartSell.route,
+                    Screen.Cream.route,
+                    Screen.Services.route
+                )
+
                 ModalNavigationDrawer(
                     drawerState = drawerState,
                     drawerContent = {
@@ -51,18 +59,20 @@ class MainActivity : ComponentActivity() {
                 ) {
                     Scaffold(
                         bottomBar = {
-                            AppBottomNavBar(
-                                currentRoute = currentRoute ?: Screen.Home.route,
-                                onNavigateTo = { route: String ->
-                                    if (currentRoute != route) {
-                                        navController.navigate(route) {
-                                            popUpTo(Screen.Home.route) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = true
+                            if (showBottomBar) {
+                                AppBottomNavBar(
+                                    currentRoute = currentRoute ?: Screen.Home.route,
+                                    onNavigateTo = { route: String ->
+                                        if (currentRoute != route) {
+                                            navController.navigate(route) {
+                                                popUpTo(Screen.Home.route) { saveState = true }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
                                         }
                                     }
-                                }
-                            )
+                                )
+                            }
                         }
                     ) { innerPadding ->
                         NavHost(
@@ -82,12 +92,22 @@ class MainActivity : ComponentActivity() {
                             }
                             composable(Screen.Cream.route) {
                                 CreamScreen(
-                                    onOpenDrawer = { scope.launch { drawerState.open() } }
+                                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                                    onCheckEligibility = {
+                                        navController.navigate("lega_eligibility")
+                                    }
                                 )
                             }
                             composable(Screen.Services.route) {
                                 ServicesScreen(
                                     onOpenDrawer = { scope.launch { drawerState.open() } }
+                                )
+                            }
+                            // Destination screen for LEGA assessment
+                            composable("lega_eligibility") {
+                                LegaEligibilityScreen(
+                                    onBack = { navController.popBackStack() },
+                                    onCompleteAssessment = { navController.popBackStack() }
                                 )
                             }
                         }

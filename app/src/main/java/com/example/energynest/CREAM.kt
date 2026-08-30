@@ -35,13 +35,13 @@ private val White = Color.White
 
 @Composable
 fun CreamScreen(
-    onOpenDrawer: () -> Unit = {}
+    onOpenDrawer: () -> Unit = {},
+    onCheckEligibility: () -> Unit = {}
 ) {
     var propertyType by remember { mutableStateOf("Terrace") }
     var roofSpace by remember { mutableFloatStateOf(1200f) }
-    val propertyTypes = remember { listOf("Terrace", "Semi-D", "Bungalow", "Apartment", "Others") }
+    val propertyTypes = remember { listOf("Terrace", "Semi-D", "Bungalow") }
 
-    // Memoize mathematical calculations & string formatting to avoid allocations during UI rendering
     val minIncome = remember(roofSpace) { (roofSpace * 0.208).roundToInt() }
     val maxIncome = remember(roofSpace) { (roofSpace * 0.333).roundToInt() }
     val formattedRoofSpace = remember(roofSpace) { "${"%,d".format(roofSpace.roundToInt())} sq ft" }
@@ -100,7 +100,7 @@ fun CreamScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // ---- Zero Cost Banner Card (Removed Intrinsic Measurement) ----
+                // Zero Cost Banner
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -155,7 +155,7 @@ fun CreamScreen(
                     }
                 }
 
-                // ---- Calculator Section ----
+                // Calculator Section
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -214,11 +214,18 @@ fun CreamScreen(
                                 }
                                 DropdownMenu(
                                     expanded = expanded,
-                                    onDismissRequest = { expanded = false }
+                                    onDismissRequest = { expanded = false },
+                                    containerColor = White
                                 ) {
                                     propertyTypes.forEach { type ->
                                         DropdownMenuItem(
-                                            text = { Text(type) },
+                                            text = {
+                                                Text(
+                                                    text = type,
+                                                    fontSize = 15.sp,
+                                                    color = TextDark
+                                                )
+                                            },
                                             onClick = {
                                                 propertyType = type
                                                 expanded = false
@@ -273,22 +280,14 @@ fun CreamScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(
-                                    text = "500",
-                                    fontSize = 12.sp,
-                                    color = TextGray
-                                )
-                                Text(
-                                    text = "5,000+",
-                                    fontSize = 12.sp,
-                                    color = TextGray
-                                )
+                                Text(text = "500", fontSize = 12.sp, color = TextGray)
+                                Text(text = "5,000+", fontSize = 12.sp, color = TextGray)
                             }
                         }
                     }
                 }
 
-                // ---- Income Result Box ----
+                // Income Result Box
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -328,9 +327,9 @@ fun CreamScreen(
                     }
                 }
 
-                // ---- CTA Button ----
+                // CTA Button (Triggers Navigation)
                 Button(
-                    onClick = { /* Check Eligibility */ },
+                    onClick = onCheckEligibility,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
@@ -365,6 +364,6 @@ fun CreamScreen(
 
 @Preview(showBackground = true)
 @Composable
-fun creamScreenPreview(){
+fun CreamScreenPreview() {
     CreamScreen()
 }

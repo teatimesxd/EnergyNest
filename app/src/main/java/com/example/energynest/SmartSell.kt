@@ -39,16 +39,22 @@ private val CreditBoxBg = Color(0xFFF3F4F6)
 private val FloorCircleBg = Color(0xFFEAECEE)
 private val White = Color.White
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SmartSellScreen(
     onOpenDrawer: () -> Unit = {}
 ) {
     val storedEnergyPercent = 0.75f
-    val storedEnergyKwh = 12.2
-    val accumulatedCredits = "45.20"
+    val storedEnergyKwh = 12.2f
+    var accumulatedCredits by remember { mutableDoubleStateOf(45.20) }
     val totalPowerUsage = 20
     var autoSellEnabled by remember { mutableStateOf(true) }
     val floors = remember { listOf("Floor 1", "Floor 2") }
+
+    // Bottom Sheet State
+    var showSellSheet by remember { mutableStateOf(false) }
+    var sellAmountKwh by remember { mutableFloatStateOf(5.0f) }
+    val tnbRatePerKwh = 0.38 // RM per kWh under ATAP program
 
     LazyColumn(
         modifier = Modifier
@@ -250,7 +256,7 @@ fun SmartSellScreen(
                                 color = TextGray
                             )
                             Text(
-                                text = "RM $accumulatedCredits",
+                                text = "RM ${String.format("%.2f", accumulatedCredits)}",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = BrandGreenColour
@@ -259,7 +265,7 @@ fun SmartSellScreen(
 
                         // Sell Excess Manually Button
                         OutlinedButton(
-                            onClick = { /* Action */ },
+                            onClick = { showSellSheet = true },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp),
@@ -371,6 +377,142 @@ fun SmartSellScreen(
                                 color = TextDark
                             )
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    // ---- Manual Sell Modal Bottom Sheet ----
+    if (showSellSheet) {
+        val estimatedEarnings = sellAmountKwh * tnbRatePerKwh
+
+        ModalBottomSheet(
+            onDismissRequest = { showSellSheet = false },
+            sheetState = rememberModalBottomSheetState(),
+            containerColor = White
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
+                Text(
+                    text = "Manual Energy Discharge",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark
+                )
+
+                Text(
+                    text = "Select how much stored energy to sell to the TNB grid immediately at RM ${tnbRatePerKwh}/kWh.",
+                    fontSize = 13.sp,
+                    color = TextGray,
+                    lineHeight = 18.sp
+                )
+
+                // Energy Amount Slider Section
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Amount to Sell",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextDark
+                        )
+                        Text(
+                            text = "${String.format("%.1f", sellAmountKwh)} kWh",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BrandGreenColour
+                        )
+                    }
+
+                    Slider(
+                        value = sellAmountKwh,
+                        onValueChange = { sellAmountKwh = it },
+                        valueRange = 0.5f..storedEnergyKwh,
+                        steps = 22,
+                        colors = SliderDefaults.colors(
+                            thumbColor = BrandGreenColour,
+                            activeTrackColor = BrandGreenColour,
+                            inactiveTrackColor = ProgressBg
+                        )
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = "Min: 0.5 kWh", fontSize = 12.sp, color = TextGray)
+                        Text(text = "Max: ${storedEnergyKwh} kWh", fontSize = 12.sp, color = TextGray)
+                    }
+                }
+
+                // Estimated Return Card
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(CreditBoxBg)
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Estimated Bill Credit",
+                            fontSize = 13.sp,
+                            color = TextGray
+                        )
+                        Text(
+                            text = "1:1 Solar ATAP Rate",
+                            fontSize = 11.sp,
+                            color = TextGray
+                        )
+                    }
+                    Text(
+                        text = "+ RM ${String.format("%.2f", estimatedEarnings)}",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandGreenColour
+                    )
+                }
+
+                // Action Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { showSellSheet = false },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, CardBorderColor)
+                    ) {
+                        Text(text = "Cancel", color = TextDark, fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = {
+                            accumulatedCredits += estimatedEarnings
+                            showSellSheet = false
+                        },
+                        modifier = Modifier
+                            .weight(1.5f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandGreenColour)
+                    ) {
+                        Text(text = "Discharge Now", fontWeight = FontWeight.Bold, color = White)
                     }
                 }
             }
