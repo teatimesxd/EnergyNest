@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,7 +40,6 @@ fun SidebarDrawerContent(
     onNavigate: (String) -> Unit
 ) {
     val context = LocalContext.current
-    var searchText by remember { mutableStateOf("") }
 
     ModalDrawerSheet(
         drawerContainerColor = Color.White,
@@ -97,40 +97,13 @@ fun SidebarDrawerContent(
                 textAlign = TextAlign.Center
             )
 
-            // ---- Search Field ----
-            OutlinedTextField(
-                value = searchText,
-                onValueChange = { searchText = it },
-                placeholder = { Text("Search CREAM", color = Color.Gray, fontSize = 14.sp) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(22.dp)
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 20.dp),
-                shape = RoundedCornerShape(50.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = BrandGreen,
-                    unfocusedBorderColor = Color.LightGray,
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    cursorColor = BrandGreen,
-                ),
-                singleLine = true
-            )
-
             // ---- Main Nav Items ----
             val menuItems = listOf(
                 DrawerMenuItem("Home", Icons.Default.Home, Screen.Home.route),
                 DrawerMenuItem("Smart Sell", Icons.Default.Sell, Screen.SmartSell.route),
-                DrawerMenuItem("CREAM Leasing", Icons.Default.Analytics, Screen.Cream.route),
+                DrawerMenuItem("CREAM Leasing", Icons.Outlined.BarChart, Screen.Cream.route),
+                DrawerMenuItem("View Electric Analysis", Icons.Default.Analytics),
+                DrawerMenuItem("View Payment History", Icons.Default.History),
                 DrawerMenuItem("Services", Icons.Default.Build, Screen.Services.route)
             )
 
@@ -144,7 +117,14 @@ fun SidebarDrawerContent(
                     onClick = {
                         item.route?.let { route ->
                             onNavigate(route)
-                        } ?: onCloseDrawer()
+                        } ?: run {
+                            onCloseDrawer()
+                            Toast.makeText(
+                                context,
+                                "${item.title} clicked!",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
                 )
             }
@@ -170,12 +150,18 @@ fun SidebarDrawerContent(
                     delay = (menuItems.size + index) * 80,
                     onClick = {
                         onCloseDrawer()
-                        Toast.makeText(context, "${item.title} clicked!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "${item.title} clicked!",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 )
             }
         }
     }
+
+
 }
 
 @Composable
@@ -205,7 +191,10 @@ fun AnimatedSidebarItem(
     AnimatedVisibility(
         visible = isVisible,
         enter = fadeIn(animationSpec = tween(300, delayMillis = delay)) +
-                slideInHorizontally(initialOffsetX = { -it / 2 }, animationSpec = tween(300, delayMillis = delay))
+                slideInHorizontally(
+                    initialOffsetX = { -it / 2 },
+                    animationSpec = tween(300, delayMillis = delay)
+                )
     ) {
         val backgroundColor by animateColorAsState(
             targetValue = if (isSelected) Color(0xFFD8F3E5) else Color.Transparent,
@@ -268,4 +257,5 @@ fun AnimatedSidebarItem(
             }
         }
     }
+
 }
