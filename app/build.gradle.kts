@@ -72,11 +72,8 @@ dependencies {
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.material:material-icons-extended:1.6.8")
 
-    // Google Maps
-    implementation("com.google.android.gms:play-services-maps:18.2.0")
-    implementation("com.google.maps.android:maps-compose:4.3.0")
-    implementation("com.google.android.gms:play-services-location:21.0.1")
-    implementation("com.google.android.libraries.places:places:3.3.0")
+    // Maps
+    implementation("org.maplibre.gl:android-sdk-opengl:13.4.1")
 
     // Vector Drawable
     implementation("androidx.vectordrawable:vectordrawable:1.2.0")

@@ -23,8 +23,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,8 +45,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.energynest.ui.theme.EnergyNestTheme
 
+
 @Composable
 fun LoginPage() {
+
     var account by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -57,13 +60,15 @@ fun LoginPage() {
             .background(Color(0xFFE2E8F0))
             .padding(20.dp)
             .background(
-                Color.White,
+                color = Color.White,
                 shape = RoundedCornerShape(20.dp)
             )
             .padding(horizontal = 24.dp, vertical = 32.dp),
+
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+
         // Logo
         Image(
             painter = painterResource(id = R.drawable.energynest_icon_1),
@@ -71,7 +76,7 @@ fun LoginPage() {
             modifier = Modifier.size(150.dp)
         )
 
-        // App name
+        // App Name
         Text(
             text = "EnergyNest",
             fontSize = 28.sp,
@@ -88,7 +93,7 @@ fun LoginPage() {
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        // Email / TNB Account Number label
+        // Email / TNB Label
         Text(
             text = "Email Address / TNB Account Number",
             fontSize = 16.sp,
@@ -99,63 +104,88 @@ fun LoginPage() {
                 .padding(top = 8.dp)
         )
 
-        // Email input
+        // Email / TNB TextField
         InputRow(
             label = "Enter your email or TNB #",
             value = account,
-            onValueChange = { account = it },
+            onValueChange = {
+                account = it
+            },
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Password row with "Forgot Password?" link
+        // Password Label + Forgot Password
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+
             Text(
                 text = "Password",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF505F76)
             )
+
             Text(
                 text = "Forgot Password?",
                 fontSize = 14.sp,
                 color = Color(0xFF006C49),
                 modifier = Modifier.clickable {
-                    // Handle forgot password
+                    // Handle Forgot Password
                 }
             )
         }
 
-        // Password input with visibility toggle
+        // Password TextField
         PasswordInputRow(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = {
+                password = it
+            },
             visible = passwordVisible,
-            onVisibilityToggle = { passwordVisible = !passwordVisible },
+            onVisibilityToggle = {
+                passwordVisible = !passwordVisible
+            },
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Login button
+        // Login Button
         Button(
-            onClick = { loginMessage = "Login successful" },
+            onClick = {
+                loginMessage = "Login successful"
+            },
+
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF006C49),
+                containerColor = Color(0xFF10B981),
                 contentColor = Color.White
             ),
-            modifier = Modifier.fillMaxWidth().height(56.dp),
+
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+
             shape = RoundedCornerShape(12.dp)
         ) {
+
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Login", fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.width(8.dp))
+
+                Text(
+                    text = "Login",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(
+                    modifier = Modifier.width(8.dp)
+                )
+
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = null,
@@ -164,31 +194,37 @@ fun LoginPage() {
             }
         }
 
+        // Login Success Message
         if (loginMessage.isNotEmpty()) {
+
             Text(
                 text = loginMessage,
-                color = Color.Green,
+                color = Color(0xFF10B981),
                 fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(top = 4.dp)
             )
         }
 
-        // "or" divider
+        // OR Divider
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+
             HorizontalDivider(
                 modifier = Modifier.weight(1f),
                 color = Color.LightGray,
                 thickness = 1.dp
             )
+
             Text(
                 text = "or",
                 modifier = Modifier.padding(horizontal = 16.dp),
                 color = Color.Gray,
                 fontSize = 14.sp
             )
+
             HorizontalDivider(
                 modifier = Modifier.weight(1f),
                 color = Color.LightGray,
@@ -196,27 +232,40 @@ fun LoginPage() {
             )
         }
 
-        // Link with TNB Account button (outlined)
+        // Link with TNB Account Button
         OutlinedButton(
-            onClick = { /* ... */ },
+            onClick = {
+                // Handle Link with TNB Account
+            },
+
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
+
             shape = RoundedCornerShape(12.dp),
+
             colors = ButtonDefaults.outlinedButtonColors(
                 contentColor = Color(0xFF10B981)
             )
         ) {
+
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+
                 Image(
-                    painter = painterResource(id = R.drawable.lightning_icon),
+                    painter = painterResource(
+                        id = R.drawable.lightning_icon
+                    ),
                     contentDescription = null,
                     modifier = Modifier.size(24.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+
+                Spacer(
+                    modifier = Modifier.width(8.dp)
+                )
+
                 Text(
                     text = "Link with TNB Account",
                     fontSize = 18.sp,
@@ -226,48 +275,91 @@ fun LoginPage() {
             }
         }
 
-        // Sign Up link
+        // Sign Up Link
         Row(
             modifier = Modifier.padding(top = 8.dp),
             horizontalArrangement = Arrangement.Center
         ) {
+
             Text(
                 text = "Don't have an account? ",
                 fontSize = 14.sp,
                 color = Color.Gray
             )
+
             Text(
                 text = "Sign Up",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF10B981),
                 modifier = Modifier.clickable {
-                    // Handle sign up
+                    // Handle Sign Up
                 }
             )
         }
     }
 }
 
+
+/*
+ * Email / TNB Account TextField
+ */
 @Composable
 fun InputRow(
     label: String,
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    shape: RoundedCornerShape = RoundedCornerShape(12.dp),
+    shape: RoundedCornerShape = RoundedCornerShape(24.dp)
 ) {
-    TextField(
+
+    OutlinedTextField(
         value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+
+        onValueChange = {
+            onValueChange(it)
+        },
+
+        placeholder = {
+            Text(
+                text = label,
+                fontSize = 20.sp,
+                color = Color(0xFF6B7280)
+            )
+        },
+
         singleLine = true,
+
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Text
+        ),
+
         shape = shape,
-        modifier = modifier.fillMaxWidth()
+
+        colors = OutlinedTextFieldDefaults.colors(
+
+            // White background
+            focusedContainerColor = Color.White,
+            unfocusedContainerColor = Color.White,
+
+            // Light gray border
+            focusedBorderColor = Color(0xFFD1D5DB),
+            unfocusedBorderColor = Color(0xFFD1D5DB),
+
+            // Cursor color
+            cursorColor = Color(0xFF10B981)
+        ),
+
+        modifier = modifier
+            .fillMaxWidth()
+            .height(64.dp)
     )
 }
 
+
+/*
+ * Password TextField
+ */
 @Composable
 fun PasswordInputRow(
     value: String,
@@ -275,33 +367,87 @@ fun PasswordInputRow(
     visible: Boolean,
     onVisibilityToggle: () -> Unit,
     modifier: Modifier = Modifier,
-    shape: RoundedCornerShape = RoundedCornerShape(12.dp),
+    shape: RoundedCornerShape = RoundedCornerShape(24.dp)
 ) {
-    TextField(
+
+    OutlinedTextField(
         value = value,
-        onValueChange = onValueChange,
-        label = { Text("Enter your password") },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-        visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+
+        onValueChange = {
+            onValueChange(it)
+        },
+
+        placeholder = {
+            Text(
+                text = "Enter your password",
+                fontSize = 20.sp,
+                color = Color(0xFF6B7280)
+            )
+        },
+
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Password
+        ),
+
+        visualTransformation = if (visible) {
+            VisualTransformation.None
+        } else {
+            PasswordVisualTransformation()
+        },
+
         trailingIcon = {
-            IconButton(onClick = onVisibilityToggle) {
+
+            IconButton(
+                onClick = onVisibilityToggle
+            ) {
+
                 Icon(
                     painter = painterResource(
-                        id = if (visible) R.drawable.visibility else R.drawable.non_visibility
+                        id = if (visible) {
+                            R.drawable.visibility
+                        } else {
+                            R.drawable.non_visibility
+                        }
                     ),
-                    contentDescription = if (visible) "Hide password" else "Show password"
+
+                    contentDescription = if (visible) {
+                        "Hide password"
+                    } else {
+                        "Show password"
+                    }
                 )
             }
         },
+
         singleLine = true,
+
         shape = shape,
-        modifier = modifier.fillMaxWidth()
+
+        colors = OutlinedTextFieldDefaults.colors(
+
+            // White background
+            focusedContainerColor = Color.White,
+            unfocusedContainerColor = Color.White,
+
+            // Light gray border
+            focusedBorderColor = Color(0xFFD1D5DB),
+            unfocusedBorderColor = Color(0xFFD1D5DB),
+
+            // Cursor color
+            cursorColor = Color(0xFF10B981)
+        ),
+
+        modifier = modifier
+            .fillMaxWidth()
+            .height(64.dp)
     )
 }
+
 
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
+
     EnergyNestTheme {
         LoginPage()
     }

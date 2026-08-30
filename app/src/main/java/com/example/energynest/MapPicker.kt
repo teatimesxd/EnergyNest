@@ -1,39 +1,84 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.energynest
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
-import android.location.Address
-import android.location.Geocoder
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import android.os.Looper
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MyLocation
+
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+
 import androidx.core.content.ContextCompat
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
-import com.google.maps.android.compose.rememberCameraPositionState
-import java.util.Locale
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+import org.json.JSONArray
+import org.json.JSONObject
+
+import org.maplibre.android.MapLibre
+import org.maplibre.android.annotations.Marker
+import org.maplibre.android.annotations.MarkerOptions
+import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapLibreMapOptions
+import org.maplibre.android.maps.MapView
+
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
+
+
+// =====================================================
+// ADDRESS RESULT
+// =====================================================
 
 data class AddressResult(
     val street: String,
@@ -42,137 +87,562 @@ data class AddressResult(
     val state: String
 )
 
+
+// =====================================================
+// LOCATION SEARCH RESULT
+// =====================================================
+
+data class LocationSearchResult(
+    val latitude: Double,
+    val longitude: Double,
+    val displayName: String,
+    val address: AddressResult
+)
+
+
+// =====================================================
+// MAP PICKER
+// =====================================================
+
 @Composable
-fun MapPicker(
-    onAddressSelected: (AddressResult) -> Unit,
-    onDismiss: () -> Unit
-) {
+fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    // =============================================
+    // STATE
+    // =============================================
+
+    var searchText by remember { mutableStateOf("") }
     var selectedLatLng by remember { mutableStateOf<LatLng?>(null) }
-    var addressResult by remember { mutableStateOf<AddressResult?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var selectedAddress by remember { mutableStateOf<AddressResult?>(null) }
+    var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
+    var selectedMarker by remember { mutableStateOf<Marker?>(null) }
+    var message by remember { mutableStateOf("") }
+    // =============================================
+    // FUNCTION TO MOVE MAP TO USER LOCATION
+    // =============================================
 
-    // Location permission launcher
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            // We'll try to get current location and move the camera there
-        }
-    }
+    fun moveToCurrentLocation() { message = "Getting your current location..."
+        requestCurrentLocation(context) { location ->
 
-    // Camera state – start with a default location (e.g., Kuala Lumpur)
-    val klcc = LatLng(3.1571, 101.7115)
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(klcc, 12f)
-    }
+            if (location == null) {
+                message = "Unable to get your location. Please turn on GPS."
+                return@requestCurrentLocation
+            }
 
-    // Try to get current location if permission granted
-    LaunchedEffect(Unit) {
-        if (ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            // You could use FusedLocationProviderClient to get current location and move camera
-            // For simplicity, we keep the default camera.
-        } else {
-            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-        }
-    }
+            val userLatLng = LatLng(
+                location.latitude,
+                location.longitude
+            )
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // The map
-        GoogleMap(
-            modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState,
-            uiSettings = MapUiSettings(
-                zoomControlsEnabled = true,
-                myLocationButtonEnabled = true
-            ),
-            properties = MapProperties(
-                isMyLocationEnabled = ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED
-            ),
-            onMapClick = { latLng ->
-                selectedLatLng = latLng
-                isLoading = true
-                // Reverse geocode
-                val geocoder = Geocoder(context, Locale.getDefault())
-                try {
-                    val addresses: MutableList<Address>? = geocoder.getFromLocation(
-                        latLng.latitude, latLng.longitude, 1
-                    )
-                    isLoading = false
-                    if (!addresses.isNullOrEmpty()) {
-                        val addr = addresses[0]
-                        addressResult = AddressResult(
-                            street = addr.getAddressLine(0) ?: "",
-                            zipcode = addr.postalCode ?: "",
-                            city = addr.locality ?: "",
-                            state = addr.adminArea ?: ""
-                        )
-                    } else {
-                        errorMessage = "No address found for this location."
-                    }
-                } catch (e: Exception) {
-                    isLoading = false
-                    errorMessage = "Geocoding error: ${e.message}"
+            selectedLatLng = userLatLng
+            mapLibreMap?.cameraPosition = CameraPosition.Builder()
+                .target(userLatLng)
+                .zoom(17.0)
+                .build()
+
+            // Remove previous marker
+            selectedMarker?.let { mapLibreMap?.removeMarker(it) }
+
+            // Add marker
+            selectedMarker =
+                mapLibreMap?.addMarker(MarkerOptions()
+                    .position(userLatLng)
+                    .title("Your Current Location")
+                )
+
+            message = "Getting current address..."
+
+            // Reverse geocode
+            coroutineScope.launch {
+                val result = reverseGeocodeLocation(
+                    latitude = location.latitude,
+                    longitude = location.longitude
+                )
+
+                if (result != null) {
+                    selectedAddress = result.address
+                    // Show location in search bar
+                    searchText = result.displayName
+                    message = "Current location selected"
+                } else {
+                    selectedAddress = null
+                    message = "Current location selected, but address was not found"
                 }
             }
-        ) {
-            // Show a marker at the selected location
-            selectedLatLng?.let {
-                Marker(
-                    state = MarkerState(position = it),
-                    title = "Selected location"
-                )
-            }
         }
+    }
 
-        // Loading indicator
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center)
-            )
+    // =============================================
+    // LOCATION PERMISSION
+    // =============================================
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts
+        .RequestMultiplePermissions()) { permissions ->
+
+        val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
+
+        val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+
+        if (fineGranted || coarseGranted) {
+            // Permission granted
+            // Get the real location immediately
+            moveToCurrentLocation()
+        } else {
+            message = "Location permission is required."
         }
+    }
 
-        // Bottom buttons: Confirm or Dismiss
+
+    Scaffold { innerPadding ->
         Box(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp)
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
-            if (addressResult != null) {
+            // =============================================
+            // MAP
+            // =============================================
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clipToBounds(),
+
+                factory = { mapContext -> MapLibre.getInstance(mapContext)
+                    // Texture mode allows to compose
+                    // UI to appear above the map
+
+                    val options = MapLibreMapOptions
+                        .createFromAttributes(mapContext)
+                        .textureMode(true)
+
+                    val mapView = MapView(mapContext, options)
+
+                    mapView.onCreate(null)
+                    mapView.getMapAsync { map -> mapLibreMap = map
+                        // =============================================
+                        // MAP STYLE
+                        // =============================================
+                        map.setStyle("https://tiles.openfreemap.org/styles/liberty")
+
+                        // =============================================
+                        // DEFAULT LOCATION
+                        // =============================================
+                        val defaultLocation = LatLng(3.1390, 101.6869)
+
+                        map.cameraPosition = CameraPosition.Builder()
+                            .target(defaultLocation)
+                            .zoom(12.0)
+                            .build()
+                        // =============================================
+                        // USER TAPS MAP
+                        // =============================================
+
+                        map.addOnMapClickListener { point ->
+                            selectedLatLng = point
+
+                            // Remove previous marker
+                            selectedMarker?.let { map.removeMarker(it) }
+
+                            // Add new marker
+
+                            selectedMarker = map.addMarker(
+                                MarkerOptions()
+                                    .position(point)
+                                    .title(
+                                        "Selected Location"
+                                    )
+                            )
+
+                            message = "Getting location..."
+
+                            // Reverse geocode selected point
+                            coroutineScope.launch {
+                                val result = reverseGeocodeLocation(
+                                    latitude = point.latitude,
+                                    longitude = point.longitude
+                                )
+
+
+                                if (result != null) {
+                                    selectedAddress = result.address
+                                    searchText = result.displayName
+                                    message = "Location selected"
+                                } else {
+                                    selectedAddress = null
+                                    message = "Unable to get address"
+                                }
+                            }
+                            true
+                        }
+                    }
+                    mapView
+                }
+            )
+
+            // =============================================
+            // TOP CONTROLS
+            // =============================================
+            Column(modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .background(Color.White.copy(alpha = 0.95f))
+            ) {
+
+                // =============================================
+                // TITLE
+                // =============================================
+                Row(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Choose Your Location",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close"
+                        )
+                    }
+                }
+
+                // =============================================
+                // SEARCH BAR
+                // =============================================
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp),
+
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = searchText,
+                        onValueChange = { searchText = it },
+                        label = { Text("Search location") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // =============================================
+                    // SEARCH BUTTON
+                    // =============================================
+
+                    Button(
+                        onClick = {
+                            if (searchText.isBlank()) {
+                                message = "Please enter a location"
+                            } else {
+                                coroutineScope.launch {
+                                    message = "Searching..."
+
+                                    val result = searchLocation(searchText)
+
+                                    if (
+                                        result != null
+                                    ) {
+                                        val location = LatLng(result.latitude, result.longitude)
+
+                                        // Move map
+                                        mapLibreMap?.cameraPosition = CameraPosition
+                                            .Builder()
+                                            .target(location)
+                                            .zoom(16.0)
+                                            .build()
+
+                                        selectedLatLng = location
+                                        selectedAddress = result.address
+
+                                        // Remove old marker
+                                        selectedMarker?.let { mapLibreMap?.removeMarker(it) }
+
+                                        // Add new marker
+                                        selectedMarker = mapLibreMap?.addMarker(MarkerOptions().position(location).title("Selected Location"))
+
+                                        searchText = result.displayName
+                                        message = "Location selected"
+                                    } else {
+                                        message = "Location not found"
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier.height(56.dp)
+                    ) {
+                        Text("Search")
+                    }
+                }
+
+                // =============================================
+                // USE CURRENT LOCATION BUTTON
+                // =============================================
                 Button(
                     onClick = {
-                        onAddressSelected(addressResult!!)
-                        onDismiss()
+                        val fineGranted = ContextCompat.checkSelfPermission(context,
+                            Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+                        val coarseGranted = ContextCompat.checkSelfPermission(context,
+                            Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+                        if (!fineGranted && !coarseGranted
+                        ) {
+
+                            // Ask user for permission
+                            locationPermissionLauncher.launch(arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            )
+                            )
+                        } else {
+                            // Permission already granted
+                            moveToCurrentLocation()
+                        }
                     },
-                    modifier = Modifier.fillMaxWidth()
+
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 12.dp, vertical = 8.dp
+                        )
+                        .height(
+                            48.dp
+                        )
                 ) {
-                    Text("Confirm Address")
+                    Icon(
+                        imageVector = Icons.Default.MyLocation,
+                        contentDescription = null
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text("Use My Current Location")
                 }
-            } else {
-                Button(
-                    onClick = { onDismiss() },
-                    modifier = Modifier.fillMaxWidth()
+            }
+
+            // =============================================
+            // BOTTOM CONFIRM BUTTON
+            // =============================================
+            Column(modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(start = 12.dp, end = 12.dp, bottom = 80.dp)
+                .background(Color.White.copy(alpha = 0.95f))
+                .padding(8.dp)
+            ) {
+                if (message.isNotBlank()
                 ) {
-                    Text("Cancel")
+                    Text(text = message,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        color = Color.DarkGray
+                    )
+                }
+
+                // =============================================
+                // CONFIRM LOCATION BUTTON
+                // =============================================
+                Button(
+                    onClick = {
+                        val address = selectedAddress
+
+                        if (address != null
+                        ) {
+                            // Send selected address
+                            // back to Register page
+                            onAddressSelected(address)
+                            onDismiss()
+                        } else {
+                            message = "Please select a valid location first."
+                        }
+                    },
+
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) {
+                    Text("Confirm Location")
                 }
             }
         }
+    }
+}
+// =====================================================
+// GET CURRENT LOCATION
+// =====================================================
+fun requestCurrentLocation(
+    context: Context,
+    onLocationReceived: (Location?) -> Unit
+) {
 
-        // Error message
-        errorMessage?.let {
-            Text(
-                text = it,
-                color = Color.Red,
-                modifier = Modifier.align(Alignment.Center)
-            )
+    val fineLocationGranted = ContextCompat.checkSelfPermission(context,
+        Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+    val coarseLocationGranted = ContextCompat.checkSelfPermission(context,
+        Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+    // Permission not granted
+    if (!fineLocationGranted && !coarseLocationGranted
+    ) {
+        onLocationReceived(null)
+        return
+    }
+
+    val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+    try {
+        val provider = when {
+            fineLocationGranted && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ->
+                LocationManager.GPS_PROVIDER
+            locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) ->
+                LocationManager.NETWORK_PROVIDER
+            else -> null
+        }
+
+        // No provider available
+        if (provider == null
+        ) { onLocationReceived(null)
+            return
+        }
+
+        // Actively request location
+        locationManager.requestSingleUpdate(provider, object : LocationListener {
+
+            override fun onLocationChanged(location: Location) {
+                onLocationReceived(location)
+            }
+        },
+
+            Looper.getMainLooper()
+        )
+    } catch (
+        e: SecurityException
+    ) {
+        onLocationReceived(null
+        )
+    }
+}
+
+
+// =====================================================
+// SEARCH LOCATION
+// =====================================================
+
+suspend fun searchLocation(query: String): LocationSearchResult? = withContext(Dispatchers.IO) {
+
+    try {
+        val encodedQuery = URLEncoder.encode(query, "UTF-8")
+        val url = URL("https://nominatim.openstreetmap.org/search" +
+                "?format=jsonv2" +
+                "&addressdetails=1" +
+                "&limit=1" +
+                "&q=$encodedQuery"
+        )
+
+        val connection = url.openConnection() as HttpURLConnection
+        connection.requestMethod = "GET"
+
+        connection.setRequestProperty("User-Agent", "EnergyNestStudentApp/1.0")
+
+        val response = connection
+            .inputStream
+            .bufferedReader()
+            .use { it.readText() }
+
+        val results = JSONArray(response)
+
+        if (results.length() == 0
+        ) { return@withContext null }
+
+
+        val firstResult = results.getJSONObject(0)
+        val latitude = firstResult.optDouble("lat")
+        val longitude = firstResult.optDouble("lon")
+        val displayName = firstResult.optString("display_name")
+        val addressJson = firstResult.optJSONObject("address")
+        val address = parseAddress(addressJson)
+
+        LocationSearchResult(latitude = latitude, longitude = longitude, displayName = displayName, address = address)
+    } catch (e: Exception) { null }
+}
+
+
+// =====================================================
+// REVERSE GEOCODE
+// =====================================================
+
+suspend fun reverseGeocodeLocation(latitude: Double, longitude: Double): LocationSearchResult? =
+    withContext(
+        Dispatchers.IO
+    ) {
+
+        try { val url = URL("https://nominatim.openstreetmap.org/reverse" +
+                "?format=jsonv2" +
+                "&addressdetails=1" +
+                "&lat=$latitude" +
+                "&lon=$longitude"
+        )
+
+            val connection = url.openConnection() as HttpURLConnection
+
+            connection.requestMethod = "GET"
+
+            connection.setRequestProperty("User-Agent", "EnergyNestStudentApp/1.0")
+
+            val response = connection.inputStream.bufferedReader().use { it.readText() }
+            val resultJson = JSONObject(response)
+            val displayName = resultJson.optString("display_name")
+            val addressJson = resultJson.optJSONObject("address")
+            val address = parseAddress(addressJson)
+
+            LocationSearchResult(latitude = latitude, longitude = longitude, displayName = displayName, address = address)
+        } catch (e: Exception) {
+            null
         }
     }
+
+
+// =====================================================
+// PARSE ADDRESS
+// =====================================================
+
+fun parseAddress(addressJson: JSONObject?): AddressResult {
+
+    val road = addressJson?.optString("road") ?: ""
+    val houseNumber = addressJson?.optString("house_number") ?: ""
+    val fullStreet = listOf(houseNumber, road).filter {
+        it.isNotBlank()
+    }.joinToString(" ")
+
+
+    val postcode = addressJson?.optString("postcode") ?: ""
+    val city = when {
+        !addressJson?.optString("city").isNullOrBlank() ->
+            addressJson?.optString("city") ?: ""
+
+        !addressJson?.optString("town").isNullOrBlank() ->
+            addressJson?.optString("town") ?: ""
+
+        !addressJson?.optString("village").isNullOrBlank() ->
+            addressJson?.optString("village") ?: ""
+
+        else -> ""
+    }
+    val state = addressJson?.optString("state") ?: ""
+
+    return AddressResult(
+        street = fullStreet,
+        zipcode = postcode,
+        city = city,
+        state = state
+    )
 }
