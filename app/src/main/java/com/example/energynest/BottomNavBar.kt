@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -47,34 +48,48 @@ fun AppBottomNavBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp, horizontal = 12.dp),
+                .padding(vertical = 8.dp, horizontal = 4.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
             items.forEach { item ->
                 val isSelected = currentRoute == item.route
-                if (isSelected) {
+                val backgroundColor = if (isSelected) BrandGreenColour else Color.Transparent
+                val contentColor = if (isSelected) White else TextGray
+
+                // Equal weight container guarantees even spacing across screens
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
                     Surface(
-                        color = BrandGreenColour,
+                        color = backgroundColor,
                         shape = CircleShape,
-                        modifier = Modifier.clickable { onNavigateTo(item.route) }
+                        modifier = Modifier
+                            .width(76.dp) // Fixed width for uniform capsule sizes
+                            .clickable { onNavigateTo(item.route) }
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        Column(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
-                            Icon(item.icon, contentDescription = item.label, tint = White, modifier = Modifier.size(18.dp))
-                            Text(item.label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = White)
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.label,
+                                tint = contentColor,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = item.label,
+                                fontSize = 11.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                color = contentColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
-                    }
-                } else {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.clickable { onNavigateTo(item.route) }
-                    ) {
-                        Icon(item.icon, contentDescription = item.label, tint = TextGray)
-                        Text(item.label, fontSize = 12.sp, color = TextGray)
                     }
                 }
             }
