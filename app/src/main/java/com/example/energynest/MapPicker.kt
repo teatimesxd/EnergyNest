@@ -99,19 +99,10 @@ data class LocationSearchResult(
     val address: AddressResult
 )
 
-
-// =====================================================
-// MAP PICKER
-// =====================================================
-
 @Composable
 fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-
-    // =============================================
-    // STATE
-    // =============================================
 
     var searchText by remember { mutableStateOf("") }
     var selectedLatLng by remember { mutableStateOf<LatLng?>(null) }
@@ -119,10 +110,8 @@ fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit)
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
     var selectedMarker by remember { mutableStateOf<Marker?>(null) }
     var message by remember { mutableStateOf("") }
-    // =============================================
-    // FUNCTION TO MOVE MAP TO USER LOCATION
-    // =============================================
 
+    // Move the map to current location
     fun moveToCurrentLocation() { message = "Getting your current location..."
         requestCurrentLocation(context) { location ->
 
@@ -174,10 +163,7 @@ fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit)
         }
     }
 
-    // =============================================
-    // LOCATION PERMISSION
-    // =============================================
-
+    // Location Permission
     val locationPermissionLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts
         .RequestMultiplePermissions()) { permissions ->
 
@@ -201,16 +187,13 @@ fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit)
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // =============================================
-            // MAP
-            // =============================================
+            // Map
             AndroidView(
                 modifier = Modifier
                     .fillMaxSize()
                     .clipToBounds(),
 
                 factory = { mapContext -> MapLibre.getInstance(mapContext)
-                    // Texture mode allows to compose
                     // UI to appear above the map
 
                     val options = MapLibreMapOptions
@@ -221,24 +204,19 @@ fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit)
 
                     mapView.onCreate(null)
                     mapView.getMapAsync { map -> mapLibreMap = map
-                        // =============================================
-                        // MAP STYLE
-                        // =============================================
+
+                        // Map Style
                         map.setStyle("https://tiles.openfreemap.org/styles/liberty")
 
-                        // =============================================
-                        // DEFAULT LOCATION
-                        // =============================================
+                        // Default Location
                         val defaultLocation = LatLng(3.1390, 101.6869)
 
                         map.cameraPosition = CameraPosition.Builder()
                             .target(defaultLocation)
                             .zoom(12.0)
                             .build()
-                        // =============================================
-                        // USER TAPS MAP
-                        // =============================================
 
+                        // User taps map
                         map.addOnMapClickListener { point ->
                             selectedLatLng = point
 
@@ -246,7 +224,6 @@ fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit)
                             selectedMarker?.let { map.removeMarker(it) }
 
                             // Add new marker
-
                             selectedMarker = map.addMarker(
                                 MarkerOptions()
                                     .position(point)
@@ -264,7 +241,6 @@ fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit)
                                     longitude = point.longitude
                                 )
 
-
                                 if (result != null) {
                                     selectedAddress = result.address
                                     searchText = result.displayName
@@ -281,18 +257,13 @@ fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit)
                 }
             )
 
-            // =============================================
-            // TOP CONTROLS
-            // =============================================
+            // Top Controls
             Column(modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
                 .background(Color.White.copy(alpha = 0.95f))
             ) {
 
-                // =============================================
-                // TITLE
-                // =============================================
                 Row(modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -312,9 +283,7 @@ fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit)
                     }
                 }
 
-                // =============================================
-                // SEARCH BAR
-                // =============================================
+                // Search Bar
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -332,10 +301,7 @@ fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit)
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // =============================================
-                    // SEARCH BUTTON
-                    // =============================================
-
+                    // Search Button
                     Button(
                         onClick = {
                             if (searchText.isBlank()) {
@@ -381,9 +347,7 @@ fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit)
                     }
                 }
 
-                // =============================================
-                // USE CURRENT LOCATION BUTTON
-                // =============================================
+                // Use Current Location Button
                 Button(
                     onClick = {
                         val fineGranted = ContextCompat.checkSelfPermission(context,
@@ -427,9 +391,7 @@ fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit)
                 }
             }
 
-            // =============================================
-            // BOTTOM CONFIRM BUTTON
-            // =============================================
+            // Confirm Button
             Column(modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
@@ -447,17 +409,14 @@ fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit)
                     )
                 }
 
-                // =============================================
-                // CONFIRM LOCATION BUTTON
-                // =============================================
+                // Confirm Location Button
                 Button(
                     onClick = {
                         val address = selectedAddress
 
                         if (address != null
                         ) {
-                            // Send selected address
-                            // back to Register page
+                            // Send selected address back to Register page
                             onAddressSelected(address)
                             onDismiss()
                         } else {
@@ -476,9 +435,8 @@ fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit)
         }
     }
 }
-// =====================================================
-// GET CURRENT LOCATION
-// =====================================================
+
+// Get Current Location
 fun requestCurrentLocation(
     context: Context,
     onLocationReceived: (Location?) -> Unit
@@ -533,10 +491,7 @@ fun requestCurrentLocation(
 }
 
 
-// =====================================================
-// SEARCH LOCATION
-// =====================================================
-
+// Search Location
 suspend fun searchLocation(query: String): LocationSearchResult? = withContext(Dispatchers.IO) {
 
     try {
@@ -576,10 +531,7 @@ suspend fun searchLocation(query: String): LocationSearchResult? = withContext(D
 }
 
 
-// =====================================================
-// REVERSE GEOCODE
-// =====================================================
-
+// Reverse Geocode
 suspend fun reverseGeocodeLocation(latitude: Double, longitude: Double): LocationSearchResult? =
     withContext(
         Dispatchers.IO
@@ -611,10 +563,7 @@ suspend fun reverseGeocodeLocation(latitude: Double, longitude: Double): Locatio
     }
 
 
-// =====================================================
-// PARSE ADDRESS
-// =====================================================
-
+// Parse Address
 fun parseAddress(addressJson: JSONObject?): AddressResult {
 
     val road = addressJson?.optString("road") ?: ""
@@ -622,7 +571,6 @@ fun parseAddress(addressJson: JSONObject?): AddressResult {
     val fullStreet = listOf(houseNumber, road).filter {
         it.isNotBlank()
     }.joinToString(" ")
-
 
     val postcode = addressJson?.optString("postcode") ?: ""
     val city = when {
