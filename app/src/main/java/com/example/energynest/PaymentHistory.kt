@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
@@ -20,18 +19,44 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -42,7 +67,8 @@ import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 // Data Classes
 data class PaymentHistoryItem(
@@ -104,55 +130,82 @@ fun PaymentHistoryListScreen(
     onBack: () -> Unit,
     onItemClick: (PaymentHistoryItem) -> Unit
 ) {
-    Column(
+    val primaryGreen = Color(0xFF10B981)
+    val textDark = Color(0xFF1E293B)
+    val textGray = Color(0xFF505F76)
+    val backgroundGray = Color(0xFFE2E8F0)
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(androidx.compose.ui.graphics.Color(0xFFF5F5F5))
-            .statusBarsPadding()
+            .background(backgroundGray)
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(androidx.compose.ui.graphics.Color.White)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .padding(20.dp)
         ) {
-            IconButton(
-                onClick = { onBack() },
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    Icons.Default.ArrowBack,
-                    "Back",
-                    tint = androidx.compose.ui.graphics.Color(0xFF4CAF50),
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-            Text("Payment History", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Box(modifier = Modifier.size(40.dp))
-        }
-        Divider(color = androidx.compose.ui.graphics.Color.LightGray, thickness = 1.dp)
+            Spacer(modifier = Modifier.height(16.dp))
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            val grouped = items.groupBy {
-                SimpleDateFormat("MMMM yyyy", Locale.US).format(
-                    SimpleDateFormat("dd/MM/yyyy", Locale.US).parse(it.date) ?: Date()
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Color.White,
+                        shape = RoundedCornerShape(24.dp)
+                    )
+                    .padding(horizontal = 20.dp, vertical = 24.dp)
+            ) {
+                Spacer(modifier = Modifier.height(35.dp))
+
+                Text(
+                    text = "Payment History",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textDark
                 )
-            }
-            grouped.forEach { (monthYear, groupItems) ->
-                item {
-                    Text(monthYear, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
-                        color = androidx.compose.ui.graphics.Color(0xFF333333),
-                        modifier = Modifier.padding(vertical = 8.dp))
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    val grouped = items.groupBy {
+                        SimpleDateFormat("MMMM yyyy", Locale.US).format(
+                            SimpleDateFormat("dd/MM/yyyy", Locale.US).parse(it.date) ?: Date()
+                        )
+                    }
+                    grouped.forEach { (monthYear, groupItems) ->
+                        item {
+                            Text(
+                                text = monthYear,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = textGray,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+                        items(groupItems) { item ->
+                            PaymentHistoryCard(item, onItemClick)
+                        }
+                    }
                 }
-                items(groupItems) { item ->
-                    PaymentHistoryCard(item, onItemClick)
-                }
             }
+        }
+
+        // Back Button
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 12.dp, top = 30.dp)
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.back_arrow),
+                contentDescription = "Back",
+                tint = primaryGreen
+            )
         }
     }
 }
@@ -162,6 +215,10 @@ fun PaymentHistoryCard(
     item: PaymentHistoryItem,
     onClick: (PaymentHistoryItem) -> Unit
 ) {
+    val primaryGreen = Color(0xFF10B981)
+    val textDark = Color(0xFF1E293B)
+    val textGray = Color(0xFF505F76)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -169,31 +226,50 @@ fun PaymentHistoryCard(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
             ) { onClick(item) }
-            .border(1.dp, androidx.compose.ui.graphics.Color.LightGray.copy(alpha = 0.5f),
-                RoundedCornerShape(12.dp)),
-        colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White),
+            .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(12.dp)),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(item.title, fontSize = 15.sp, fontWeight = FontWeight.Medium,
-                    color = androidx.compose.ui.graphics.Color(0xFF222222))
-                Text(item.date, fontSize = 12.sp, color = androidx.compose.ui.graphics.Color.Gray)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = item.title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = textDark
+                )
+                Text(
+                    text = item.date,
+                    fontSize = 12.sp,
+                    color = textGray
+                )
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End
+            ) {
                 Text(
                     text = "${if (item.isCredit) "+" else "-"}RM ${String.format("%.2f", item.amount)}",
-                    fontSize = 16.sp, fontWeight = FontWeight.Bold,
-                    color = if (item.isCredit) androidx.compose.ui.graphics.Color(0xFF4CAF50)
-                    else androidx.compose.ui.graphics.Color(0xFFE53935),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (item.isCredit) primaryGreen else Color(0xFFEF4444),
                     modifier = Modifier.padding(end = 6.dp)
                 )
-                Icon(Icons.Default.ChevronRight, contentDescription = "Details",
-                    tint = androidx.compose.ui.graphics.Color.Gray, modifier = Modifier.size(20.dp))
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = "Details",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
@@ -256,89 +332,141 @@ fun PaymentHistoryDetailContent(
     onDownloadClick: () -> Unit
 ) {
     val detail = item.details
+    val primaryGreen = Color(0xFF10B981)
+    val textDark = Color(0xFF1E293B)
+    val backgroundGray = Color(0xFFE2E8F0)
+    val dividerColor = Color(0xFFE5E7EB)
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(androidx.compose.ui.graphics.Color(0xFFF5F5F5))
-            .statusBarsPadding()
+            .background(backgroundGray)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(androidx.compose.ui.graphics.Color.White)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { onBack() }, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Default.ArrowBack, "Back",
-                    tint = androidx.compose.ui.graphics.Color(0xFF4CAF50),
-                    modifier = Modifier.size(28.dp))
-            }
-            Text("Payment Details", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Box(modifier = Modifier.size(40.dp))
-        }
-        Divider(color = androidx.compose.ui.graphics.Color.LightGray, thickness = 1.dp)
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .padding(20.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.CheckCircle, contentDescription = null,
-                    tint = androidx.compose.ui.graphics.Color(0xFF4CAF50), modifier = Modifier.size(22.dp))
-                Text("Transaction success", fontSize = 18.sp, fontWeight = FontWeight.SemiBold,
-                    color = androidx.compose.ui.graphics.Color(0xFF4CAF50))
-            }
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            DetailRow("Payment Time", detail.paymentTime)
-            Divider(modifier = Modifier.padding(vertical = 6.dp))
-            DetailRow("Reference Number", detail.referenceNumber)
-            Divider(modifier = Modifier.padding(vertical = 6.dp))
-            DetailRow("Mobile Number", detail.mobileNumber)
-            Divider(modifier = Modifier.padding(vertical = 6.dp))
-            DetailRow("Payment Method", detail.paymentMethod)
-            Divider(modifier = Modifier.padding(vertical = 6.dp))
-            DetailRow("Item", detail.item)
-            Divider(modifier = Modifier.padding(vertical = 6.dp))
-            DetailRow("Subtotal (Before Tax)", "RM ${String.format("%.2f", detail.subtotal)}")
-            Divider(modifier = Modifier.padding(vertical = 6.dp))
-            DetailRow("SST 6%", "RM ${String.format("%.2f", detail.tax)}")
-            Divider(modifier = Modifier.padding(vertical = 6.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Color.White,
+                        shape = RoundedCornerShape(24.dp)
+                    )
+                    .padding(horizontal = 24.dp, vertical = 28.dp)
             ) {
-                Text("Amount", fontSize = 16.sp, fontWeight = FontWeight.Bold,
-                    color = androidx.compose.ui.graphics.Color.Black)
-                Text("RM ${String.format("%.2f", detail.total)}", fontSize = 20.sp,
+                Spacer(modifier = Modifier.height(35.dp))
+
+                Text(
+                    text = "Payment Details",
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
-                    color = androidx.compose.ui.graphics.Color(0xFF4CAF50))
-            }
+                    color = textDark
+                )
 
-            Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(20.dp))
 
-            Button(
-                onClick = onDownloadClick,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = androidx.compose.ui.graphics.Color(0xFF4CAF50),
-                    disabledContainerColor = androidx.compose.ui.graphics.Color.Gray
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Default.FileDownload, contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = androidx.compose.ui.graphics.Color.White)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Download Receipt", fontSize = 16.sp, fontWeight = FontWeight.Bold,
-                    color = androidx.compose.ui.graphics.Color.White)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = primaryGreen,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = "Transaction success",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = primaryGreen
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                DetailRow("Payment Time", detail.paymentTime)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = dividerColor)
+                DetailRow("Reference Number", detail.referenceNumber)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = dividerColor)
+                DetailRow("Mobile Number", detail.mobileNumber)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = dividerColor)
+                DetailRow("Payment Method", detail.paymentMethod)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = dividerColor)
+                DetailRow("Item", detail.item)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = dividerColor)
+                DetailRow("Subtotal (Before Tax)", "RM ${String.format("%.2f", detail.subtotal)}")
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = dividerColor)
+                DetailRow("SST 6%", "RM ${String.format("%.2f", detail.tax)}")
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = dividerColor)
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Amount",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = textDark
+                    )
+                    Text(
+                        text = "RM ${String.format("%.2f", detail.total)}",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = primaryGreen
+                    )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Button(
+                    onClick = onDownloadClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = primaryGreen,
+                        disabledContainerColor = Color.Gray
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FileDownload,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Download Receipt",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
             }
+        }
+
+        // Back Button
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 12.dp, top = 30.dp)
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.back_arrow),
+                contentDescription = "Back",
+                tint = primaryGreen
+            )
         }
     }
 }
@@ -346,19 +474,28 @@ fun PaymentHistoryDetailContent(
 // Helper
 @Composable
 fun DetailRow(label: String, value: String) {
+    val textDark = Color(0xFF1E293B)
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-            color = androidx.compose.ui.graphics.Color.Black)
-        Text(value, fontSize = 14.sp, color = androidx.compose.ui.graphics.Color(0xFF333333),
-            textAlign = TextAlign.End)
+        Text(
+            text = label,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = textDark
+        )
+        Text(
+            text = value,
+            fontSize = 14.sp,
+            color = textDark,
+            textAlign = TextAlign.End
+        )
     }
 }
 
-// PDF Generation – loads logo (PNG, JPG, or Vector) using ContextCompat
+// PDF Generation
 fun generateAndSavePdf(context: Context, item: PaymentHistoryItem) {
     var pdfDocument: PdfDocument? = null
     try {
@@ -368,14 +505,12 @@ fun generateAndSavePdf(context: Context, item: PaymentHistoryItem) {
         val page = pdfDocument.startPage(pageInfo)
         val canvas = page.canvas
 
-        // ---- Load logo using ContextCompat (works for both bitmap and vector) ----
         var logoBitmap: Bitmap? = null
         try {
             val drawable = ContextCompat.getDrawable(context, R.drawable.energynest_icon_1)
             if (drawable is android.graphics.drawable.BitmapDrawable) {
                 logoBitmap = drawable.bitmap
             } else if (drawable != null) {
-                // Vector drawable – draw to a Bitmap
                 val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 120
                 val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 120
                 logoBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
@@ -383,31 +518,31 @@ fun generateAndSavePdf(context: Context, item: PaymentHistoryItem) {
                 drawable.setBounds(0, 0, width, height)
                 drawable.draw(canvas2)
             }
-        } catch (_: Exception) { /* ignore – fallback to text */ }
+        } catch (_: Exception) { }
 
         val titlePaint = Paint().apply {
-            color = Color.BLACK
+            color = android.graphics.Color.BLACK
             textSize = 24f
             isFakeBoldText = true
             textAlign = Paint.Align.CENTER
         }
         val headerPaint = Paint().apply {
-            color = Color.BLACK
+            color = android.graphics.Color.BLACK
             textSize = 16f
             isFakeBoldText = true
         }
         val valuePaint = Paint().apply {
-            color = Color.BLACK
+            color = android.graphics.Color.BLACK
             textSize = 14f
             textAlign = Paint.Align.RIGHT
         }
         val totalPaint = Paint().apply {
-            color = Color.parseColor("#4CAF50")
+            color = android.graphics.Color.parseColor("#10B981")
             textSize = 20f
             isFakeBoldText = true
             textAlign = Paint.Align.RIGHT
         }
-        val linePaint = Paint().apply { color = Color.LTGRAY; strokeWidth = 1f }
+        val linePaint = Paint().apply { color = android.graphics.Color.LTGRAY; strokeWidth = 1f }
 
         var y = 80
 
@@ -421,9 +556,8 @@ fun generateAndSavePdf(context: Context, item: PaymentHistoryItem) {
             y += 40
         }
 
-        // Subtitle
         canvas.drawText("Payment Receipt", pageInfo.pageWidth / 2f, y.toFloat(), Paint().apply {
-            color = Color.GRAY
+            color = android.graphics.Color.GRAY
             textSize = 14f
             textAlign = Paint.Align.CENTER
         })
@@ -431,7 +565,7 @@ fun generateAndSavePdf(context: Context, item: PaymentHistoryItem) {
         canvas.drawLine(50f, y.toFloat(), pageInfo.pageWidth - 50f, y.toFloat(), linePaint)
         y += 30
         canvas.drawText("✓ Payment Successful", 50f, y.toFloat(), Paint().apply {
-            color = Color.parseColor("#4CAF50")
+            color = android.graphics.Color.parseColor("#10B981")
             textSize = 16f
             isFakeBoldText = true
         })
@@ -454,21 +588,20 @@ fun generateAndSavePdf(context: Context, item: PaymentHistoryItem) {
         drawRow("SST 6%", "RM ${String.format("%.2f", detail.tax)}")
 
         canvas.drawText("Amount", 50f, y.toFloat(), Paint().apply {
-            color = Color.BLACK
+            color = android.graphics.Color.BLACK
             textSize = 16f
             isFakeBoldText = true
         })
         canvas.drawText("RM ${String.format("%.2f", detail.total)}", pageInfo.pageWidth - 50f, y.toFloat(), totalPaint)
         y += 40
         canvas.drawText("Thank you for your payment", pageInfo.pageWidth / 2f, y.toFloat(), Paint().apply {
-            color = Color.GRAY
+            color = android.graphics.Color.GRAY
             textSize = 12f
             textAlign = Paint.Align.CENTER
         })
 
         pdfDocument.finishPage(page)
 
-        // Save and open (same as before)
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         val fileName = "Receipt_${detail.referenceNumber}_$timestamp.pdf"
         var fileUri: Uri? = null

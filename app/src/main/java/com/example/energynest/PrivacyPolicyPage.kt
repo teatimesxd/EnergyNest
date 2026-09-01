@@ -31,12 +31,13 @@ import androidx.compose.ui.unit.sp
 import com.example.energynest.ui.theme.EnergyNestTheme
 
 @Composable
-fun PrivacyPolicyPage() {
+fun PrivacyPolicyPage(
+    onBackClick: () -> Unit = {}
+) {
     val context = LocalContext.current
     val primaryGreen = Color(0xFF10B981)
     val textDark = Color(0xFF1E293B)
     val backgroundGray = Color(0xFFE2E8F0)
-
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -60,8 +61,6 @@ fun PrivacyPolicyPage() {
                         .padding(horizontal = 28.dp, vertical = 40.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
-
-                    // Title
                     Text(
                         text = "Privacy Policy",
                         fontSize = 32.sp,
@@ -82,7 +81,6 @@ fun PrivacyPolicyPage() {
                         text = "EnergyNest is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application."
                     )
 
-                    // 1. Information We Collect
                     PrivacySectionTitle(title = "1. INFORMATION WE COLLECT")
                     PrivacyBodyText(text = "We may collect the following types of information:")
                     Spacer(modifier = Modifier.height(8.dp))
@@ -91,7 +89,6 @@ fun PrivacyPolicyPage() {
                     PrivacyBulletText(text = "Location Data: with your permission, we collect precise location to help you find solar installation services and map-based features.")
                     PrivacyBulletText(text = "Device Information: device model, operating system, and unique device identifiers.")
 
-                    // How We Use Your Information
                     PrivacySectionTitle(title = "2. HOW WE USE YOUR INFORMATION")
                     PrivacyBodyText(text = "We use the collected data for:")
                     Spacer(modifier = Modifier.height(8.dp))
@@ -100,7 +97,6 @@ fun PrivacyPolicyPage() {
                     PrivacyBulletText(text = "Improving user experience and developing new features.")
                     PrivacyBulletText(text = "Sending you updates, promotional offers, and service notifications. You may opt out at any time.")
 
-                    // Sharing Your Information
                     PrivacySectionTitle(title = "3. SHARING YOUR INFORMATION")
                     PrivacyBodyText(text = "We do not sell your personal data. We may share your information only:")
                     Spacer(modifier = Modifier.height(8.dp))
@@ -108,11 +104,9 @@ fun PrivacyPolicyPage() {
                     PrivacyBulletText(text = "With third-party service providers who assist us in operating the app, such as cloud storage and analytics providers.")
                     PrivacyBulletText(text = "When required by law or to protect our legal rights.")
 
-                    // Data Security
                     PrivacySectionTitle(title = "4. DATA SECURITY")
                     PrivacyBodyText(text = "We implement industry-standard security measures to protect your data from unauthorised access, alteration, or disclosure. However, no method of transmission over the internet is 100% secure.")
 
-                    // Your Rights
                     PrivacySectionTitle(title = "5. YOUR RIGHTS")
                     PrivacyBodyText(text = "You have the right to:")
                     Spacer(modifier = Modifier.height(8.dp))
@@ -120,15 +114,12 @@ fun PrivacyPolicyPage() {
                     PrivacyBulletText(text = "Withdraw consent for data processing.")
                     PrivacyBulletText(text = "Request a copy of the data we hold about you.")
 
-                    // Children's Privacy
                     PrivacySectionTitle(title = "6. CHILDREN'S PRIVACY")
                     PrivacyBodyText(text = "Our app is not intended for children under 13. We do not knowingly collect personal information from children.")
 
-                    // Changes To This Policy
                     PrivacySectionTitle(title = "7. CHANGES TO THIS POLICY")
                     PrivacyBodyText(text = "We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new policy on this page.")
 
-                    // Contact Us
                     PrivacySectionTitle(title = "8. CONTACT US")
                     PrivacyBodyText(text = "If you have any questions about this Privacy Policy, please contact us at:")
                     Spacer(modifier = Modifier.height(10.dp))
@@ -146,6 +137,7 @@ fun PrivacyPolicyPage() {
             // Back Button
             IconButton(
                 onClick = {
+                    onBackClick()
                     (context as? Activity)?.finish()
                 },
                 modifier = Modifier
@@ -163,7 +155,6 @@ fun PrivacyPolicyPage() {
     }
 }
 
-// Title
 @Composable
 fun PrivacySectionTitle(title: String) {
     Text(
@@ -175,7 +166,6 @@ fun PrivacySectionTitle(title: String) {
     )
 }
 
-// Body Text
 @Composable
 fun PrivacyBodyText(text: String) {
     Text(

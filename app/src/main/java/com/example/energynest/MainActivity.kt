@@ -5,7 +5,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.*
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -35,11 +38,18 @@ class MainActivity : ComponentActivity() {
                     Screen.SmartSell.route,
                     Screen.Cream.route,
                     Screen.Services.route,
-                    "electric_analysis"
+                    Screen.ElectricAnalysis.route
+                )
+
+                val isAuthScreen = currentRoute in listOf(
+                    Screen.Login.route,
+                    Screen.Register.route,
+                    Screen.ForgotPassword.route
                 )
 
                 ModalNavigationDrawer(
                     drawerState = drawerState,
+                    gesturesEnabled = !isAuthScreen,
                     drawerContent = {
                         SidebarDrawerContent(
                             currentRoute = currentRoute,
@@ -77,63 +87,132 @@ class MainActivity : ComponentActivity() {
                     ) { innerPadding ->
                         NavHost(
                             navController = navController,
-                            startDestination = Screen.Home.route,
+                            startDestination = Screen.Login.route,
                             modifier = Modifier.padding(innerPadding)
                         ) {
+                            // ---- Auth Screens ----
+                            composable(Screen.Login.route) {
+                                LoginPage(
+                                    onLoginSuccess = {
+                                        navController.navigate(Screen.Home.route) {
+                                            popUpTo(Screen.Login.route) { inclusive = true }
+                                        }
+                                    },
+                                    onNavigateToRegister = {
+                                        navController.navigate(Screen.Register.route)
+                                    },
+                                    onNavigateToForgotPassword = {
+                                        navController.navigate(Screen.ForgotPassword.route)
+                                    }
+                                )
+                            }
+
+                            composable(Screen.Register.route) {
+                                RegisterPage(
+                                    onRegisterSuccess = {
+                                        navController.navigate(Screen.Home.route) {
+                                            popUpTo(Screen.Login.route) { inclusive = true }
+                                        }
+                                    },
+                                    onBackToLogin = {
+                                        navController.popBackStack()
+                                    }
+                                )
+                            }
+
+                            composable(Screen.ForgotPassword.route) {
+                                ForgotPasswordPage(
+                                    onBackToLogin = {
+                                        navController.popBackStack()
+                                    }
+                                )
+                            }
+
+                            // ---- Main App Screens ----
                             composable(Screen.Home.route) {
                                 HomeScreen(
                                     onOpenDrawer = { scope.launch { drawerState.open() } },
-                                    onProfileClick = { navController.navigate("profile") }
+                                    onProfileClick = { navController.navigate(Screen.Profile.route) }
                                 )
                             }
+
                             composable(Screen.SmartSell.route) {
                                 SmartSellScreen(
-                                    onOpenDrawer = { scope.launch { drawerState.open() } }
+                                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                                    onProfileClick = { navController.navigate(Screen.Profile.route) }
                                 )
                             }
+
                             composable(Screen.Cream.route) {
                                 CreamScreen(
                                     onOpenDrawer = { scope.launch { drawerState.open() } },
                                     onCheckEligibility = {
-                                        navController.navigate("lega_eligibility")
+                                        navController.navigate(Screen.LegaEligibility.route)
                                     }
                                 )
                             }
+
                             composable(Screen.Services.route) {
                                 ServicesScreen(
-                                    onOpenDrawer = { scope.launch { drawerState.open() } }
+                                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                                    onProfileClick = { navController.navigate(Screen.Profile.route) }
                                 )
                             }
-                            composable("electric_analysis") {
+
+                            composable(Screen.ElectricAnalysis.route) {
                                 ElectricAnalysisScreen(
                                     onOpenDrawer = { scope.launch { drawerState.open() } }
                                 )
                             }
-                            composable("lega_eligibility") {
+
+                            composable(Screen.LegaEligibility.route) {
                                 LegaEligibilityScreen(
                                     onBack = { navController.popBackStack() },
                                     onCompleteAssessment = { navController.popBackStack() }
                                 )
                             }
-                            composable("payment_history") {
+
+                            composable(Screen.PaymentHistory.route) {
                                 PaymentHistoryScreen(
                                     onBack = { navController.popBackStack() }
                                 )
                             }
-                            composable("profile") {
+
+                            composable(Screen.Profile.route) {
                                 ProfileScreenWrapper(
-                                    onBackToHome = { navController.popBackStack() }
+                                    onBackToHome = { navController.popBackStack() },
+                                    onChangePasswordClick = { navController.navigate(Screen.ResetPassword.route) },
+                                    onPaymentHistoryClick = { navController.navigate(Screen.PaymentHistory.route) },
+                                    onLogoutConfirm = {
+                                        navController.navigate(Screen.Login.route) {
+                                            popUpTo(0) { inclusive = true }
+                                        }
+                                    }
+                                )
+                            }
+
+                            composable(Screen.ResetPassword.route) {
+                                ResetPasswordScreen(
+                                    onBack = { navController.popBackStack() },
+                                    onResetSuccess = { navController.popBackStack() }
                                 )
                             }
 
                             composable(Screen.Settings.route) {
                                 SettingPage(
                                     onBackClick = { navController.popBackStack() },
+                                    onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                                     onNavigateToTerms = {
                                         navController.navigate(Screen.TermsAndConditions.route)
+                                    },
+                                    onLogoutConfirmed = {
+                                        navController.navigate(Screen.Login.route) {
+                                            popUpTo(0) { inclusive = true }
+                                        }
                                     }
                                 )
                             }
+
                             composable(Screen.TermsAndConditions.route) {
                                 TermsConditionPage(
                                     onBackClick = { navController.popBackStack() }
@@ -146,4 +225,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-

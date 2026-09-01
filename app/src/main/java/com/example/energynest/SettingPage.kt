@@ -51,6 +51,7 @@ fun SettingPage(
     onLogoutConfirmed: () -> Unit = {}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
+
     val primaryGreen = Color(0xFF10B981)
     val textDark = Color(0xFF1E293B)
     val textGray = Color(0xFF505F76)
@@ -76,7 +77,6 @@ fun SettingPage(
         ) {
             Spacer(modifier = Modifier.height(35.dp))
 
-            // Title
             Text(
                 text = "Settings",
                 fontSize = 28.sp,
@@ -86,9 +86,11 @@ fun SettingPage(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Profile Information
+            // Profile Card
             Surface(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToProfile() },
                 shape = RoundedCornerShape(16.dp),
                 color = Color(0xFFF0FDF4)
             ) {
@@ -135,7 +137,6 @@ fun SettingPage(
             SettingsSectionTitle(title = "Account")
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Profile
             SettingsItem(
                 icon = R.drawable.person_icon,
                 title = "Profile",
@@ -146,7 +147,6 @@ fun SettingPage(
 
             SettingsDivider(color = dividerColor)
 
-            // Change Password
             SettingsItem(
                 icon = R.drawable.lock_icon,
                 title = "Change Password",
@@ -171,7 +171,6 @@ fun SettingPage(
 
             SettingsDivider(color = dividerColor)
 
-            // Terms and Conditions
             SettingsItem(
                 icon = R.drawable.description_icon,
                 title = "Terms & Conditions",
@@ -227,9 +226,7 @@ fun SettingPage(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable {
-                        showLogoutDialog = true
-                    },
+                    .clickable { showLogoutDialog = true },
                 shape = RoundedCornerShape(14.dp),
                 color = Color(0xFFFEF2F2)
             ) {
@@ -282,21 +279,11 @@ fun SettingPage(
             )
         }
 
-        // Log Out Confirmation
         if (showLogoutDialog) {
             AlertDialog(
-                onDismissRequest = {
-                    showLogoutDialog = false
-                },
-                title = {
-                    Text(
-                        text = "Confirm Log out",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                text = {
-                    Text(text = "Are you sure you want to log out?")
-                },
+                onDismissRequest = { showLogoutDialog = false },
+                title = { Text(text = "Confirm Log out", fontWeight = FontWeight.Bold) },
+                text = { Text(text = "Are you sure you want to log out?") },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -304,24 +291,12 @@ fun SettingPage(
                             onLogoutConfirmed()
                         }
                     ) {
-                        Text(
-                            text = "Log out",
-                            color = deleteRed,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text(text = "Log out", color = deleteRed, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
-                    TextButton(
-                        onClick = {
-                            showLogoutDialog = false
-                        }
-                    ) {
-                        Text(
-                            text = "Cancel",
-                            color = primaryGreen,
-                            fontWeight = FontWeight.Bold
-                        )
+                    TextButton(onClick = { showLogoutDialog = false }) {
+                        Text(text = "Cancel", color = primaryGreen, fontWeight = FontWeight.Bold)
                     }
                 }
             )
@@ -396,7 +371,7 @@ fun SettingsItem(
 
 @Composable
 fun SettingsDivider(color: Color) {
-    HorizontalDivider(Modifier, thickness = 1.dp, color = color)
+    HorizontalDivider(thickness = 1.dp, color = color)
 }
 
 @Preview(showBackground = true)

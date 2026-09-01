@@ -10,8 +10,16 @@ sealed class Screen(val route: String) {
     object SmartSell : Screen("smart_sell")
     object Cream : Screen("cream")
     object Services : Screen("services")
+    object Profile : Screen("profile")
     object Settings : Screen("settings")
     object TermsAndConditions : Screen("terms_and_conditions")
+    object Login : Screen("login")
+    object Register : Screen("register")
+    object ForgotPassword : Screen("forgot_password")
+    object ElectricAnalysis : Screen("electric_analysis")
+    object LegaEligibility : Screen("lega_eligibility")
+    object PaymentHistory : Screen("payment_history")
+    object ResetPassword : Screen("reset_password")
 }
 
 /**

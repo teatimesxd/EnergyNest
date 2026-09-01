@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,17 +54,23 @@ private data class FAQData(
 @Composable
 fun ServicesScreen(
     onOpenDrawer: () -> Unit = {},
-    onOpenProfile: () -> Unit = {}
+    onOpenProfile: () -> Unit = {},
+    onProfileClick: () -> Unit = onOpenProfile
 ) {
     var currentPage by remember {
         mutableStateOf(ServicePage.HOME)
+    }
+
+    val handleProfileClick = {
+        onOpenProfile()
+        onProfileClick()
     }
 
     when (currentPage) {
 
         ServicePage.HOME -> ServicesHome(
             onOpenDrawer = onOpenDrawer,
-            onOpenProfile = onOpenProfile,
+            onOpenProfile = handleProfileClick,
             onOpenPage = {
                 currentPage = it
             }
@@ -73,35 +80,35 @@ fun ServicesScreen(
             onBack = {
                 currentPage = ServicePage.HOME
             },
-            onOpenProfile = onOpenProfile
+            onOpenProfile = handleProfileClick
         )
 
         ServicePage.CONSULTATION -> ConsultationPage(
             onBack = {
                 currentPage = ServicePage.HOME
             },
-            onOpenProfile = onOpenProfile
+            onOpenProfile = handleProfileClick
         )
 
         ServicePage.MAINTENANCE -> MaintenancePage(
             onBack = {
                 currentPage = ServicePage.HOME
             },
-            onOpenProfile = onOpenProfile
+            onOpenProfile = handleProfileClick
         )
 
         ServicePage.CLEANING -> CleaningPage(
             onBack = {
                 currentPage = ServicePage.HOME
             },
-            onOpenProfile = onOpenProfile
+            onOpenProfile = handleProfileClick
         )
 
         ServicePage.FAQ -> FAQPage(
             onBack = {
                 currentPage = ServicePage.HOME
             },
-            onOpenProfile = onOpenProfile
+            onOpenProfile = handleProfileClick
         )
     }
 }
@@ -363,6 +370,7 @@ private fun TopBar(
         ) {
 
             Row(
+                modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -398,7 +406,9 @@ private fun TopBar(
                     text = title,
                     fontSize = 19.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextDark
+                    color = TextDark,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 

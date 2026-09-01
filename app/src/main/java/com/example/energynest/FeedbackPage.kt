@@ -38,10 +38,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.energynest.ui.theme.EnergyNestTheme
 
-
-
 @Composable
-fun FeedbackPage() {
+fun FeedbackPage(
+    onBackClick: () -> Unit = {}
+) {
     val context = LocalContext.current
     var feedback by remember { mutableStateOf("") }
     var feedbackError by remember { mutableStateOf(false) }
@@ -78,7 +78,6 @@ fun FeedbackPage() {
             ) {
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Title
                 Text(
                     text = "Feedback",
                     fontSize = 30.sp,
@@ -97,7 +96,6 @@ fun FeedbackPage() {
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Feedback Label
                 Text(
                     text = "Your Feedback",
                     fontSize = 16.sp,
@@ -106,7 +104,6 @@ fun FeedbackPage() {
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // Feedback Text Field
                 OutlinedTextField(
                     value = feedback,
                     onValueChange = {
@@ -130,7 +127,6 @@ fun FeedbackPage() {
                     isError = feedbackError
                 )
 
-                // Error and Success Message
                 if (feedbackMessage.isNotEmpty()) {
                     Text(
                         text = feedbackMessage,
@@ -143,15 +139,12 @@ fun FeedbackPage() {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Submit Button
                 Button(
                     onClick = {
-                        // Check is empty or not
                         if (feedback.trim().isBlank()) {
                             feedbackError = true
                             feedbackMessage = "Please enter your feedback before submitting."
-                        }
-                        else {
+                        } else {
                             feedbackError = false
                             feedbackMessage = "Thank you! Your feedback has been submitted successfully."
                             feedback = ""
@@ -166,7 +159,6 @@ fun FeedbackPage() {
                         .height(56.dp),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    // Send Icon
                     Icon(
                         painter = painterResource(id = R.drawable.send_icon),
                         contentDescription = "Submit Feedback",
@@ -189,6 +181,7 @@ fun FeedbackPage() {
         // Back Button
         IconButton(
             onClick = {
+                onBackClick()
                 (context as? Activity)?.finish()
             },
             modifier = Modifier

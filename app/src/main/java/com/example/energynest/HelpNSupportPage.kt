@@ -413,7 +413,7 @@ fun FaqDropdownItem(
 }
 
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true)
 @Composable
 fun HelpNSupportPreview() {
     MaterialTheme {

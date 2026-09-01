@@ -3,11 +3,10 @@ package com.example.energynest
 import android.widget.Toast
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,7 +29,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ResetPasswordScreen(
     onBack: () -> Unit = {},
-    onResetClick: () -> Unit = {}
+    onResetSuccess: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -105,7 +104,6 @@ fun ResetPasswordScreen(
             .background(Color(0xFFF5F5F5))
             .statusBarsPadding()
     ) {
-        // ===== HEADER - SAME AS PROFILE SCREEN =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -115,11 +113,11 @@ fun ResetPasswordScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(
-                onClick = { onBack() },
+                onClick = onBack,
                 modifier = Modifier.size(40.dp)
             ) {
                 Icon(
-                    Icons.Default.ArrowBack,
+                    Icons.AutoMirrored.Filled.ArrowBack,
                     "Back",
                     tint = Color(0xFF00B87C),
                     modifier = Modifier.size(28.dp)
@@ -133,12 +131,7 @@ fun ResetPasswordScreen(
             Box(modifier = Modifier.size(40.dp))
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(Color.LightGray)
-        )
+        HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
 
         Column(
             modifier = Modifier
@@ -348,7 +341,7 @@ fun ResetPasswordScreen(
                             delay(1500)
                             isResetting = false
                             Toast.makeText(context, "✅ Password reset successful!", Toast.LENGTH_LONG).show()
-                            onResetClick()
+                            onResetSuccess()
                         }
                     }
                 },

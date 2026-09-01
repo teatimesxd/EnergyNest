@@ -35,15 +35,17 @@ import androidx.compose.ui.unit.sp
 import java.util.Locale
 import kotlin.math.abs
 
-private val BgColor = Color(0xFFF4F4F1)
+private val BgColor = Color(0xFFF6F8F7)
 private val CardColor = Color(0xFFFFFFFF)
-private val CardBorder = Color(0xFFE9E9E4)
+private val CardBorder = Color(0xFFE2E8F0)
+private val BorderLight = Color(0xFFE2E8F0)
 private val GreenDark = Color(0xFF008A5D)
 private val GreenPrimary = Color(0xFF00B87C)
 private val GreenLight = Color(0xFFE6F8F2)
 private val GreenTrack = Color(0xFFE6F8F2)
-private val TextPrimary = Color(0xFF15181C)
-private val TextSecondary = Color(0xFF8A8D91)
+private val TextPrimary = Color(0xFF191C1E)
+private val TextDark = Color(0xFF191C1E)
+private val TextSecondary = Color(0xFF5A6065)
 
 enum class ConsumptionPeriod(val label: String) {
     DAILY("Daily"),
@@ -136,9 +138,7 @@ private fun buildReport(index: Int): MonthlyReport {
 
     val scale = totalEnergy / monthRecords.first().totalEnergyKwh
     val dailyValues = dailyShapeKwh.map { it * scale }
-
     val weeklyValues = weeklyShapeFraction.map { it * totalEnergy }
-
     val trendSlice = monthRecords.subList(index, monthRecords.size).reversed()
 
     return MonthlyReport(
@@ -163,7 +163,10 @@ private fun formatCo2(kg: Double): String = String.format(Locale.US, "%,.0f kg",
 private fun formatPercent(pct: Double): String = String.format(Locale.US, "%.1f%%", abs(pct))
 
 @Composable
-fun ElectricAnalysisScreen(onOpenDrawer: () -> Unit = {}) {
+fun ElectricAnalysisScreen(
+    onOpenDrawer: () -> Unit = {},
+    onProfileClick: () -> Unit = {}
+) {
     var selectedMonthIndex by remember { mutableStateOf(0) }
     var selectedPeriod by remember { mutableStateOf(ConsumptionPeriod.DAILY) }
     val report = remember(selectedMonthIndex) { buildReport(selectedMonthIndex) }
@@ -173,7 +176,10 @@ fun ElectricAnalysisScreen(onOpenDrawer: () -> Unit = {}) {
             .fillMaxSize()
             .background(BgColor)
     ) {
-        TopBar(onOpenDrawer = onOpenDrawer)
+        TopBar(
+            onOpenDrawer = onOpenDrawer,
+            onProfileClick = onProfileClick
+        )
 
         Column(
             modifier = Modifier
@@ -181,7 +187,7 @@ fun ElectricAnalysisScreen(onOpenDrawer: () -> Unit = {}) {
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
         ) {
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(12.dp))
             Text(
                 text = "Monitor your electricity usage and performance",
                 color = TextSecondary,
@@ -214,34 +220,46 @@ fun ElectricAnalysisScreen(onOpenDrawer: () -> Unit = {}) {
 }
 
 @Composable
-private fun TopBar(onOpenDrawer: () -> Unit) {
-    Column {
+private fun TopBar(
+    onOpenDrawer: () -> Unit,
+    onProfileClick: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth().background(CardColor)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(CardColor)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onOpenDrawer, modifier = Modifier.size(40.dp)) {
-                Icon(
-                    painter = painterResource(id = R.drawable.sidebar_icon),
-                    contentDescription = "Open Drawer",
-                    tint = GreenPrimary,
-                    modifier = Modifier.size(28.dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                IconButton(onClick = onOpenDrawer) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.sidebar_icon),
+                        contentDescription = "Sidebar",
+                        tint = TextDark
+                    )
+                }
+                Text(
+                    text = "Electric Analysis",
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark
                 )
             }
-            Text("Electric Analysis", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-            Box(modifier = Modifier.size(40.dp))
-        }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(Color.LightGray)
-        )
+            IconButton(onClick = onProfileClick) {
+                Icon(
+                    painter = painterResource(id = R.drawable.profile_icon),
+                    contentDescription = "Profile",
+                    tint = TextDark
+                )
+            }
+        }
+        HorizontalDivider(thickness = 1.dp, color = BorderLight)
     }
 }
 
@@ -468,7 +486,7 @@ private fun SegmentedTabs(
             .padding(3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        ConsumptionPeriod.values().forEach { period ->
+        ConsumptionPeriod.entries.forEach { period ->
             TabChip(
                 text = period.label,
                 selected = period == selectedPeriod,

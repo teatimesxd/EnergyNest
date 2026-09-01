@@ -8,13 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.AltRoute
-import androidx.compose.material.icons.automirrored.outlined.ViewSidebar
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.outlined.BatteryChargingFull
-import androidx.compose.material.icons.outlined.Bolt
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -42,7 +36,8 @@ private val White = Color.White
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SmartSellScreen(
-    onOpenDrawer: () -> Unit = {}
+    onOpenDrawer: () -> Unit = {},
+    onProfileClick: () -> Unit = {}
 ) {
     val storedEnergyPercent = 0.75f
     val storedEnergyKwh = 12.2f
@@ -51,10 +46,17 @@ fun SmartSellScreen(
     var autoSellEnabled by remember { mutableStateOf(true) }
     val floors = remember { listOf("Floor 1", "Floor 2") }
 
-    // Bottom Sheet State
+    // Manual Sell Bottom Sheet State
     var showSellSheet by remember { mutableStateOf(false) }
     var sellAmountKwh by remember { mutableFloatStateOf(5.0f) }
     val tnbRatePerKwh = 0.38 // RM per kWh under ATAP program
+
+    // Withdrawal Bottom Sheet State
+    var showWithdrawSheet by remember { mutableStateOf(false) }
+    var withdrawAmountText by remember { mutableStateOf("") }
+    var selectedPaymentMethod by remember { mutableStateOf("Touch 'n Go eWallet") }
+    var withdrawSuccess by remember { mutableStateOf(false) }
+    var withdrawError by remember { mutableStateOf<String?>(null) }
 
     LazyColumn(
         modifier = Modifier
@@ -78,7 +80,7 @@ fun SmartSellScreen(
                     ) {
                         IconButton(onClick = onOpenDrawer) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.ViewSidebar,
+                                painter = painterResource(id = R.drawable.sidebar_icon),
                                 contentDescription = "Sidebar",
                                 tint = TextDark
                             )
@@ -90,10 +92,12 @@ fun SmartSellScreen(
                             color = TextDark
                         )
                     }
-                    IconButton(onClick = { /* Notifications */ }) {
+
+                    // ---- Profile Icon ----
+                    IconButton(onClick = onProfileClick) {
                         Icon(
-                            imageVector = Icons.Outlined.Notifications,
-                            contentDescription = "Notifications",
+                            painter = painterResource(id = R.drawable.profile_icon),
+                            contentDescription = "Profile",
                             tint = TextDark
                         )
                     }
@@ -110,6 +114,51 @@ fun SmartSellScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // ---- Money Earned Header Badge (Top Right) ----
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Energy Overview",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
+                    )
+
+                    Surface(
+                        modifier = Modifier.clickable {
+                            withdrawAmountText = ""
+                            withdrawError = null
+                            withdrawSuccess = false
+                            showWithdrawSheet = true
+                        },
+                        shape = RoundedCornerShape(20.dp),
+                        color = LightGreenBg,
+                        border = BorderStroke(1.dp, BrandGreenColour.copy(alpha = 0.4f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.payments_icon),
+                                contentDescription = "Money Earned",
+                                tint = BrandGreenColour,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Earned: RM ${String.format("%.2f", accumulatedCredits)}",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BrandGreenColour
+                            )
+                        }
+                    }
+                }
+
                 // ---- Stored Energy Card ----
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -138,7 +187,7 @@ fun SmartSellScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.BatteryChargingFull,
+                                    painter = painterResource(id = R.drawable.battery_icon),
                                     contentDescription = "Stored Energy Icon",
                                     tint = BrandGreenColour,
                                     modifier = Modifier.size(22.dp)
@@ -171,7 +220,6 @@ fun SmartSellScreen(
                             }
                         }
 
-                        // Hardware-accelerated Progress Bar
                         LinearProgressIndicator(
                             progress = { storedEnergyPercent },
                             modifier = Modifier
@@ -210,7 +258,7 @@ fun SmartSellScreen(
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.Bolt,
+                                    painter = painterResource(id = R.drawable.bolt_icon),
                                     contentDescription = "Bolt",
                                     tint = BrandGreenColour,
                                     modifier = Modifier.size(24.dp)
@@ -224,7 +272,7 @@ fun SmartSellScreen(
                             }
 
                             Icon(
-                                imageVector = Icons.Filled.CheckCircle,
+                                painter = painterResource(id = R.drawable.check_circle_icon),
                                 contentDescription = "Auto-Sell Toggle",
                                 tint = if (autoSellEnabled) ActiveBlue else TextGray,
                                 modifier = Modifier
@@ -240,7 +288,6 @@ fun SmartSellScreen(
                             lineHeight = 18.sp
                         )
 
-                        // Accumulated Bill Credits Box
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -263,7 +310,6 @@ fun SmartSellScreen(
                             )
                         }
 
-                        // Sell Excess Manually Button
                         OutlinedButton(
                             onClick = { showSellSheet = true },
                             modifier = Modifier
@@ -301,7 +347,7 @@ fun SmartSellScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.AltRoute,
+                                painter = painterResource(id = R.drawable.arrow_split_icon),
                                 contentDescription = "Power Flow",
                                 tint = TextDark,
                                 modifier = Modifier.size(22.dp)
@@ -413,7 +459,6 @@ fun SmartSellScreen(
                     lineHeight = 18.sp
                 )
 
-                // Energy Amount Slider Section
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -455,7 +500,6 @@ fun SmartSellScreen(
                     }
                 }
 
-                // Estimated Return Card
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -485,7 +529,6 @@ fun SmartSellScreen(
                     )
                 }
 
-                // Action Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -513,6 +556,197 @@ fun SmartSellScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = BrandGreenColour)
                     ) {
                         Text(text = "Discharge Now", fontWeight = FontWeight.Bold, color = White)
+                    }
+                }
+            }
+        }
+    }
+
+    // ---- Withdrawal Modal Bottom Sheet ----
+    if (showWithdrawSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showWithdrawSheet = false },
+            sheetState = rememberModalBottomSheetState(),
+            containerColor = White
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Withdraw Earnings",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark
+                )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = CreditBoxBg)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Available Earnings",
+                            fontSize = 14.sp,
+                            color = TextGray
+                        )
+                        Text(
+                            text = "RM ${String.format("%.2f", accumulatedCredits)}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BrandGreenColour
+                        )
+                    }
+                }
+
+                if (withdrawSuccess) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = LightGreenBg)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.check_circle_icon),
+                                contentDescription = "Success",
+                                tint = BrandGreenColour
+                            )
+                            Text(
+                                text = "Withdrawal request processed successfully!",
+                                fontSize = 14.sp,
+                                color = BrandGreenColour,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    Button(
+                        onClick = { showWithdrawSheet = false },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandGreenColour)
+                    ) {
+                        Text(text = "Done", fontWeight = FontWeight.Bold, color = White)
+                    }
+                } else {
+                    OutlinedTextField(
+                        value = withdrawAmountText,
+                        onValueChange = {
+                            withdrawAmountText = it
+                            withdrawError = null
+                        },
+                        label = { Text("Withdrawal Amount (RM)") },
+                        placeholder = { Text("0.00") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = BrandGreenColour,
+                            focusedLabelColor = BrandGreenColour,
+                            cursorColor = BrandGreenColour
+                        )
+                    )
+
+                    withdrawError?.let { error ->
+                        Text(
+                            text = error,
+                            fontSize = 12.sp,
+                            color = Color.Red
+                        )
+                    }
+
+                    Text(
+                        text = "Payment Method",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
+                    )
+
+                    val paymentMethods = listOf("Touch 'n Go eWallet", "Bank Transfer (Maybank/TNB)", "DuitNow QR")
+                    paymentMethods.forEach { method ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .border(
+                                    width = 1.dp,
+                                    color = if (selectedPaymentMethod == method) BrandGreenColour else CardBorderColor,
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                                .clickable { selectedPaymentMethod = method }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = method,
+                                fontSize = 14.sp,
+                                fontWeight = if (selectedPaymentMethod == method) FontWeight.Bold else FontWeight.Normal,
+                                color = TextDark
+                            )
+                            RadioButton(
+                                selected = (selectedPaymentMethod == method),
+                                onClick = { selectedPaymentMethod = method },
+                                colors = RadioButtonDefaults.colors(selectedColor = BrandGreenColour)
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { showWithdrawSheet = false },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, CardBorderColor)
+                        ) {
+                            Text(text = "Cancel", color = TextDark, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = {
+                                val amount = withdrawAmountText.toDoubleOrNull()
+                                when {
+                                    amount == null || amount <= 0 -> {
+                                        withdrawError = "Please enter a valid amount."
+                                    }
+                                    amount > accumulatedCredits -> {
+                                        withdrawError = "Amount exceeds available balance."
+                                    }
+                                    else -> {
+                                        accumulatedCredits -= amount
+                                        withdrawSuccess = true
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1.5f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = BrandGreenColour)
+                        ) {
+                            Text(text = "Withdraw Now", fontWeight = FontWeight.Bold, color = White)
+                        }
                     }
                 }
             }

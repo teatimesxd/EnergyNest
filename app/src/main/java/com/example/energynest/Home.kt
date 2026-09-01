@@ -45,7 +45,6 @@ private val TextGray = Color(0xFF5A6065)
 private val BrandGreenColour = Color(0xFF00B87C)
 private val LightGreenBg = Color(0xFFD8F3E5)
 private val ProgressBg = Color(0xFFE5E7EB)
-private val AvatarBg = Color(0xFFE6E8EA)
 private val BorderLight = Color(0xFFE2E8F0)
 
 @Serializable
@@ -140,19 +139,29 @@ fun HomeScreen(
                 .background(Background),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
+            // ---- Top App Bar ----
             item {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.Start,
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = onOpenDrawer) {
                             Icon(
                                 painter = painterResource(id = R.drawable.sidebar_icon),
                                 contentDescription = "Sidebar",
+                                tint = TextDark
+                            )
+                        }
+
+                        // ---- Profile Icon ----
+                        IconButton(onClick = onProfileClick) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.profile_icon),
+                                contentDescription = "Profile",
                                 tint = TextDark
                             )
                         }
@@ -168,36 +177,12 @@ fun HomeScreen(
                         .padding(horizontal = 20.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "Hello, Homeowner",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextDark
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(AvatarBg)
-                                .clickable { onProfileClick() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.profile_icon),
-                                contentDescription = "Profile",
-                                tint = TextDark,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
+                    Text(
+                        text = "Hello, Homeowner",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
+                    )
 
                     Box(
                         modifier = Modifier

@@ -1,12 +1,6 @@
 package com.example.energynest
 
-import android.app.Activity
-import android.content.Intent
-import android.os.Bundle
 import android.util.Log
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -55,17 +48,14 @@ import com.example.energynest.ui.theme.EnergyNestTheme
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.auth.handleDeeplinks
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import kotlinx.coroutines.launch
 
-class ForgotPasswordActivity : ComponentActivity() {
-
-    private val recoveryVerified = mutableStateOf(false)
-
-    // Supabase Client
-    private val supabaseClient: SupabaseClient by lazy {
+@Composable
+fun ForgotPasswordPage(
+    recoveryVerified: Boolean = false,
+    supabaseClient: SupabaseClient = remember {
         createSupabaseClient(
             supabaseUrl = "https://skanmdzsnfoquwljukfk.supabase.co",
             supabaseKey = "sb_publishable_LTLKeWepLBaIi8RW3Fd23w_OVLDbLqZ"
@@ -76,69 +66,16 @@ class ForgotPasswordActivity : ComponentActivity() {
             }
             install(Postgrest)
         }
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-
-        processRecoveryLink(intent)
-
-        setContent {
-            EnergyNestTheme {
-                ForgotPasswordPage(
-                    recoveryVerified = recoveryVerified.value,
-                    supabaseClient = supabaseClient
-                )
-            }
-        }
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        processRecoveryLink(intent)
-    }
-
-    // Process password recovery link
-    private fun processRecoveryLink(intent: Intent?) {
-        if (intent == null) return
-        val uri = intent.data ?: return
-
-        Log.d("RECOVERY_LINK", "Deep link received: $uri")
-
-        try {
-            supabaseClient.handleDeeplinks(intent)
-            recoveryVerified.value = true
-            Log.d("RECOVERY_LINK", "Recovery link received successfully")
-        } catch (e: Exception) {
-            recoveryVerified.value = false
-            Log.e("RECOVERY_LINK", "Failed to process recovery link", e)
-        }
-    }
-}
-
-@Composable
-fun ForgotPasswordPage(
-    recoveryVerified: Boolean = false,
-    supabaseClient: SupabaseClient
+    },
+    onBackToLogin: () -> Unit = {}
 ) {
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-
-    // PAGE FLOW (Enter Email, Check Email, Create New Password)
+    // PAGE FLOW (0: Enter Email, 1: Check Email, 2: Create New Password)
     var currentStep by remember {
-        mutableStateOf(
-            if (recoveryVerified) {
-                2
-            } else {
-                0
-            }
-        )
+        mutableStateOf(if (recoveryVerified) 2 else 0)
     }
 
-    // Move to password page when recovery link is verified
     LaunchedEffect(recoveryVerified) {
         if (recoveryVerified) {
             currentStep = 2
@@ -184,7 +121,7 @@ fun ForgotPasswordPage(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Enter Email
+                // Step 0: Enter Email
                 if (currentStep == 0) {
                     Text(
                         text = "Forgot Password?",
@@ -202,7 +139,6 @@ fun ForgotPasswordPage(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Email Text Field
                     OutlinedTextField(
                         value = userEmail,
                         onValueChange = {
@@ -238,7 +174,6 @@ fun ForgotPasswordPage(
                         )
                     )
 
-                    // Email Error Message
                     if (step1Message.isNotEmpty()) {
                         Text(
                             text = step1Message,
@@ -251,7 +186,6 @@ fun ForgotPasswordPage(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Send Reset Link Button
                     Button(
                         onClick = {
                             if (userEmail.isBlank()) {
@@ -329,12 +263,12 @@ fun ForgotPasswordPage(
                         color = primaryGreen,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
-                            (context as? Activity)?.finish()
+                            onBackToLogin()
                         }
                     )
                 }
 
-                // Check Email
+                // Step 1: Check Email
                 else if (currentStep == 1) {
                     Text(
                         text = "Check Your Email",
@@ -365,7 +299,6 @@ fun ForgotPasswordPage(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Resend Link Button
                     Button(
                         onClick = {
                             step1Error = false
@@ -426,7 +359,7 @@ fun ForgotPasswordPage(
                     }
                 }
 
-                // Create New Password
+                // Step 2: Create New Password
                 else if (currentStep == 2) {
                     Text(
                         text = "Create New Password",
@@ -533,7 +466,6 @@ fun ForgotPasswordPage(
                         )
                     )
 
-                    // Check the password is empty or not
                     if (passwordMessage.isNotEmpty()) {
                         Text(
                             text = passwordMessage,
@@ -544,7 +476,6 @@ fun ForgotPasswordPage(
                         )
                     }
 
-                    // Reset Password Button
                     Button(
                         onClick = {
                             passwordError = false
@@ -604,7 +535,6 @@ fun ForgotPasswordPage(
                         }
                     }
 
-                    // Request new reset link
                     if (passwordError && passwordMessage.contains("expired")) {
                         Button(
                             onClick = {
@@ -624,11 +554,10 @@ fun ForgotPasswordPage(
                         }
                     }
 
-                    // Back to login page after successful
                     if (passwordResetSuccess) {
                         Button(
                             onClick = {
-                                (context as? Activity)?.finish()
+                                onBackToLogin()
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = primaryGreen),
                             modifier = Modifier
@@ -643,7 +572,7 @@ fun ForgotPasswordPage(
             }
         }
 
-        // Back Button
+        // Top Back Button
         IconButton(
             onClick = {
                 when (currentStep) {
@@ -652,11 +581,8 @@ fun ForgotPasswordPage(
                         step1Error = false
                         step1Message = ""
                     }
-                    2 -> {
-                        (context as? Activity)?.finish()
-                    }
                     else -> {
-                        (context as? Activity)?.finish()
+                        onBackToLogin()
                     }
                 }
             },
@@ -678,23 +604,9 @@ fun ForgotPasswordPage(
 @Preview(showBackground = true)
 @Composable
 fun ForgotPasswordPreview() {
-    val previewSupabaseClient = remember {
-        createSupabaseClient(
-            supabaseUrl = "https://skanmdzsnfoquwljukfk.supabase.co",
-            supabaseKey = "sb_publishable_LTLKeWepLBaIi8RW3Fd23w_OVLDbLqZ"
-        ) {
-            install(Auth) {
-                host = "reset-password"
-                scheme = "energynest"
-            }
-            install(Postgrest)
-        }
-    }
-
     EnergyNestTheme {
         ForgotPasswordPage(
-            recoveryVerified = false,
-            supabaseClient = previewSupabaseClient
+            recoveryVerified = false
         )
     }
 }

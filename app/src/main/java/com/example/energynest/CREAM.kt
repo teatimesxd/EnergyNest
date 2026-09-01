@@ -32,7 +32,8 @@ private val White = Color.White
 @Composable
 fun CreamScreen(
     onOpenDrawer: () -> Unit = {},
-    onCheckEligibility: () -> Unit = {}
+    onCheckEligibility: () -> Unit = {},
+    onProfileClick: () -> Unit = {}
 ) {
     var propertyType by remember { mutableStateOf("Terrace") }
     var roofSpace by remember { mutableFloatStateOf(1200f) }
@@ -55,7 +56,7 @@ fun CreamScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.Start,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
@@ -74,6 +75,14 @@ fun CreamScreen(
                             fontSize = 19.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextDark
+                        )
+                    }
+
+                    IconButton(onClick = onProfileClick) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.profile_icon),
+                            contentDescription = "Profile",
+                            tint = TextDark
                         )
                     }
                 }

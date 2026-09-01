@@ -1,7 +1,6 @@
 package com.example.energynest
 
 import android.Manifest
-import android.app.Activity
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.Image
@@ -58,11 +57,9 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.example.energynest.ui.theme.EnergyNestTheme
 
-
 val PrimaryGreen = Color(0xFF10B981)
 val ErrorRed = Color(0xFFEF4444)
 val BorderGray = Color(0xFFD1D5DB)
-
 
 @Composable
 fun greenTextFieldColors() = OutlinedTextFieldDefaults.colors(
@@ -157,7 +154,11 @@ fun isValidEmail(email: String): Boolean {
 }
 
 @Composable
-fun RegisterPage() {
+fun RegisterPage(
+    onRegisterSuccess: () -> Unit = {},
+    onBackToLogin: () -> Unit = {},
+    onNavigateToTerms: () -> Unit = {}
+) {
     val context = LocalContext.current
 
     var fullName by remember { mutableStateOf("") }
@@ -188,7 +189,7 @@ fun RegisterPage() {
     var privacyError by remember { mutableStateOf(false) }
     var registerMessage by remember { mutableStateOf("") }
 
-    // Lacation
+    // Location Permission
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -278,8 +279,8 @@ fun RegisterPage() {
         }
 
         if (valid) {
-            val databasePhone = "+60$phoneNumber"
             registerMessage = "Registration successful!"
+            onRegisterSuccess()
         } else {
             registerMessage = "Please fix the errors above."
         }
@@ -308,7 +309,6 @@ fun RegisterPage() {
                 verticalArrangement = Arrangement.spacedBy(14.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // EnergyNest Logo
                 Image(
                     painter = painterResource(id = R.drawable.energynest_icon_1),
                     contentDescription = "App logo",
@@ -460,7 +460,6 @@ fun RegisterPage() {
                     colors = greenTextFieldColors()
                 )
 
-                // Zipcode and city
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -495,7 +494,6 @@ fun RegisterPage() {
                     )
                 }
 
-                // State and map button
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -546,7 +544,6 @@ fun RegisterPage() {
                     }
                 }
 
-                // Map Picker
                 if (showMapPicker) {
                     Dialog(
                         onDismissRequest = {
@@ -686,19 +683,19 @@ fun RegisterPage() {
                     )
 
                     Text(
-                        text = "Privacy Policy",
+                        text = "Terms & Conditions",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = primaryGreen,
                         modifier = Modifier.clickable {
-                            // Open Privacy Policy Activity here
+                            onNavigateToTerms()
                         }
                     )
                 }
 
                 if (privacyError) {
                     Text(
-                        text = "You must accept the Privacy Policy",
+                        text = "You must accept the Terms & Conditions",
                         color = errorRed,
                         fontSize = 12.sp,
                         modifier = Modifier.align(Alignment.Start)
@@ -707,7 +704,6 @@ fun RegisterPage() {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Register Button
                 Button(
                     onClick = {
                         validateAndRegister()
@@ -738,7 +734,6 @@ fun RegisterPage() {
                     }
                 }
 
-                // Status Message
                 if (registerMessage.isNotEmpty()) {
                     Text(
                         text = registerMessage,
@@ -754,7 +749,6 @@ fun RegisterPage() {
                     )
                 }
 
-                // Login Link
                 Row(
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -769,7 +763,7 @@ fun RegisterPage() {
                         fontWeight = FontWeight.Bold,
                         color = primaryGreen,
                         modifier = Modifier.clickable {
-                            (context as? Activity)?.finish()
+                            onBackToLogin()
                         }
                     )
                 }
@@ -778,10 +772,9 @@ fun RegisterPage() {
             }
         }
 
-        // Back Button
         IconButton(
             onClick = {
-                (context as? Activity)?.finish()
+                onBackToLogin()
             },
             modifier = Modifier
                 .align(Alignment.TopStart)
