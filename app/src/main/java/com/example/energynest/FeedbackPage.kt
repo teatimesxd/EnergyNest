@@ -1,0 +1,213 @@
+package com.example.energynest
+
+import android.app.Activity
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.energynest.ui.theme.EnergyNestTheme
+
+
+
+@Composable
+fun FeedbackPage() {
+    val context = LocalContext.current
+    var feedback by remember { mutableStateOf("") }
+    var feedbackError by remember { mutableStateOf(false) }
+    var feedbackMessage by remember { mutableStateOf("") }
+    val primaryGreen = Color(0xFF10B981)
+    val textDark = Color(0xFF1E293B)
+    val textGray = Color(0xFF505F76)
+    val backgroundGray = Color(0xFFE2E8F0)
+    val errorRed = Color(0xFFEF4444)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backgroundGray)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp)
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Color.White,
+                        shape = RoundedCornerShape(24.dp)
+                    )
+                    .padding(horizontal = 28.dp, vertical = 40.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Title
+                Text(
+                    text = "Feedback",
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textDark
+                )
+
+                Text(
+                    text = "We would love to hear from you. Share your suggestions, comments or report any problems you experienced while using EnergyNest.",
+                    fontSize = 14.sp,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Center,
+                    color = textGray,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Feedback Label
+                Text(
+                    text = "Your Feedback",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = textGray,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Feedback Text Field
+                OutlinedTextField(
+                    value = feedback,
+                    onValueChange = {
+                        feedback = it
+                        feedbackError = false
+                        feedbackMessage = ""
+                    },
+                    label = {
+                        Text(text = "Tell us what you think")
+                    },
+                    placeholder = {
+                        Text(text = "Enter your feedback here...")
+                    },
+                    textStyle = LocalTextStyle.current.copy(
+                        color = Color.Black
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    isError = feedbackError
+                )
+
+                // Error and Success Message
+                if (feedbackMessage.isNotEmpty()) {
+                    Text(
+                        text = feedbackMessage,
+                        color = if (feedbackError) errorRed else primaryGreen,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Submit Button
+                Button(
+                    onClick = {
+                        // Check is empty or not
+                        if (feedback.trim().isBlank()) {
+                            feedbackError = true
+                            feedbackMessage = "Please enter your feedback before submitting."
+                        }
+                        else {
+                            feedbackError = false
+                            feedbackMessage = "Thank you! Your feedback has been submitted successfully."
+                            feedback = ""
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = primaryGreen,
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    // Send Icon
+                    Icon(
+                        painter = painterResource(id = R.drawable.send_icon),
+                        contentDescription = "Submit Feedback",
+                        tint = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Text(
+                        text = "Submit Feedback",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(30.dp))
+            }
+        }
+
+        // Back Button
+        IconButton(
+            onClick = {
+                (context as? Activity)?.finish()
+            },
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 12.dp, top = 30.dp)
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.back_arrow),
+                contentDescription = "Back",
+                tint = primaryGreen
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun FeedbackPreview() {
+    EnergyNestTheme {
+        FeedbackPage()
+    }
+}
