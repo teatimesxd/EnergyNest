@@ -1,7 +1,5 @@
 package com.example.energynest
 
-import android.content.Context
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -29,12 +26,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -45,67 +40,34 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.energynest.ui.theme.EnergyNestTheme
-import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.auth.providers.builtin.Email
-import kotlinx.coroutines.launch
 
-// Email Format Validation
+
+// Check Email Format
 fun isValidLoginEmail(email: String): Boolean {
     val emailPattern = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
     return email.matches(emailPattern.toRegex())
 }
 
-// Cache Memory
-class LoginCache(context: Context) {
-    private val sharedPreferences = context.getSharedPreferences(
-        "EnergyNestLoginCache",
-        Context.MODE_PRIVATE
-    )
 
-    // Save User Information
-    fun saveLogin(account: String) {
-        sharedPreferences.edit()
-            .putBoolean("isLoggedIn", true)
-            .putString("userAccount", account)
-            .apply()
-    }
-
-    // Check Login Cache
-    fun isLoggedIn(): Boolean {
-        return sharedPreferences.getBoolean("isLoggedIn", false)
-    }
-
-    // Get Saved Email
-    fun getSavedAccount(): String {
-        return sharedPreferences.getString("userAccount", "") ?: ""
-    }
-
-    // Clear Cache On Log Out
-    fun logout() {
-        sharedPreferences.edit().clear().apply()
-    }
-}
-
-
-// Login Page
 @Composable
 fun LoginPage() {
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    val loginCache = remember { LoginCache(context) }
-    var account by remember { mutableStateOf(loginCache.getSavedAccount()) }
+
+    var account by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var loginMessage by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
+
     var accountError by remember { mutableStateOf(false) }
     var accountErrorMessage by remember { mutableStateOf("") }
+
     var passwordError by remember { mutableStateOf(false) }
     var passwordErrorMessage by remember { mutableStateOf("") }
+
     val primaryGreen = Color(0xFF10B981)
     val textDark = Color(0xFF1E293B)
     val textGray = Color(0xFF505F76)
     val errorRed = Color(0xFFEF4444)
+
 
     Column(
         modifier = Modifier
@@ -117,11 +79,11 @@ fun LoginPage() {
                 shape = RoundedCornerShape(20.dp)
             )
             .padding(horizontal = 24.dp, vertical = 32.dp),
+
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // EnergyNest Logo
         Image(
             painter = painterResource(id = R.drawable.energynest_icon_1),
             contentDescription = "EnergyNest logo",
@@ -143,7 +105,6 @@ fun LoginPage() {
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        // Email Label
         Text(
             text = "Email Address",
             fontSize = 16.sp,
@@ -154,7 +115,6 @@ fun LoginPage() {
                 .padding(top = 8.dp)
         )
 
-        // Email Input
         InputRow(
             label = "Enter your email address",
             value = account,
@@ -168,7 +128,6 @@ fun LoginPage() {
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Email Error
         if (accountError) {
             Text(
                 text = accountErrorMessage,
@@ -180,29 +139,29 @@ fun LoginPage() {
             )
         }
 
-        // Password Label
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+
             Text(
                 text = "Password",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = textGray
             )
+
             Text(
                 text = "Forgot Password?",
                 fontSize = 14.sp,
                 color = Color(0xFF006C49),
                 modifier = Modifier.clickable {
-                    // Open Forgot Password Activity
+                    // Handle Forgot Password
                 }
             )
         }
 
-        // Password Input
         PasswordInputRow(
             value = password,
             onValueChange = {
@@ -219,7 +178,6 @@ fun LoginPage() {
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Password Error
         if (passwordError) {
             Text(
                 text = passwordErrorMessage,
@@ -233,98 +191,88 @@ fun LoginPage() {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-
-        // Login Button
         Button(
             onClick = {
+
                 accountError = false
                 passwordError = false
                 accountErrorMessage = ""
                 passwordErrorMessage = ""
                 loginMessage = ""
+
                 var valid = true
 
-                // Check Email
+                // Check Email Empty
                 if (account.isBlank()) {
                     accountError = true
                     accountErrorMessage = "Please enter your email address."
                     valid = false
-                } else if (!isValidLoginEmail(account)) {
+                }
+
+                // Check Email Format
+                else if (!isValidLoginEmail(account)) {
                     accountError = true
                     accountErrorMessage = "Please enter a valid email address."
                     valid = false
                 }
 
-                // Check Password
+                // Check Password Empty
                 if (password.isBlank()) {
                     passwordError = true
                     passwordErrorMessage = "Please enter your password."
                     valid = false
                 }
 
+                // Check Password Minimum Length
+                else if (password.length < 6) {
+                    passwordError = true
+                    passwordErrorMessage =
+                        "Password must be at least 6 characters."
+                    valid = false
+                }
+
+                // Login Successful
                 if (valid) {
-                    isLoading = true
-                    coroutineScope.launch {
-                        try {
-                            // Supabase Login
-                            SupabaseClient.client.auth.signInWith(Email) {
-                                email = account
-                                password = password
-                            }
-
-                            // Save to cache memory after login
-                            loginCache.saveLogin(account = account)
-                            isLoading = false
-                            loginMessage = "Login successful!"
-                            Log.d("LOGIN", "Supabase login successful")
-
-                        } catch (e: Exception) {
-                            isLoading = false
-                            passwordError = true
-                            passwordErrorMessage = "Incorrect email or password. Please try again."
-                            Log.e("LOGIN", "Supabase login failed: ${e.message}", e)
-                        }
-                    }
+                    loginMessage = "Login successful!"
                 }
             },
-            enabled = !isLoading,
+
             colors = ButtonDefaults.buttonColors(
                 containerColor = primaryGreen,
                 contentColor = Color.White
             ),
+
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
+
             shape = RoundedCornerShape(12.dp)
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = Color.White,
-                    strokeWidth = 2.dp
+
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Text(
+                    text = "Login",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
-            } else {
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Login",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        painter = painterResource(id = R.drawable.arrow_icon),
-                        contentDescription = "Login",
-                        modifier = Modifier.size(24.dp),
-                        tint = Color.White
-                    )
-                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Icon(
+                    painter = painterResource(
+                        id = R.drawable.arrow_icon
+                    ),
+                    contentDescription = "Login",
+                    modifier = Modifier.size(24.dp),
+                    tint = Color.White
+                )
             }
         }
 
-        // Success Message
         if (loginMessage.isNotEmpty()) {
             Text(
                 text = loginMessage,
@@ -334,16 +282,17 @@ fun LoginPage() {
             )
         }
 
-        // Sign Up
         Row(
             modifier = Modifier.padding(top = 8.dp),
             horizontalArrangement = Arrangement.Center
         ) {
+
             Text(
                 text = "Don't have an account? ",
                 fontSize = 14.sp,
                 color = Color.Gray
             )
+
             Text(
                 text = "Sign Up",
                 fontSize = 14.sp,
@@ -357,6 +306,7 @@ fun LoginPage() {
     }
 }
 
+
 @Composable
 fun InputRow(
     label: String,
@@ -366,6 +316,7 @@ fun InputRow(
     modifier: Modifier = Modifier,
     shape: RoundedCornerShape = RoundedCornerShape(24.dp)
 ) {
+
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -376,28 +327,40 @@ fun InputRow(
                 color = Color(0xFF6B7280)
             )
         },
+
         textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
             color = Color.Black
         ),
+
         singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Email
+        ),
+
         shape = shape,
         isError = isError,
         colors = OutlinedTextFieldDefaults.colors(
-            // =====================================
-            // TEXT ALWAYS BLACK
-            // =====================================
             focusedTextColor = Color.Black,
             unfocusedTextColor = Color.Black,
             errorTextColor = Color.Black,
             disabledTextColor = Color.Black,
+
             focusedPlaceholderColor = Color(0xFF6B7280),
             unfocusedPlaceholderColor = Color(0xFF6B7280),
+
             focusedContainerColor = Color.White,
             unfocusedContainerColor = Color.White,
             errorContainerColor = Color.White,
-            focusedBorderColor = if (isError) Color(0xFFEF4444) else Color(0xFF10B981),
-            unfocusedBorderColor = if (isError) Color(0xFFEF4444) else Color(0xFFD1D5DB),
+
+            focusedBorderColor =
+                if (isError) Color(0xFFEF4444)
+                else Color(0xFF10B981),
+
+            unfocusedBorderColor =
+                if (isError) Color(0xFFEF4444)
+                else Color(0xFFD1D5DB),
+
             errorBorderColor = Color(0xFFEF4444),
             cursorColor = Color(0xFF10B981)
         ),
@@ -406,6 +369,7 @@ fun InputRow(
             .height(64.dp)
     )
 }
+
 
 @Composable
 fun PasswordInputRow(
@@ -417,6 +381,7 @@ fun PasswordInputRow(
     modifier: Modifier = Modifier,
     shape: RoundedCornerShape = RoundedCornerShape(24.dp)
 ) {
+
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -427,18 +392,40 @@ fun PasswordInputRow(
                 color = Color(0xFF6B7280)
             )
         },
+
         textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
             color = Color.Black
         ),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-        visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Password
+        ),
+
+        visualTransformation =
+            if (visible) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
+
         trailingIcon = {
-            IconButton(onClick = onVisibilityToggle) {
+            IconButton(
+                onClick = onVisibilityToggle
+            ) {
                 Icon(
                     painter = painterResource(
-                        id = if (visible) R.drawable.visibility else R.drawable.non_visibility
+                        id =
+                            if (visible)
+                                R.drawable.visibility
+                            else
+                                R.drawable.non_visibility
                     ),
-                    contentDescription = if (visible) "Hide password" else "Show password",
+                    contentDescription =
+                        if (visible)
+                            "Hide password"
+                        else
+                            "Show password",
+
                     tint = Color(0xFF505F76),
                     modifier = Modifier.size(24.dp)
                 )
@@ -452,13 +439,22 @@ fun PasswordInputRow(
             unfocusedTextColor = Color.Black,
             errorTextColor = Color.Black,
             disabledTextColor = Color.Black,
+
             focusedPlaceholderColor = Color(0xFF6B7280),
             unfocusedPlaceholderColor = Color(0xFF6B7280),
+
             focusedContainerColor = Color.White,
             unfocusedContainerColor = Color.White,
             errorContainerColor = Color.White,
-            focusedBorderColor = if (isError) Color(0xFFEF4444) else Color(0xFF10B981),
-            unfocusedBorderColor = if (isError) Color(0xFFEF4444) else Color(0xFFD1D5DB),
+
+            focusedBorderColor =
+                if (isError) Color(0xFFEF4444)
+                else Color(0xFF10B981),
+
+            unfocusedBorderColor =
+                if (isError) Color(0xFFEF4444)
+                else Color(0xFFD1D5DB),
+
             errorBorderColor = Color(0xFFEF4444),
             cursorColor = Color(0xFF10B981)
         ),
@@ -467,6 +463,7 @@ fun PasswordInputRow(
             .height(64.dp)
     )
 }
+
 
 @Preview(showBackground = true)
 @Composable
