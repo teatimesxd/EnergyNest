@@ -1,6 +1,5 @@
 package com.example.energynest
 
-import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -44,8 +41,15 @@ import androidx.compose.ui.unit.sp
 import com.example.energynest.ui.theme.EnergyNestTheme
 
 @Composable
-fun SettingPage() {
-    val context = LocalContext.current
+fun SettingPage(
+    onBackClick: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = {},
+    onNavigateToChangePassword: () -> Unit = {},
+    onNavigateToPrivacyPolicy: () -> Unit = {},
+    onNavigateToTerms: () -> Unit = {},
+    onNavigateToFeedback: () -> Unit = {},
+    onLogoutConfirmed: () -> Unit = {}
+) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     val primaryGreen = Color(0xFF10B981)
     val textDark = Color(0xFF1E293B)
@@ -136,7 +140,8 @@ fun SettingPage() {
                 icon = R.drawable.person_icon,
                 title = "Profile",
                 subtitle = "View and update your profile",
-                iconColor = primaryGreen
+                iconColor = primaryGreen,
+                onClick = onNavigateToProfile
             )
 
             SettingsDivider(color = dividerColor)
@@ -146,7 +151,8 @@ fun SettingPage() {
                 icon = R.drawable.lock_icon,
                 title = "Change Password",
                 subtitle = "Update your account password",
-                iconColor = primaryGreen
+                iconColor = primaryGreen,
+                onClick = onNavigateToChangePassword
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -159,7 +165,8 @@ fun SettingPage() {
                 icon = R.drawable.privacy_tip_icon,
                 title = "Privacy Policy",
                 subtitle = "View our privacy policy",
-                iconColor = primaryGreen
+                iconColor = primaryGreen,
+                onClick = onNavigateToPrivacyPolicy
             )
 
             SettingsDivider(color = dividerColor)
@@ -169,7 +176,8 @@ fun SettingPage() {
                 icon = R.drawable.description_icon,
                 title = "Terms & Conditions",
                 subtitle = "Read our terms and conditions",
-                iconColor = primaryGreen
+                iconColor = primaryGreen,
+                onClick = onNavigateToTerms
             )
 
             SettingsDivider(color = dividerColor)
@@ -179,7 +187,8 @@ fun SettingPage() {
                 icon = R.drawable.feedback_icon,
                 title = "Feedback",
                 subtitle = "Share your feedback with us",
-                iconColor = primaryGreen
+                iconColor = primaryGreen,
+                onClick = onNavigateToFeedback
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -261,9 +270,7 @@ fun SettingPage() {
 
         // Back Button
         IconButton(
-            onClick = {
-                (context as? Activity)?.finish()
-            },
+            onClick = onBackClick,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(start = 24.dp, top = 26.dp)
@@ -294,7 +301,7 @@ fun SettingPage() {
                     TextButton(
                         onClick = {
                             showLogoutDialog = false
-                            // Logout function will be added later
+                            onLogoutConfirmed()
                         }
                     ) {
                         Text(
@@ -333,18 +340,19 @@ fun SettingsSectionTitle(title: String) {
     )
 }
 
-// Normal Setting Items
 @Composable
 fun SettingsItem(
     icon: Int,
     title: String,
     subtitle: String,
     iconColor: Color,
-    titleColor: Color = Color(0xFF1E293B)
+    titleColor: Color = Color(0xFF1E293B),
+    onClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { onClick() }
             .padding(vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

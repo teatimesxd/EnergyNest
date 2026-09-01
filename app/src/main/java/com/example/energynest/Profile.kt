@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,11 +21,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.wear.compose.material3.TextButton
-import androidx.wear.compose.material3.TextButtonDefaults
+
+data class UserProfile(
+    val name: String = "John Smith",
+    val email: String = "johnsmith@yahoo.com",
+    val phone: String = "+60 12 345 6789",
+    val address: String = "Kuala Lumpur, Malaysia"
+)
 
 @Composable
 fun ProfileScreen(
+    onBack: () -> Unit = {},
     onEditClick: () -> Unit = {},
     onResetPasswordClick: () -> Unit = {},
     onLogOutClick: () -> Unit = {},
@@ -47,16 +54,16 @@ fun ProfileScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { Toast.makeText(context, "Back", Toast.LENGTH_SHORT).show() }, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Default.ArrowBack, "Back", tint = Color(0xFF00B87C), modifier = Modifier.size(28.dp))
+            IconButton(onClick = onBack, modifier = Modifier.size(40.dp)) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color(0xFF00B87C), modifier = Modifier.size(28.dp))
             }
             Text("Profile", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            IconButton(onClick = { onEditClick() }, modifier = Modifier.size(40.dp)) {
+            IconButton(onClick = onEditClick, modifier = Modifier.size(40.dp)) {
                 Icon(Icons.Default.Edit, "Edit", tint = Color(0xFF00B87C), modifier = Modifier.size(28.dp))
             }
         }
 
-        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.LightGray))
+        HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
 
         Column(
             modifier = Modifier
@@ -64,7 +71,11 @@ fun ProfileScreen(
                 .padding(horizontal = 20.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            val initials = userProfile.name.split(" ").take(2).map { it.first().uppercase() }.joinToString("")
+            val initials = userProfile.name.trim().split(" ")
+                .filter { it.isNotEmpty() }
+                .take(2)
+                .mapNotNull { it.firstOrNull()?.uppercase() }
+                .joinToString("")
 
             Box(
                 modifier = Modifier
@@ -80,7 +91,7 @@ fun ProfileScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    initials,
+                    if (initials.isEmpty()) "JS" else initials,
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -130,35 +141,16 @@ fun ProfileScreen(
                             .padding(vertical = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            "TnB Account Number",
-                            fontSize = 14.sp,
-                            color = Color.Gray
-                        )
+                        Text("TnB Account Number", fontSize = 14.sp, color = Color.Gray)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "9000 1234 5678",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Black
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("9000 1234 5678", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                Icons.Default.Lock,
-                                "Locked",
-                                tint = Color.Gray,
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Icon(Icons.Default.Lock, "Locked", tint = Color.Gray, modifier = Modifier.size(16.dp))
                         }
                     }
 
-                    Divider(
-                        color = Color.LightGray,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), color = Color.LightGray)
 
                     Column(
                         modifier = Modifier
@@ -172,35 +164,14 @@ fun ProfileScreen(
                             .padding(vertical = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            "Account Status",
-                            fontSize = 14.sp,
-                            color = Color.Gray
-                        )
+                        Text("Account Status", fontSize = 14.sp, color = Color.Gray)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF00B87C))
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Color(0xFF00B87C)))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "Active",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF00B87C)
-                            )
+                            Text("Active", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00B87C))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                Icons.Default.Lock,
-                                "Locked",
-                                tint = Color.Gray,
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Icon(Icons.Default.Lock, "Locked", tint = Color.Gray, modifier = Modifier.size(16.dp))
                         }
                     }
                 }
@@ -218,27 +189,9 @@ fun ProfileScreen(
                     .padding(bottom = 8.dp, start = 4.dp)
             )
 
-            ProfileItem(
-                Icons.Default.Lock,
-                "Reset Password",
-                onClick = onResetPasswordClick
-            )
-
-            ProfileItem(
-                Icons.Default.Logout,
-                "Log Out",
-                iconColor = Color(0xFFFF5722),
-                textColor = Color(0xFFFF5722),
-                onClick = onLogOutClick
-            )
-
-            ProfileItem(
-                Icons.Default.Delete,
-                "Delete Account",
-                iconColor = Color.Red,
-                textColor = Color.Red,
-                onClick = onDeleteAccountClick
-            )
+            ProfileItem(Icons.Default.Lock, "Reset Password", onClick = onResetPasswordClick)
+            ProfileItem(Icons.Default.Logout, "Log Out", iconColor = Color(0xFFFF5722), textColor = Color(0xFFFF5722), onClick = onLogOutClick)
+            ProfileItem(Icons.Default.Delete, "Delete Account", iconColor = Color.Red, textColor = Color.Red, onClick = onDeleteAccountClick)
         }
     }
 }
@@ -258,9 +211,7 @@ fun ProfileItem(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
-            ) {
-                onClick()
-            },
+            ) { onClick() },
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -278,27 +229,12 @@ fun ProfileItem(
                     .background(Color(0xFF4CAF50).copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    icon,
-                    title,
-                    tint = iconColor,
-                    modifier = Modifier.size(22.dp)
-                )
+                Icon(icon, title, tint = iconColor, modifier = Modifier.size(22.dp))
             }
             Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = textColor
-            )
+            Text(title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = textColor)
             Spacer(modifier = Modifier.weight(1f))
-            Icon(
-                Icons.Default.ChevronRight,
-                null,
-                tint = Color.Gray,
-                modifier = Modifier.size(24.dp)
-            )
+            Icon(Icons.Default.ChevronRight, null, tint = Color.Gray, modifier = Modifier.size(24.dp))
         }
     }
 }
@@ -310,47 +246,22 @@ fun DeleteAccountDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "Delete Account",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Red
-            )
-        },
+        title = { Text("Delete Account", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Red) },
         text = {
             Column {
-                Text(
-                    "Are you sure you want to delete your account?",
-                    fontSize = 15.sp,
-                    color = Color.Black
-                )
+                Text("Are you sure you want to delete your account?", fontSize = 15.sp, color = Color.Black)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "This action cannot be undone.",
-                    fontSize = 13.sp,
-                    color = Color.Gray
-                )
+                Text("This action cannot be undone.", fontSize = 13.sp, color = Color.Gray)
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                colors = TextButtonDefaults.textButtonColors(
-                    contentColor = Color.Red
-                )
-            ) {
-                Text("Delete", fontWeight = FontWeight.Bold)
+            TextButton(onClick = onConfirm) {
+                Text("Delete", fontWeight = FontWeight.Bold, color = Color.Red)
             }
         },
         dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                colors = TextButtonDefaults.textButtonColors(
-                    contentColor = Color(0xFF4CAF50)
-                )
-            ) {
-                Text("Cancel", fontWeight = FontWeight.Medium)
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", fontWeight = FontWeight.Medium, color = Color(0xFF4CAF50))
             }
         },
         shape = RoundedCornerShape(16.dp),
@@ -365,47 +276,22 @@ fun LogOutDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "Log Out",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFFFF5722)
-            )
-        },
+        title = { Text("Log Out", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF5722)) },
         text = {
             Column {
-                Text(
-                    "Are you sure you want to log out?",
-                    fontSize = 15.sp,
-                    color = Color.Black
-                )
+                Text("Are you sure you want to log out?", fontSize = 15.sp, color = Color.Black)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "You will need to sign in again to access your account.",
-                    fontSize = 13.sp,
-                    color = Color.Gray
-                )
+                Text("You will need to sign in again to access your account.", fontSize = 13.sp, color = Color.Gray)
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                colors = TextButtonDefaults.textButtonColors(
-                    contentColor = Color(0xFFFF5722)
-                )
-            ) {
-                Text("Log Out", fontWeight = FontWeight.Bold)
+            TextButton(onClick = onConfirm) {
+                Text("Log Out", fontWeight = FontWeight.Bold, color = Color(0xFFFF5722))
             }
         },
         dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                colors = TextButtonDefaults.textButtonColors(
-                    contentColor = Color(0xFF4CAF50)
-                )
-            ) {
-                Text("Cancel", fontWeight = FontWeight.Medium)
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", fontWeight = FontWeight.Medium, color = Color(0xFF4CAF50))
             }
         },
         shape = RoundedCornerShape(16.dp),
@@ -414,7 +300,9 @@ fun LogOutDialog(
 }
 
 @Composable
-fun ProfileScreenWrapper() {
+fun ProfileScreenWrapper(
+    onBackToHome: () -> Unit = {}
+) {
     val context = LocalContext.current
     var showEditProfile by remember { mutableStateOf(false) }
     var showResetPassword by remember { mutableStateOf(false) }
@@ -433,50 +321,33 @@ fun ProfileScreenWrapper() {
 
     when {
         showResetPassword -> {
-            ResetPasswordScreen(
-                onBack = {
-                    showResetPassword = false
-                },
-                onResetClick = {
-                    showResetPassword = false
-                    Toast.makeText(context, "Password updated!", Toast.LENGTH_SHORT).show()
-                }
-            )
+            Toast.makeText(context, "Reset Password Screen", Toast.LENGTH_SHORT).show()
+            showResetPassword = false
         }
         showEditProfile -> {
             EditProfileScreen(
+                initialProfile = userProfile,
                 onSave = { updatedProfile ->
                     userProfile = updatedProfile
                     showEditProfile = false
                 },
-                onBack = {
-                    showEditProfile = false
-                }
+                onBack = { showEditProfile = false }
             )
         }
         else -> {
             Box(modifier = Modifier.fillMaxSize()) {
                 ProfileScreen(
-                    onEditClick = {
-                        showEditProfile = true
-                    },
-                    onResetPasswordClick = {
-                        showResetPassword = true
-                    },
-                    onLogOutClick = {
-                        showLogOutDialog = true
-                    },
-                    onDeleteAccountClick = {
-                        showDeleteDialog = true
-                    },
+                    onBack = onBackToHome,
+                    onEditClick = { showEditProfile = true },
+                    onResetPasswordClick = { showResetPassword = true },
+                    onLogOutClick = { showLogOutDialog = true },
+                    onDeleteAccountClick = { showDeleteDialog = true },
                     userProfile = userProfile
                 )
 
                 if (showDeleteDialog) {
                     DeleteAccountDialog(
-                        onDismiss = {
-                            showDeleteDialog = false
-                        },
+                        onDismiss = { showDeleteDialog = false },
                         onConfirm = {
                             showDeleteDialog = false
                             Toast.makeText(context, "Account deleted", Toast.LENGTH_SHORT).show()
@@ -486,9 +357,7 @@ fun ProfileScreenWrapper() {
 
                 if (showLogOutDialog) {
                     LogOutDialog(
-                        onDismiss = {
-                            showLogOutDialog = false
-                        },
+                        onDismiss = { showLogOutDialog = false },
                         onConfirm = {
                             showLogOutDialog = false
                             Toast.makeText(context, "Logged out", Toast.LENGTH_SHORT).show()
@@ -503,7 +372,5 @@ fun ProfileScreenWrapper() {
 @Preview(showBackground = true)
 @Composable
 fun PreviewProfileScreen() {
-    MaterialTheme {
-        ProfileScreen()
-    }
+    ProfileScreen()
 }

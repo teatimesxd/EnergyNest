@@ -1,6 +1,5 @@
 package com.example.energynest
 
-import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -31,8 +29,9 @@ import androidx.compose.ui.unit.sp
 import com.example.energynest.ui.theme.EnergyNestTheme
 
 @Composable
-fun TermsConditionPage() {
-    val context = LocalContext.current
+fun TermsConditionPage(
+    onBackClick: () -> Unit = {}
+) {
     val primaryGreen = Color(0xFF10B981)
     val textDark = Color(0xFF1E293B)
     val backgroundGray = Color(0xFFE2E8F0)
@@ -77,62 +76,51 @@ fun TermsConditionPage() {
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Acceptance Of Terms
                     TermsSectionTitle(title = "1. ACCEPTANCE OF TERMS")
                     TermsBodyText(
                         text = "By accessing or using the EnergyNest mobile application, you agree to comply with these Terms and Conditions. If you do not agree with any part of these terms, please do not use the application."
                     )
 
-                    // User Account
                     TermsSectionTitle(title = "2. USER ACCOUNT")
                     TermsBodyText(
                         text = "You are responsible for providing accurate and complete information when creating an EnergyNest account. You are also responsible for maintaining the confidentiality of your account credentials and for activities performed using your account."
                     )
 
-                    // Use Of EnergyNest Services
                     TermsSectionTitle(title = "3. USE OF ENERGYNEST SERVICES")
                     TermsBodyText(
                         text = "EnergyNest provides features and information related to energy monitoring, energy consumption, solar energy and other available services. The application should only be used for lawful purposes and according to these Terms and Conditions."
                     )
 
-                    // User Responsibilities
                     TermsSectionTitle(title = "4. USER RESPONSIBILITIES")
                     TermsBodyText(
                         text = "Users must not misuse the application, attempt to access another user's account, interfere with the application's operation or use the application for unlawful activities."
                     )
 
-                    // Information Accuracy
                     TermsSectionTitle(title = "5. INFORMATION ACCURACY")
                     TermsBodyText(
                         text = "EnergyNest aims to provide accurate information and services. However, information displayed in the application may occasionally contain errors, delays or inaccuracies. Users should verify important information when necessary."
                     )
 
-
-                    // Service Availability
                     TermsSectionTitle(title = "6. SERVICE AVAILABILITY")
                     TermsBodyText(
                         text = "EnergyNest may modify, update, temporarily suspend or discontinue certain features or services without prior notice when necessary for maintenance, improvements or other operational reasons."
                     )
 
-                    // Intellectual Property
                     TermsSectionTitle(title = "7. INTELLECTUAL PROPERTY")
                     TermsBodyText(
                         text = "The EnergyNest application, including its design, logo, text, graphics and other content, is protected by applicable intellectual property laws. Users may not copy, reproduce or distribute the application's content without permission."
                     )
 
-                    // Limitation Of Liability
                     TermsSectionTitle(title = "8. LIMITATION OF LIABILITY")
                     TermsBodyText(
                         text = "EnergyNest is not responsible for indirect losses, damages or interruptions resulting from the use or inability to use the application, except where liability is required by applicable law."
                     )
 
-                    // Changes To Terms
                     TermsSectionTitle(title = "9. CHANGES TO TERMS")
                     TermsBodyText(
                         text = "We may update these Terms and Conditions from time to time. Continued use of EnergyNest after changes are published means that you accept the updated Terms and Conditions."
                     )
 
-                    // Contact Us
                     TermsSectionTitle(title = "10. CONTACT US")
                     TermsBodyText(
                         text = "If you have any questions regarding these Terms and Conditions, please contact the EnergyNest support team through the available support channels."
@@ -144,9 +132,7 @@ fun TermsConditionPage() {
 
             // Back Button
             IconButton(
-                onClick = {
-                    (context as? Activity)?.finish()
-                },
+                onClick = onBackClick,
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(start = 12.dp, top = 30.dp)

@@ -34,7 +34,8 @@ class MainActivity : ComponentActivity() {
                     Screen.Home.route,
                     Screen.SmartSell.route,
                     Screen.Cream.route,
-                    Screen.Services.route
+                    Screen.Services.route,
+                    "electric_analysis"
                 )
 
                 ModalNavigationDrawer(
@@ -81,7 +82,8 @@ class MainActivity : ComponentActivity() {
                         ) {
                             composable(Screen.Home.route) {
                                 HomeScreen(
-                                    onOpenDrawer = { scope.launch { drawerState.open() } }
+                                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                                    onProfileClick = { navController.navigate("profile") }
                                 )
                             }
                             composable(Screen.SmartSell.route) {
@@ -102,21 +104,39 @@ class MainActivity : ComponentActivity() {
                                     onOpenDrawer = { scope.launch { drawerState.open() } }
                                 )
                             }
+                            composable("electric_analysis") {
+                                ElectricAnalysisScreen(
+                                    onOpenDrawer = { scope.launch { drawerState.open() } }
+                                )
+                            }
                             composable("lega_eligibility") {
                                 LegaEligibilityScreen(
                                     onBack = { navController.popBackStack() },
                                     onCompleteAssessment = { navController.popBackStack() }
                                 )
                             }
-                            composable("electric_analysis") {
-                                ElectricAnalysisScreen(
-                                    onBack = { navController.popBackStack() }
-                                )
-                            }
-                            // Payment History Route
                             composable("payment_history") {
                                 PaymentHistoryScreen(
                                     onBack = { navController.popBackStack() }
+                                )
+                            }
+                            composable("profile") {
+                                ProfileScreenWrapper(
+                                    onBackToHome = { navController.popBackStack() }
+                                )
+                            }
+
+                            composable(Screen.Settings.route) {
+                                SettingPage(
+                                    onBackClick = { navController.popBackStack() },
+                                    onNavigateToTerms = {
+                                        navController.navigate(Screen.TermsAndConditions.route)
+                                    }
+                                )
+                            }
+                            composable(Screen.TermsAndConditions.route) {
+                                TermsConditionPage(
+                                    onBackClick = { navController.popBackStack() }
                                 )
                             }
                         }

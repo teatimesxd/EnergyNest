@@ -4,7 +4,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,7 +26,7 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -60,7 +59,6 @@ private data class MonthRecord(
     val usageBreakdown: List<Pair<String, Int>>
 )
 
-// Tariff / emission-factor constants used to derive cost & CO2 from energy usage.
 private const val COST_PER_KWH_RM = 0.39
 private const val CO2_PER_KWH_KG = 0.42
 
@@ -165,36 +163,17 @@ private fun formatCo2(kg: Double): String = String.format(Locale.US, "%,.0f kg",
 private fun formatPercent(pct: Double): String = String.format(Locale.US, "%.1f%%", abs(pct))
 
 @Composable
-fun ElectricAnalysisScreen(onBack: () -> Unit = {}) {
+fun ElectricAnalysisScreen(onOpenDrawer: () -> Unit = {}) {
     var selectedMonthIndex by remember { mutableStateOf(0) }
     var selectedPeriod by remember { mutableStateOf(ConsumptionPeriod.DAILY) }
     val report = remember(selectedMonthIndex) { buildReport(selectedMonthIndex) }
-
-    var dragAmount by remember { mutableStateOf(0f) }
-    val swipeThreshold = 120f
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BgColor)
-            .statusBarsPadding()
-            .pointerInput(Unit) {
-                detectHorizontalDragGestures(
-                    onDragStart = { dragAmount = 0f },
-                    onDragEnd = {
-                        if (abs(dragAmount) > swipeThreshold) {
-                            onBack()
-                        }
-                        dragAmount = 0f
-                    },
-                    onDragCancel = { dragAmount = 0f }
-                ) { change, delta ->
-                    change.consume()
-                    dragAmount += delta
-                }
-            }
     ) {
-        TopBar()
+        TopBar(onOpenDrawer = onOpenDrawer)
 
         Column(
             modifier = Modifier
@@ -235,7 +214,7 @@ fun ElectricAnalysisScreen(onBack: () -> Unit = {}) {
 }
 
 @Composable
-private fun TopBar() {
+private fun TopBar(onOpenDrawer: () -> Unit) {
     Column {
         Row(
             modifier = Modifier
@@ -245,7 +224,14 @@ private fun TopBar() {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(modifier = Modifier.size(40.dp))
+            IconButton(onClick = onOpenDrawer, modifier = Modifier.size(40.dp)) {
+                Icon(
+                    painter = painterResource(id = R.drawable.sidebar_icon),
+                    contentDescription = "Open Drawer",
+                    tint = GreenPrimary,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
             Text("Electric Analysis", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
             Box(modifier = Modifier.size(40.dp))
         }

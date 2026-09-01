@@ -7,17 +7,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ViewSidebar
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Verified
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -59,7 +55,7 @@ fun CreamScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.Start,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
@@ -68,7 +64,7 @@ fun CreamScreen(
                     ) {
                         IconButton(onClick = onOpenDrawer) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.ViewSidebar,
+                                painter = painterResource(id = R.drawable.sidebar_icon),
                                 contentDescription = "Sidebar",
                                 tint = TextDark
                             )
@@ -78,13 +74,6 @@ fun CreamScreen(
                             fontSize = 19.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextDark
-                        )
-                    }
-                    IconButton(onClick = { /* Notifications */ }) {
-                        Icon(
-                            imageVector = Icons.Outlined.Notifications,
-                            contentDescription = "Notifications",
-                            tint = TextDark
                         )
                     }
                 }
@@ -207,7 +196,7 @@ fun CreamScreen(
                                         color = TextDark
                                     )
                                     Icon(
-                                        imageVector = Icons.Default.ArrowDropDown,
+                                        painter = painterResource(id = R.drawable.arrow_drop_down),
                                         contentDescription = "Select Property Type",
                                         tint = TextDark
                                     )
@@ -344,7 +333,7 @@ fun CreamScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Verified,
+                            painter = painterResource(id = R.drawable.verified_icon),
                             contentDescription = null,
                             tint = White,
                             modifier = Modifier.size(22.dp)

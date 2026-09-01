@@ -1,5 +1,6 @@
 package com.example.energynest
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -8,19 +9,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ViewSidebar
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -57,7 +52,8 @@ private data class FAQData(
 
 @Composable
 fun ServicesScreen(
-    onOpenDrawer: () -> Unit = {}
+    onOpenDrawer: () -> Unit = {},
+    onOpenProfile: () -> Unit = {}
 ) {
     var currentPage by remember {
         mutableStateOf(ServicePage.HOME)
@@ -67,6 +63,7 @@ fun ServicesScreen(
 
         ServicePage.HOME -> ServicesHome(
             onOpenDrawer = onOpenDrawer,
+            onOpenProfile = onOpenProfile,
             onOpenPage = {
                 currentPage = it
             }
@@ -75,31 +72,36 @@ fun ServicesScreen(
         ServicePage.CUSTOMER_SERVICE -> CustomerServicePage(
             onBack = {
                 currentPage = ServicePage.HOME
-            }
+            },
+            onOpenProfile = onOpenProfile
         )
 
         ServicePage.CONSULTATION -> ConsultationPage(
             onBack = {
                 currentPage = ServicePage.HOME
-            }
+            },
+            onOpenProfile = onOpenProfile
         )
 
         ServicePage.MAINTENANCE -> MaintenancePage(
             onBack = {
                 currentPage = ServicePage.HOME
-            }
+            },
+            onOpenProfile = onOpenProfile
         )
 
         ServicePage.CLEANING -> CleaningPage(
             onBack = {
                 currentPage = ServicePage.HOME
-            }
+            },
+            onOpenProfile = onOpenProfile
         )
 
         ServicePage.FAQ -> FAQPage(
             onBack = {
                 currentPage = ServicePage.HOME
-            }
+            },
+            onOpenProfile = onOpenProfile
         )
     }
 }
@@ -107,6 +109,7 @@ fun ServicesScreen(
 @Composable
 private fun ServicesHome(
     onOpenDrawer: () -> Unit,
+    onOpenProfile: () -> Unit = {},
     onOpenPage: (ServicePage) -> Unit
 ) {
     val faqs = remember {
@@ -205,7 +208,7 @@ private fun ServicesHome(
             TopBar(
                 title = "Services",
                 onOpenDrawer = onOpenDrawer,
-                onNotification = {}
+                onProfileClick = onOpenProfile
             )
         }
 
@@ -226,7 +229,7 @@ private fun ServicesHome(
                         title = "Customer Service",
                         description = "Get help with your account, billing inquiries, and general support.",
                         buttonText = "CONTACT US",
-                        icon = Icons.Outlined.Headset,
+                        iconRes = R.drawable.headset_icon,
                         modifier = Modifier.weight(1f),
                         onClick = {
                             onOpenPage(ServicePage.CUSTOMER_SERVICE)
@@ -237,7 +240,7 @@ private fun ServicesHome(
                         title = "Consultation",
                         description = "Schedule a session with our energy experts for your home.",
                         buttonText = "BOOK SESSION",
-                        icon = Icons.Outlined.Handyman,
+                        iconRes = R.drawable.handyman_icon,
                         modifier = Modifier.weight(1f),
                         onClick = {
                             onOpenPage(ServicePage.CONSULTATION)
@@ -254,7 +257,7 @@ private fun ServicesHome(
                         title = "Maintenance",
                         description = "Regular check-ups for your solar panels and battery storage.",
                         buttonText = "SCHEDULE CHECK",
-                        icon = Icons.Outlined.HomeRepairService,
+                        iconRes = R.drawable.home_repair_service_icon,
                         modifier = Modifier.weight(1f),
                         onClick = {
                             onOpenPage(ServicePage.MAINTENANCE)
@@ -265,7 +268,7 @@ private fun ServicesHome(
                         title = "Cleaning",
                         description = "Professional cleaning for solar panels to maintain performance.",
                         buttonText = "BOOK CLEANING",
-                        icon = Icons.Outlined.CleaningServices,
+                        iconRes = R.drawable.cleaning_services_icon,
                         modifier = Modifier.weight(1f),
                         onClick = {
                             onOpenPage(ServicePage.CLEANING)
@@ -341,7 +344,7 @@ private fun TopBar(
     title: String,
     onOpenDrawer: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
-    onNotification: () -> Unit = {}
+    onProfileClick: () -> Unit = {}
 ) {
 
     Column(
@@ -375,11 +378,13 @@ private fun TopBar(
                 ) {
 
                     Icon(
-                        imageVector = if (onBack != null) {
-                            Icons.AutoMirrored.Outlined.ArrowBack
-                        } else {
-                            Icons.AutoMirrored.Outlined.ViewSidebar
-                        },
+                        painter = painterResource(
+                            id = if (onBack != null) {
+                                R.drawable.back_arrow
+                            } else {
+                                R.drawable.sidebar_icon
+                            }
+                        ),
                         contentDescription = if (onBack != null) {
                             "Back"
                         } else {
@@ -398,12 +403,12 @@ private fun TopBar(
             }
 
             IconButton(
-                onClick = onNotification
+                onClick = onProfileClick
             ) {
 
                 Icon(
-                    imageVector = Icons.Outlined.Notifications,
-                    contentDescription = "Notifications",
+                    painter = painterResource(id = R.drawable.profile_icon),
+                    contentDescription = "Profile",
                     tint = TextDark
                 )
             }
@@ -421,7 +426,7 @@ private fun ServiceCard(
     title: String,
     description: String,
     buttonText: String,
-    icon: ImageVector,
+    @DrawableRes iconRes: Int,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
@@ -460,7 +465,7 @@ private fun ServiceCard(
                 ) {
 
                     Icon(
-                        imageVector = icon,
+                        painter = painterResource(id = iconRes),
                         contentDescription = title,
                         tint = BrandGreenColour,
                         modifier = Modifier.size(18.dp)
@@ -516,7 +521,7 @@ private fun ServiceCard(
 
 @Composable
 private fun ServiceHeader(
-    icon: ImageVector,
+    @DrawableRes iconRes: Int,
     title: String,
     description: String
 ) {
@@ -535,7 +540,7 @@ private fun ServiceHeader(
         ) {
 
             Icon(
-                imageVector = icon,
+                painter = painterResource(id = iconRes),
                 contentDescription = title,
                 tint = BrandGreenColour,
                 modifier = Modifier.size(24.dp)
@@ -578,7 +583,7 @@ private fun SectionTitle(
 
 @Composable
 private fun InfoRow(
-    icon: ImageVector,
+    @DrawableRes iconRes: Int,
     title: String,
     value: String
 ) {
@@ -598,7 +603,7 @@ private fun InfoRow(
         ) {
 
             Icon(
-                imageVector = icon,
+                painter = painterResource(id = iconRes),
                 contentDescription = title,
                 tint = BrandGreenColour,
                 modifier = Modifier.size(19.dp)
@@ -656,7 +661,7 @@ private fun DateTimePickerField(
     value: String,
     label: String,
     placeholder: String,
-    icon: ImageVector,
+    @DrawableRes iconRes: Int,
     onClick: () -> Unit,
     enabled: Boolean = true
 ) {
@@ -727,7 +732,7 @@ private fun DateTimePickerField(
             }
 
             Icon(
-                imageVector = icon,
+                painter = painterResource(id = iconRes),
                 contentDescription = "Select $label",
                 tint = if (enabled) {
                     BrandGreenColour
@@ -739,12 +744,6 @@ private fun DateTimePickerField(
     }
 }
 
-/*
- * DATE VALIDATION
- *
- * This function gets today's date at midnight.
- * Previous dates will be disabled in the calendar.
- */
 private fun getTodayMillis(): Long {
 
     val today = LocalDate.now()
@@ -755,12 +754,6 @@ private fun getTodayMillis(): Long {
         .toEpochMilli()
 }
 
-/*
- * DATE PICKER
- *
- * Previous dates are disabled.
- * Today and future dates are allowed.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ServiceDatePickerDialog(
@@ -816,11 +809,6 @@ private fun ServiceDatePickerDialog(
                                 .atZone(ZoneId.systemDefault())
                                 .toLocalDate()
 
-                        /*
-                         * Extra validation:
-                         * Make absolutely sure selected date
-                         * is not before today.
-                         */
                         if (!selectedDate.isBefore(LocalDate.now())) {
 
                             val formatter =
@@ -880,18 +868,6 @@ private fun ServiceDatePickerDialog(
     }
 }
 
-/*
- * TIME PICKER
- *
- * Available times:
- *
- * 09:00 AM
- * 09:30 AM
- * 10:00 AM
- * ...
- * 04:30 PM
- * 05:00 PM
- */
 @Composable
 private fun ServiceTimePickerDialog(
     onTimeSelected: (String) -> Unit,
@@ -1015,8 +991,7 @@ private fun ServiceTimePickerDialog(
                             ) {
 
                                 Icon(
-                                    imageVector =
-                                        Icons.Outlined.AccessTime,
+                                    painter = painterResource(id = R.drawable.timer_icon),
                                     contentDescription = null,
                                     tint =
                                         if (selectedTime == time) {
@@ -1133,7 +1108,8 @@ private fun SubmitButton(
 
 @Composable
 private fun CustomerServicePage(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onOpenProfile: () -> Unit = {}
 ) {
 
     var message by remember {
@@ -1161,7 +1137,8 @@ private fun CustomerServicePage(
 
             TopBar(
                 title = "Customer Service",
-                onBack = onBack
+                onBack = onBack,
+                onProfileClick = onOpenProfile
             )
         }
 
@@ -1191,7 +1168,7 @@ private fun CustomerServicePage(
                 ) {
 
                     ServiceHeader(
-                        Icons.Outlined.Headset,
+                        R.drawable.headset_icon,
                         "How can we help?",
                         "Our support team is ready to assist with your EnergyNest account."
                     )
@@ -1201,7 +1178,7 @@ private fun CustomerServicePage(
                     )
 
                     InfoRow(
-                        Icons.Outlined.CalendarMonth,
+                        R.drawable.calendar_month_icon,
                         "Support hours",
                         "Mon – Fri, 9:00 AM – 5:00 PM"
                     )
@@ -1310,7 +1287,8 @@ private fun CustomerServicePage(
 
 @Composable
 private fun ConsultationPage(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onOpenProfile: () -> Unit = {}
 ) {
 
     var date by remember {
@@ -1335,17 +1313,18 @@ private fun ConsultationPage(
 
     ServiceFormPage(
         title = "Consultation",
-        icon = Icons.Outlined.Handyman,
+        iconRes = R.drawable.handyman_icon,
         description =
             "Speak with an energy expert about your home's energy needs.",
-        onBack = onBack
+        onBack = onBack,
+        onOpenProfile = onOpenProfile
     ) {
 
         DateTimePickerField(
             value = date,
             label = "Preferred Date",
             placeholder = "Select a date",
-            icon = Icons.Outlined.CalendarMonth,
+            iconRes = R.drawable.calendar_month_icon,
             onClick = {
                 showDatePicker = true
             }
@@ -1355,7 +1334,7 @@ private fun ConsultationPage(
             value = time,
             label = "Preferred Time",
             placeholder = "Select a time",
-            icon = Icons.Outlined.AccessTime,
+            iconRes = R.drawable.timer_icon,
             onClick = {
 
                 if (date.isNotEmpty()) {
@@ -1417,10 +1396,6 @@ private fun ConsultationPage(
                 onDateSelected = {
                         selectedDate ->
 
-                    /*
-                     * Extra protection:
-                     * only save date if it is today or later.
-                     */
                     val formatter =
                         DateTimeFormatter.ofPattern(
                             "dd MMM yyyy",
@@ -1477,7 +1452,8 @@ private fun ConsultationPage(
 
 @Composable
 private fun MaintenancePage(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onOpenProfile: () -> Unit = {}
 ) {
 
     var date by remember {
@@ -1506,14 +1482,15 @@ private fun MaintenancePage(
 
     ServiceFormPage(
         title = "Maintenance",
-        icon = Icons.Outlined.HomeRepairService,
+        iconRes = R.drawable.home_repair_service_icon,
         description =
             "Keep your renewable energy equipment operating reliably.",
-        onBack = onBack
+        onBack = onBack,
+        onOpenProfile = onOpenProfile
     ) {
 
         InfoRow(
-            Icons.Outlined.HomeRepairService,
+            R.drawable.home_repair_service_icon,
             "Service type",
             "Solar & battery inspection"
         )
@@ -1522,7 +1499,7 @@ private fun MaintenancePage(
             value = date,
             label = "Preferred Date",
             placeholder = "Select a date",
-            icon = Icons.Outlined.CalendarMonth,
+            iconRes = R.drawable.calendar_month_icon,
             onClick = {
                 showDatePicker = true
             }
@@ -1532,7 +1509,7 @@ private fun MaintenancePage(
             value = time,
             label = "Preferred Time",
             placeholder = "Select a time",
-            icon = Icons.Outlined.AccessTime,
+            iconRes = R.drawable.timer_icon,
             onClick = {
 
                 if (date.isNotEmpty()) {
@@ -1660,7 +1637,8 @@ private fun MaintenancePage(
 
 @Composable
 private fun CleaningPage(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onOpenProfile: () -> Unit = {}
 ) {
 
     var address by remember {
@@ -1689,10 +1667,11 @@ private fun CleaningPage(
 
     ServiceFormPage(
         title = "Cleaning",
-        icon = Icons.Outlined.CleaningServices,
+        iconRes = R.drawable.cleaning_services_icon,
         description =
             "Professional solar panel cleaning to help maintain good performance.",
-        onBack = onBack
+        onBack = onBack,
+        onOpenProfile = onOpenProfile
     ) {
 
         FormTextField(
@@ -1708,7 +1687,7 @@ private fun CleaningPage(
             value = date,
             label = "Preferred Date",
             placeholder = "Select a date",
-            icon = Icons.Outlined.CalendarMonth,
+            iconRes = R.drawable.calendar_month_icon,
             onClick = {
                 showDatePicker = true
             }
@@ -1718,7 +1697,7 @@ private fun CleaningPage(
             value = time,
             label = "Preferred Time",
             placeholder = "Select a time",
-            icon = Icons.Outlined.AccessTime,
+            iconRes = R.drawable.timer_icon,
             onClick = {
 
                 if (date.isNotEmpty()) {
@@ -1729,7 +1708,7 @@ private fun CleaningPage(
         )
 
         InfoRow(
-            Icons.Outlined.CleaningServices,
+            R.drawable.cleaning_services_icon,
             "Estimated service",
             "Solar panel cleaning"
         )
@@ -1827,9 +1806,10 @@ private fun CleaningPage(
 @Composable
 private fun ServiceFormPage(
     title: String,
-    icon: ImageVector,
+    @DrawableRes iconRes: Int,
     description: String,
     onBack: () -> Unit,
+    onOpenProfile: () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit
 ) {
 
@@ -1846,7 +1826,8 @@ private fun ServiceFormPage(
 
             TopBar(
                 title = title,
-                onBack = onBack
+                onBack = onBack,
+                onProfileClick = onOpenProfile
             )
         }
 
@@ -1876,7 +1857,7 @@ private fun ServiceFormPage(
                 ) {
 
                     ServiceHeader(
-                        icon,
+                        iconRes,
                         title,
                         description
                     )
@@ -1894,7 +1875,8 @@ private fun ServiceFormPage(
 
 @Composable
 private fun FAQPage(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onOpenProfile: () -> Unit = {}
 ) {
 
     val faqs = remember {
@@ -1996,7 +1978,8 @@ private fun FAQPage(
 
             TopBar(
                 title = "Frequently Asked Questions",
-                onBack = onBack
+                onBack = onBack,
+                onProfileClick = onOpenProfile
             )
         }
 
@@ -2080,12 +2063,13 @@ private fun FAQItem(
                 )
 
                 Icon(
-                    imageVector =
-                        if (expanded) {
-                            Icons.Default.KeyboardArrowUp
+                    painter = painterResource(
+                        id = if (expanded) {
+                            R.drawable.arrow_drop_up
                         } else {
-                            Icons.Default.KeyboardArrowDown
-                        },
+                            R.drawable.arrow_drop_down
+                        }
+                    ),
                     contentDescription =
                         if (expanded) {
                             "Collapse"

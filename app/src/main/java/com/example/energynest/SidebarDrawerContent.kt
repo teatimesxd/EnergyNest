@@ -1,6 +1,7 @@
 package com.example.energynest
 
 import android.widget.Toast
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -8,18 +9,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -29,7 +26,7 @@ private val BrandGreen = Color(0xFF00B87C)
 
 data class DrawerMenuItem(
     val title: String,
-    val icon: ImageVector,
+    @DrawableRes val iconRes: Int,
     val route: String? = null
 )
 
@@ -70,7 +67,7 @@ fun SidebarDrawerContent(
                 )
 
                 Icon(
-                    imageVector = ImageVector.vectorResource(id = R.drawable.energynest_icon_1),
+                    painter = painterResource(id = R.drawable.energynest_icon_1),
                     contentDescription = "EnergyNest Logo",
                     tint = Color.Unspecified,
                     modifier = Modifier
@@ -99,19 +96,19 @@ fun SidebarDrawerContent(
 
             // ---- Main Nav Items ----
             val menuItems = listOf(
-                DrawerMenuItem("Home", Icons.Default.Home, Screen.Home.route),
-                DrawerMenuItem("Smart Sell", Icons.Default.Sell, Screen.SmartSell.route),
-                DrawerMenuItem("CREAM Leasing", Icons.Outlined.BarChart, Screen.Cream.route),
-                DrawerMenuItem("View Electric Analysis", Icons.Default.Analytics, "electric_analysis"),
-                DrawerMenuItem("View Payment History", Icons.Default.History, "payment_history"),
-                DrawerMenuItem("Services", Icons.Default.Build, Screen.Services.route)
+                DrawerMenuItem("Home", R.drawable.home_icon, Screen.Home.route),
+                DrawerMenuItem("Smart Sell", R.drawable.sell_icon, Screen.SmartSell.route),
+                DrawerMenuItem("CREAM Leasing", R.drawable.solar_power_icon, Screen.Cream.route),
+                DrawerMenuItem("View Electric Analysis", R.drawable.bar_chart_icon, "electric_analysis"),
+                DrawerMenuItem("View Payment History", R.drawable.history_icon, "payment_history"),
+                DrawerMenuItem("Services", R.drawable.build_icon, Screen.Services.route)
             )
 
             menuItems.forEachIndexed { index, item ->
                 val isSelected = currentRoute == item.route
                 AnimatedSidebarItem(
                     title = item.title,
-                    icon = item.icon,
+                    iconRes = item.iconRes,
                     isSelected = isSelected,
                     delay = index * 80,
                     onClick = {
@@ -138,23 +135,28 @@ fun SidebarDrawerContent(
 
             // ---- Secondary Bottom Items ----
             val bottomItems = listOf(
-                DrawerMenuItem("Settings", Icons.Default.Settings),
-                DrawerMenuItem("Help & feedback", Icons.Default.Info)
+                DrawerMenuItem("Settings", R.drawable.settings_icon, Screen.Settings.route),
+                DrawerMenuItem("Terms & Conditions", R.drawable.description_icon, Screen.TermsAndConditions.route)
             )
 
             bottomItems.forEachIndexed { index, item ->
+                val isSelected = currentRoute == item.route
                 AnimatedSidebarItem(
                     title = item.title,
-                    icon = item.icon,
-                    isSelected = false,
+                    iconRes = item.iconRes,
+                    isSelected = isSelected,
                     delay = (menuItems.size + index) * 80,
                     onClick = {
-                        onCloseDrawer()
-                        Toast.makeText(
-                            context,
-                            "${item.title} clicked!",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        item.route?.let { route ->
+                            onNavigate(route)
+                        } ?: run {
+                            onCloseDrawer()
+                            Toast.makeText(
+                                context,
+                                "${item.title} clicked!",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
                 )
             }
@@ -165,7 +167,7 @@ fun SidebarDrawerContent(
 @Composable
 fun AnimatedSidebarItem(
     title: String,
-    icon: ImageVector,
+    @DrawableRes iconRes: Int,
     isSelected: Boolean,
     delay: Int,
     onClick: () -> Unit
@@ -230,7 +232,7 @@ fun AnimatedSidebarItem(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Icon(
-                imageVector = icon,
+                painter = painterResource(id = iconRes),
                 contentDescription = title,
                 tint = iconColor,
                 modifier = Modifier.size(24.dp)

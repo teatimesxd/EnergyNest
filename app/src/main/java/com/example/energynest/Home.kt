@@ -2,14 +2,11 @@ package com.example.energynest
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ViewSidebar
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,11 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.jan.supabase.createSupabaseClient
@@ -33,7 +30,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-// ---- Global Supabase Client Initialization ----
 val supabase = createSupabaseClient(
     supabaseUrl = "https://byrlgjgjzcwwdpnznuiq.supabase.co",
     supabaseKey = "sb_publishable_FV9wvw0kv59rBrHec9BNxA_moyCubSv"
@@ -41,7 +37,6 @@ val supabase = createSupabaseClient(
     install(Postgrest)
 }
 
-// In-memory cache to keep data when switching tabs
 private var cachedStats: HomeEnergyStats? = null
 
 private val Background = Color(0xFFF6F8F7)
@@ -53,7 +48,6 @@ private val ProgressBg = Color(0xFFE5E7EB)
 private val AvatarBg = Color(0xFFE6E8EA)
 private val BorderLight = Color(0xFFE2E8F0)
 
-// ---- Data Model ----
 @Serializable
 data class HomeEnergyStats(
     @SerialName("id") val id: String? = null,
@@ -69,15 +63,14 @@ data class HomeEnergyStats(
 
 @Composable
 fun HomeScreen(
-    onOpenDrawer: () -> Unit = {}
+    onOpenDrawer: () -> Unit = {},
+    onProfileClick: () -> Unit = {}
 ) {
-    // Initialize state from cache to instantly load when switching back to Home tab
     var stats by remember { mutableStateOf(cachedStats ?: HomeEnergyStats()) }
     var isLoading by remember { mutableStateOf(cachedStats == null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     suspend fun fetchHomeStats() {
-        // Skip network fetch if data has already been fetched during this session
         if (cachedStats != null) {
             isLoading = false
             return
@@ -90,9 +83,7 @@ fun HomeScreen(
             val result = withContext(Dispatchers.IO) {
                 supabase.from("home_energy_stats")
                     .select {
-                        filter {
-                            eq("user_id", "demo_user")
-                        }
+                        filter { eq("user_id", "demo_user") }
                         order("date", order = Order.DESCENDING)
                     }
                     .decodeList<HomeEnergyStats>()
@@ -101,7 +92,7 @@ fun HomeScreen(
 
             if (result != null) {
                 stats = result
-                cachedStats = result // Update in-memory cache
+                cachedStats = result
             }
         } catch (e: Exception) {
             errorMessage = "Fetch failed: " + e.message
@@ -149,27 +140,19 @@ fun HomeScreen(
                 .background(Background),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            // Top App Bar
             item {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.Start,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = onOpenDrawer) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.ViewSidebar,
+                                painter = painterResource(id = R.drawable.sidebar_icon),
                                 contentDescription = "Sidebar",
-                                tint = TextDark
-                            )
-                        }
-                        IconButton(onClick = { /* Open Notifications */ }) {
-                            Icon(
-                                imageVector = Icons.Outlined.Notifications,
-                                contentDescription = "Notifications",
                                 tint = TextDark
                             )
                         }
@@ -178,7 +161,6 @@ fun HomeScreen(
                 }
             }
 
-            // Main Content Container
             item {
                 Column(
                     modifier = Modifier
@@ -186,7 +168,6 @@ fun HomeScreen(
                         .padding(horizontal = 20.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    // Greeting Header & Profile Avatar
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -199,34 +180,18 @@ fun HomeScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = TextDark
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.LocationOn,
-                                    contentDescription = "Location",
-                                    tint = TextGray,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    text = "Peninsular Malaysia",
-                                    fontSize = 14.sp,
-                                    color = TextGray
-                                )
-                            }
                         }
 
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
-                                .background(AvatarBg),
+                                .background(AvatarBg)
+                                .clickable { onProfileClick() },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Person,
+                                painter = painterResource(id = R.drawable.profile_icon),
                                 contentDescription = "Profile",
                                 tint = TextDark,
                                 modifier = Modifier.size(24.dp)
@@ -234,7 +199,6 @@ fun HomeScreen(
                         }
                     }
 
-                    // Main Circular Gauge
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -252,7 +216,7 @@ fun HomeScreen(
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.SolarPower,
+                                    painter = painterResource(id = R.drawable.solar_power_icon),
                                     contentDescription = "Solar Generated",
                                     tint = BrandGreenColour,
                                     modifier = Modifier.size(36.dp)
@@ -294,7 +258,6 @@ fun HomeScreen(
                         }
                     }
 
-                    // Stored Energy Row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -307,7 +270,7 @@ fun HomeScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.BatteryChargingFull,
+                                painter = painterResource(id = R.drawable.battery_icon),
                                 contentDescription = "Stored Energy Icon",
                                 tint = BrandGreenColour,
                                 modifier = Modifier.size(22.dp)
@@ -352,7 +315,6 @@ fun HomeScreen(
                         )
                     }
 
-                    // Estimated Usage Duration (Insight Box)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -366,7 +328,7 @@ fun HomeScreen(
                         )
 
                         Icon(
-                            imageVector = Icons.Outlined.Lightbulb,
+                            painter = painterResource(id = R.drawable.lightbulb_icon),
                             contentDescription = "Insight Icon",
                             tint = BrandGreenColour,
                             modifier = Modifier
@@ -393,7 +355,6 @@ fun HomeScreen(
                         }
                     }
 
-                    // Stats Row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -403,7 +364,7 @@ fun HomeScreen(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.Eco,
+                                painter = painterResource(id = R.drawable.eco_icon),
                                 contentDescription = "Carbon Reduced",
                                 tint = TextDark,
                                 modifier = Modifier.size(24.dp)
@@ -436,7 +397,7 @@ fun HomeScreen(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.Savings,
+                                painter = painterResource(id = R.drawable.saving_icon),
                                 contentDescription = "Today's Savings",
                                 tint = TextDark,
                                 modifier = Modifier.size(24.dp)
@@ -458,10 +419,4 @@ fun HomeScreen(
             }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    HomeScreen()
 }

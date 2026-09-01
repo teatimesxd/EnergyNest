@@ -2,14 +2,13 @@ package com.example.energynest
 
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,25 +26,19 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-data class UserProfile(
-    val name: String = "John Smith",
-    val email: String = "johnsmith@gmaill.com",
-    val phone: String = "+60 12 345 6789",
-    val address: String = "Kuala Lumpur, Malaysia"
-)
-
 @Composable
 fun EditProfileScreen(
+    initialProfile: UserProfile = UserProfile(),
     onSave: (UserProfile) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    var name by remember { mutableStateOf("John Smith") }
-    var email by remember { mutableStateOf("johnsmith@gmail.com") }
-    var phone by remember { mutableStateOf("+60 12 345 6789") }
-    var address by remember { mutableStateOf("Kuala Lumpur, Malaysia") }
+    var name by remember { mutableStateOf(initialProfile.name) }
+    var email by remember { mutableStateOf(initialProfile.email) }
+    var phone by remember { mutableStateOf(initialProfile.phone) }
+    var address by remember { mutableStateOf(initialProfile.address) }
 
     var editingField by remember { mutableStateOf<String?>(null) }
 
@@ -125,13 +118,13 @@ fun EditProfileScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { onBack() }, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Default.ArrowBack, "Back", tint = Color(0xFF00B87C), modifier = Modifier.size(28.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color(0xFF00B87C), modifier = Modifier.size(28.dp))
             }
             Text("Edit Profile", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Box(modifier = Modifier.size(40.dp))
         }
 
-        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.LightGray))
+        HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
 
         Column(
             modifier = Modifier
@@ -148,8 +141,14 @@ fun EditProfileScreen(
                     .background(Color(0xFF00B87C)),
                 contentAlignment = Alignment.Center
             ) {
+                val initials = name.trim().split(" ")
+                    .filter { it.isNotEmpty() }
+                    .take(2)
+                    .mapNotNull { it.firstOrNull()?.uppercase() }
+                    .joinToString("")
+
                 Text(
-                    text = name.split(" ").take(2).map { it.first().uppercase() }.joinToString(""),
+                    text = if (initials.isEmpty()) "JS" else initials,
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -174,7 +173,7 @@ fun EditProfileScreen(
                         onValueChange = { name = it; nameError = validateName(it) },
                         Icons.Default.Person, nameFocus, nameError, "Enter your full name"
                     )
-                    Divider(color = Color.LightGray, modifier = Modifier.padding(vertical = 10.dp))
+                    HorizontalDivider(color = Color.LightGray, modifier = Modifier.padding(vertical = 10.dp))
 
                     EditField(
                         "Email Address", email, editingField == "email",
@@ -185,7 +184,7 @@ fun EditProfileScreen(
                         onValueChange = { email = it; emailError = validateEmail(it) },
                         Icons.Default.Email, emailFocus, emailError, "Enter your email"
                     )
-                    Divider(color = Color.LightGray, modifier = Modifier.padding(vertical = 10.dp))
+                    HorizontalDivider(color = Color.LightGray, modifier = Modifier.padding(vertical = 10.dp))
 
                     EditField(
                         "Phone Number", phone, editingField == "phone",
@@ -196,7 +195,7 @@ fun EditProfileScreen(
                         onValueChange = { phone = it; phoneError = validatePhone(it) },
                         Icons.Default.Phone, phoneFocus, phoneError, "Enter your phone number"
                     )
-                    Divider(color = Color.LightGray, modifier = Modifier.padding(vertical = 10.dp))
+                    HorizontalDivider(color = Color.LightGray, modifier = Modifier.padding(vertical = 10.dp))
 
                     EditField(
                         "Home Address", address, editingField == "address",
