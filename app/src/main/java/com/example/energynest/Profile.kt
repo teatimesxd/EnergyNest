@@ -27,6 +27,7 @@ import androidx.wear.compose.material3.TextButtonDefaults
 fun ProfileScreen(
     onEditClick: () -> Unit = {},
     onResetPasswordClick: () -> Unit = {},
+    onLogOutClick: () -> Unit = {},
     onDeleteAccountClick: () -> Unit = {},
     userProfile: UserProfile = UserProfile()
 ) {
@@ -47,11 +48,11 @@ fun ProfileScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { Toast.makeText(context, "Back", Toast.LENGTH_SHORT).show() }, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Default.ArrowBack, "Back", tint = Color(0xFF4CAF50), modifier = Modifier.size(28.dp))
+                Icon(Icons.Default.ArrowBack, "Back", tint = Color(0xFF00B87C), modifier = Modifier.size(28.dp))
             }
             Text("Profile", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             IconButton(onClick = { onEditClick() }, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Default.Edit, "Edit", tint = Color(0xFF4CAF50), modifier = Modifier.size(28.dp))
+                Icon(Icons.Default.Edit, "Edit", tint = Color(0xFF00B87C), modifier = Modifier.size(28.dp))
             }
         }
 
@@ -69,7 +70,7 @@ fun ProfileScreen(
                 modifier = Modifier
                     .size(100.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF4CAF50))
+                    .background(Color(0xFF00B87C))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -184,14 +185,14 @@ fun ProfileScreen(
                                 modifier = Modifier
                                     .size(10.dp)
                                     .clip(CircleShape)
-                                    .background(Color(0xFF4CAF50))
+                                    .background(Color(0xFF00B87C))
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 "Active",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF4CAF50)
+                                color = Color(0xFF00B87C)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Icon(
@@ -228,9 +229,7 @@ fun ProfileScreen(
                 "Log Out",
                 iconColor = Color(0xFFFF5722),
                 textColor = Color(0xFFFF5722),
-                onClick = {
-                    Toast.makeText(context, "Log Out", Toast.LENGTH_SHORT).show()
-                }
+                onClick = onLogOutClick
             )
 
             ProfileItem(
@@ -272,12 +271,20 @@ fun ProfileItem(
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                icon,
-                title,
-                tint = iconColor,
-                modifier = Modifier.size(24.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF4CAF50).copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    icon,
+                    title,
+                    tint = iconColor,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
             Spacer(modifier = Modifier.width(16.dp))
             Text(
                 title,
@@ -352,11 +359,67 @@ fun DeleteAccountDialog(
 }
 
 @Composable
+fun LogOutDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "Log Out",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFFF5722)
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    "Are you sure you want to log out?",
+                    fontSize = 15.sp,
+                    color = Color.Black
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    "You will need to sign in again to access your account.",
+                    fontSize = 13.sp,
+                    color = Color.Gray
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = TextButtonDefaults.textButtonColors(
+                    contentColor = Color(0xFFFF5722)
+                )
+            ) {
+                Text("Log Out", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                colors = TextButtonDefaults.textButtonColors(
+                    contentColor = Color(0xFF4CAF50)
+                )
+            ) {
+                Text("Cancel", fontWeight = FontWeight.Medium)
+            }
+        },
+        shape = RoundedCornerShape(16.dp),
+        containerColor = Color.White
+    )
+}
+
+@Composable
 fun ProfileScreenWrapper() {
     val context = LocalContext.current
     var showEditProfile by remember { mutableStateOf(false) }
     var showResetPassword by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showLogOutDialog by remember { mutableStateOf(false) }
     var userProfile by remember {
         mutableStateOf(
             UserProfile(
@@ -400,6 +463,9 @@ fun ProfileScreenWrapper() {
                     onResetPasswordClick = {
                         showResetPassword = true
                     },
+                    onLogOutClick = {
+                        showLogOutDialog = true
+                    },
                     onDeleteAccountClick = {
                         showDeleteDialog = true
                     },
@@ -414,6 +480,18 @@ fun ProfileScreenWrapper() {
                         onConfirm = {
                             showDeleteDialog = false
                             Toast.makeText(context, "Account deleted", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
+
+                if (showLogOutDialog) {
+                    LogOutDialog(
+                        onDismiss = {
+                            showLogOutDialog = false
+                        },
+                        onConfirm = {
+                            showLogOutDialog = false
+                            Toast.makeText(context, "Logged out", Toast.LENGTH_SHORT).show()
                         }
                     )
                 }

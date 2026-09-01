@@ -121,7 +121,7 @@ fun ResetPasswordScreen(
                 Icon(
                     Icons.Default.ArrowBack,
                     "Back",
-                    tint = Color(0xFF4CAF50),
+                    tint = Color(0xFF00B87C),
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -172,7 +172,7 @@ fun ResetPasswordScreen(
                 text = "EnergyNest",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF4CAF50),
+                color = Color(0xFF00B87C),
                 letterSpacing = 0.5.sp
             )
 
@@ -356,7 +356,7 @@ fun ResetPasswordScreen(
                     .fillMaxWidth()
                     .height(50.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isFormValid) Color(0xFF4CAF50) else Color(0xFFA8D5B0),
+                    containerColor = if (isFormValid) Color(0xFF00B87C) else Color(0xFFA8D5B0),
                     disabledContainerColor = Color(0xFFA8D5B0)
                 ),
                 shape = RoundedCornerShape(10.dp),

@@ -668,7 +668,7 @@ fun PaymentMethodSelectionScreen(
                 Icon(
                     Icons.Default.ArrowBack,
                     "Back",
-                    tint = Color(0xFF4CAF50),
+                    tint = Color(0xFF00B87C),
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -710,7 +710,7 @@ fun PaymentMethodSelectionScreen(
                 ) {
                     Column {
                         Text("Total Amount", fontSize = 13.sp, color = Color.Gray)
-                        Text("RM 150.00", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50))
+                        Text("RM 150.00", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00B87C))
                     }
 
                     Surface(
