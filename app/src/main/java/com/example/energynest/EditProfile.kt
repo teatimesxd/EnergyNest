@@ -125,7 +125,7 @@ fun EditProfileScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { onBack() }, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Default.ArrowBack, "Back", tint = Color(0xFF4CAF50), modifier = Modifier.size(28.dp))
+                Icon(Icons.Default.ArrowBack, "Back", tint = Color(0xFF00B87C), modifier = Modifier.size(28.dp))
             }
             Text("Edit Profile", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Box(modifier = Modifier.size(40.dp))
@@ -145,7 +145,7 @@ fun EditProfileScreen(
                 modifier = Modifier
                     .size(100.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF4CAF50)),
+                    .background(Color(0xFF00B87C)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -226,7 +226,7 @@ fun EditProfileScreen(
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (hasErr) Color.Gray else Color(0xFF4CAF50),
+                    containerColor = if (hasErr) Color.Gray else Color(0xFF00B87C),
                     disabledContainerColor = Color.Gray
                 ),
                 shape = RoundedCornerShape(16.dp),
@@ -256,7 +256,7 @@ fun EditField(
     placeholder: String = ""
 ) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.Top) {
-        Icon(icon, null, tint = if (error != null && isEditing) Color.Red else Color(0xFF4CAF50), modifier = Modifier.size(24.dp))
+        Icon(icon, null, tint = if (error != null && isEditing) Color.Red else Color(0xFF00B87C), modifier = Modifier.size(24.dp))
         Spacer(modifier = Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(label, fontSize = 13.sp, color = if (error != null && isEditing) Color.Red else Color.Gray, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 4.dp))
