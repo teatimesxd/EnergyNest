@@ -1,29 +1,40 @@
 package com.example.energynest
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.ContextCompat
 
 private val Background = Color(0xFFF6F8F7)
 private val TextDark = Color(0xFF191C1E)
@@ -38,12 +49,73 @@ fun LegaEligibilityScreen(
     onBack: () -> Unit = {},
     onCompleteAssessment: () -> Unit = {}
 ) {
-    var address by remember { mutableStateOf("") }
-    var shadingLevel by remember { mutableStateOf("Low (Full Sun)") }
-    var isAnalyzing by remember { mutableStateOf(false) }
-    var isEligible by remember { mutableStateOf<Boolean?>(null) }
+    val context = LocalContext.current
 
-    val coroutineScope = rememberCoroutineScope()
+    // Separated Address State
+    var houseNo by remember { mutableStateOf("") }
+    var street by remember { mutableStateOf("") }
+    var zipcode by remember { mutableStateOf("") }
+    var city by remember { mutableStateOf("") }
+    var state by remember { mutableStateOf("") }
+    var showMapPicker by remember { mutableStateOf(false) }
+
+    // Payment & Submission State
+    var selectedPaymentMethod by remember { mutableStateOf("Touch 'n Go") }
+    var showPaymentPage by remember { mutableStateOf(false) }
+    var isSubmitted by remember { mutableStateOf(false) }
+
+    // Location Permission Launcher
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            showMapPicker = true
+        }
+    }
+
+    // Common TextField Colors
+    val greenTextFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = BrandGreen,
+        unfocusedBorderColor = BorderLight,
+        focusedContainerColor = White,
+        unfocusedContainerColor = White,
+        cursorColor = BrandGreen,
+        focusedLabelColor = BrandGreen
+    )
+
+    val paymentMethods = listOf(
+        PaymentMethodType("Touch 'n Go", painterResource(id = R.drawable.ewallet), Color(0xFF00A651)),
+        PaymentMethodType("Visa", painterResource(id = R.drawable.visa), Color(0xFF1A237E)),
+        PaymentMethodType("Mastercard", painterResource(id = R.drawable.mastercard), Color(0xFFE65100))
+    )
+
+    // Handle Active Payment Page Display
+    if (showPaymentPage) {
+        when (selectedPaymentMethod) {
+            "Visa" -> VisaPaymentPage(
+                onBack = { showPaymentPage = false },
+                onPaymentSuccess = {
+                    showPaymentPage = false
+                    isSubmitted = true
+                }
+            )
+            "Mastercard" -> MastercardPaymentPage(
+                onBack = { showPaymentPage = false },
+                onPaymentSuccess = {
+                    showPaymentPage = false
+                    isSubmitted = true
+                }
+            )
+            "Touch 'n Go" -> TnGPaymentPage(
+                onBack = { showPaymentPage = false },
+                onPaymentSuccess = {
+                    showPaymentPage = false
+                    isSubmitted = true
+                }
+            )
+        }
+        return
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -59,10 +131,7 @@ fun LegaEligibilityScreen(
                     .padding(horizontal = 8.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
-                    onClick = onBack,
-                    enabled = !isAnalyzing
-                ) {
+                IconButton(onClick = onBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
@@ -87,6 +156,7 @@ fun LegaEligibilityScreen(
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
+                // Header Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -105,13 +175,13 @@ fun LegaEligibilityScreen(
                         )
                         Column {
                             Text(
-                                text = "LEGA Roof Scanning",
+                                text = "LEGA Roof Assessment",
                                 fontWeight = FontWeight.Bold,
                                 color = TextDark,
                                 fontSize = 15.sp
                             )
                             Text(
-                                text = "Enter property details to calculate solar yield and rooftop eligibility.",
+                                text = "Submit property details and place a RM 50 deposit to request a rooftop solar yield evaluation.",
                                 fontSize = 13.sp,
                                 color = TextGray
                             )
@@ -119,96 +189,269 @@ fun LegaEligibilityScreen(
                     }
                 }
 
-                OutlinedTextField(
-                    value = address,
-                    onValueChange = {
-                        address = it
-                        if (isEligible != null) isEligible = null
-                    },
-                    label = { Text("Property Address / Postcode") },
-                    leadingIcon = { Icon(Icons.Outlined.Home, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    enabled = !isAnalyzing,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = BrandGreen,
-                        unfocusedContainerColor = White,
-                        focusedContainerColor = White
-                    ),
-                    singleLine = true
-                )
-
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // --- PROPERTY ADDRESS SECTION ---
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "ROOF SHADING EXPOSURE",
+                        text = "PROPERTY LOCATION",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextGray
                     )
-                    listOf("Low (Full Sun)", "Moderate (Partial Trees/Buildings)", "Heavy Shading").forEach { level ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(White)
-                                .border(
-                                    width = 1.dp,
-                                    color = if (shadingLevel == level) BrandGreen else BorderLight,
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .clickable(enabled = !isAnalyzing) {
-                                    shadingLevel = level
-                                    if (isEligible != null) isEligible = null
+
+                    // House / Unit No.
+                    OutlinedTextField(
+                        value = houseNo,
+                        onValueChange = { houseNo = it },
+                        label = { Text("Unit / House No.") },
+                        placeholder = { Text("Example: No. 12A / Lot 34") },
+                        leadingIcon = { Icon(Icons.Outlined.Home, contentDescription = null) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = !isSubmitted,
+                        singleLine = true,
+                        colors = greenTextFieldColors
+                    )
+
+                    // Street
+                    OutlinedTextField(
+                        value = street,
+                        onValueChange = { street = it },
+                        label = { Text("Street Address") },
+                        placeholder = { Text("Example: Jalan Ampang") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = !isSubmitted,
+                        singleLine = true,
+                        colors = greenTextFieldColors
+                    )
+
+                    // Zipcode & City
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = zipcode,
+                            onValueChange = { input -> zipcode = input.filter { it.isDigit() } },
+                            label = { Text("Zipcode") },
+                            placeholder = { Text("50450") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            enabled = !isSubmitted,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f),
+                            colors = greenTextFieldColors
+                        )
+
+                        OutlinedTextField(
+                            value = city,
+                            onValueChange = { city = it },
+                            label = { Text("City") },
+                            placeholder = { Text("Kuala Lumpur") },
+                            singleLine = true,
+                            enabled = !isSubmitted,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f),
+                            colors = greenTextFieldColors
+                        )
+                    }
+
+                    // State & Location Picker Button
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = state,
+                            onValueChange = { state = it },
+                            label = { Text("State") },
+                            placeholder = { Text("Selangor") },
+                            singleLine = true,
+                            enabled = !isSubmitted,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f),
+                            colors = greenTextFieldColors
+                        )
+
+                        IconButton(
+                            onClick = {
+                                val fineLocationGranted = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.ACCESS_FINE_LOCATION
+                                ) == PackageManager.PERMISSION_GRANTED
+
+                                val coarseLocationGranted = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION
+                                ) == PackageManager.PERMISSION_GRANTED
+
+                                if (fineLocationGranted || coarseLocationGranted) {
+                                    showMapPicker = true
+                                } else {
+                                    locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                                 }
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            },
+                            enabled = !isSubmitted
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(Icons.Outlined.WbSunny, contentDescription = null, tint = TextGray)
-                                Text(text = level, fontSize = 14.sp, color = TextDark)
-                            }
-                            RadioButton(
-                                selected = (shadingLevel == level),
-                                onClick = {
-                                    shadingLevel = level
-                                    if (isEligible != null) isEligible = null
-                                },
-                                enabled = !isAnalyzing,
-                                colors = RadioButtonDefaults.colors(selectedColor = BrandGreen)
+                            Icon(
+                                painter = painterResource(id = R.drawable.location_icon),
+                                contentDescription = "Select location from map",
+                                tint = BrandGreen
                             )
                         }
                     }
                 }
 
-                // Progress Indicator
-                if (isAnalyzing) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = White),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderLight)
+                // Map Picker Dialog
+                if (showMapPicker) {
+                    Dialog(
+                        onDismissRequest = { showMapPicker = false },
+                        properties = DialogProperties(usePlatformDefaultWidth = false)
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            CircularProgressIndicator(color = BrandGreen)
-                            Text(
-                                text = "LEGA scanning rooftop satellite data...",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = TextDark
+                        Surface(modifier = Modifier.fillMaxSize()) {
+                            MapPicker(
+                                onAddressSelected = { addressResult ->
+                                    street = addressResult.street
+                                    zipcode = addressResult.zipcode
+                                    city = addressResult.city
+                                    state = addressResult.state
+                                    showMapPicker = false
+                                },
+                                onDismiss = { showMapPicker = false }
                             )
                         }
                     }
-                } else if (isEligible == true) {
+                }
+
+                // --- ASSESSMENT DEPOSIT & PAYMENT METHOD SECTION ---
+                if (!isSubmitted) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            text = "ASSESSMENT DEPOSIT",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextGray
+                        )
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = White),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, BorderLight)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Payment,
+                                        contentDescription = null,
+                                        tint = BrandGreen,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Column {
+                                        Text(
+                                            text = "Roof Inspection Deposit",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = TextDark
+                                        )
+                                        Text(
+                                            text = "Refundable if ineligible",
+                                            fontSize = 11.sp,
+                                            color = TextGray
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "RM 50.00",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = BrandGreen
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = "SELECT PAYMENT METHOD",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextGray,
+                            modifier = Modifier.padding(top = 6.dp)
+                        )
+
+                        paymentMethods.forEach { method ->
+                            val isSelected = selectedPaymentMethod == method.name
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (isSelected) BrandGreen else BorderLight,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) {
+                                        selectedPaymentMethod = method.name
+                                    },
+                                colors = CardDefaults.cardColors(containerColor = White)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(method.color.copy(alpha = 0.12f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                painter = method.icon,
+                                                contentDescription = method.name,
+                                                tint = Color.Unspecified,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+                                        Text(
+                                            text = method.name,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = TextDark
+                                        )
+                                    }
+                                    RadioButton(
+                                        selected = isSelected,
+                                        onClick = { selectedPaymentMethod = method.name },
+                                        colors = RadioButtonDefaults.colors(selectedColor = BrandGreen)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // --- SUBMISSION CONFIRMATION CARD ---
+                if (isSubmitted) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -218,55 +461,52 @@ fun LegaEligibilityScreen(
                         Column(
                             modifier = Modifier.padding(20.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.CheckCircle,
                                 contentDescription = null,
                                 tint = BrandGreen,
-                                modifier = Modifier.size(40.dp)
+                                modifier = Modifier.size(44.dp)
                             )
                             Text(
-                                text = "Roof Qualifies for CREAM Leasing!",
+                                text = "Deposit Paid & Assessment Submitted!",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TextDark
+                                color = TextDark,
+                                textAlign = TextAlign.Center
                             )
                             Text(
-                                text = "Estimated Solar Yield: 94% Optimal. Potential earnings up to RM 350/month.",
+                                text = "Your RM 50.00 deposit via $selectedPaymentMethod has been processed. Please wait 1-3 working days for the evaluation result.",
                                 fontSize = 13.sp,
-                                color = TextGray
+                                color = TextGray,
+                                textAlign = TextAlign.Center,
+                                lineHeight = 18.sp
                             )
                         }
                     }
                 }
 
+                // Action Button
+                val isFormValid = houseNo.isNotBlank() && street.isNotBlank() && zipcode.isNotBlank() && city.isNotBlank() && state.isNotBlank()
+
                 Button(
                     onClick = {
-                        if (isEligible == true) {
+                        if (isSubmitted) {
                             onCompleteAssessment()
                         } else {
-                            coroutineScope.launch {
-                                isAnalyzing = true
-                                delay(2500)
-                                isAnalyzing = false
-                                isEligible = true
-                            }
+                            showPaymentPage = true
                         }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    enabled = address.isNotBlank() && !isAnalyzing,
+                    enabled = isFormValid || isSubmitted,
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = BrandGreen)
                 ) {
                     Text(
-                        text = when {
-                            isAnalyzing -> "Analyzing..."
-                            isEligible == true -> "Submit Leasing Application"
-                            else -> "Analyze Roof via LEGA"
-                        },
+                        text = if (isSubmitted) "Return to Home" else "Proceed to Payment (RM 50.00)",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = White
