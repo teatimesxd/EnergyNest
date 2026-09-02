@@ -420,7 +420,9 @@ private fun TopBar(
             ) {
 
                 Icon(
-                    painter = painterResource(id = R.drawable.profile_icon),
+                    painter = painterResource(
+                        id = R.drawable.profile_icon
+                    ),
                     contentDescription = "Profile",
                     tint = TextDark
                 )
@@ -785,7 +787,6 @@ private fun ServiceDatePickerDialog(
 
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = todayMillis,
-
         selectableDates = object : SelectableDates {
 
             override fun isSelectableDate(
@@ -817,7 +818,8 @@ private fun ServiceDatePickerDialog(
                     val selectedMillis =
                         datePickerState.selectedDateMillis
 
-                    if (selectedMillis != null &&
+                    if (
+                        selectedMillis != null &&
                         selectedMillis >= todayMillis
                     ) {
 
@@ -870,7 +872,6 @@ private fun ServiceDatePickerDialog(
         DatePicker(
             state = datePickerState,
             showModeToggle = false,
-
             title = {
 
                 Text(
@@ -1009,7 +1010,9 @@ private fun ServiceTimePickerDialog(
                             ) {
 
                                 Icon(
-                                    painter = painterResource(id = R.drawable.timer_icon),
+                                    painter = painterResource(
+                                        id = R.drawable.timer_icon
+                                    ),
                                     contentDescription = null,
                                     tint =
                                         if (selectedTime == time) {
@@ -1475,6 +1478,12 @@ private fun ConsultationPage(
     }
 }
 
+
+// ================================================================
+// MAINTENANCE PAGE
+// Added RM 50.00 payment checkout.
+// ================================================================
+
 @Composable
 private fun MaintenancePage(
     onBack: () -> Unit,
@@ -1504,6 +1513,79 @@ private fun MaintenancePage(
     var showTimePicker by remember {
         mutableStateOf(false)
     }
+
+    // Payment state
+    var selectedPaymentMethod by remember {
+        mutableStateOf("Touch 'n Go")
+    }
+
+    var showPaymentPage by remember {
+        mutableStateOf(false)
+    }
+
+    val paymentMethods = listOf(
+        PaymentMethodType(
+            "Touch 'n Go",
+            painterResource(id = R.drawable.ewallet),
+            Color(0xFF00A651)
+        ),
+        PaymentMethodType(
+            "Visa",
+            painterResource(id = R.drawable.visa),
+            Color(0xFF1A237E)
+        ),
+        PaymentMethodType(
+            "Mastercard",
+            painterResource(id = R.drawable.mastercard),
+            Color(0xFFE65100)
+        )
+    )
+
+    // ------------------------------------------------------------
+    // PAYMENT CHECKOUT
+    // ------------------------------------------------------------
+
+    if (showPaymentPage) {
+
+        when (selectedPaymentMethod) {
+
+            "Visa" -> VisaPaymentPage(
+                onBack = {
+                    showPaymentPage = false
+                },
+                onPaymentSuccess = {
+                    showPaymentPage = false
+                    submitted = true
+                }
+            )
+
+            "Mastercard" -> MastercardPaymentPage(
+                onBack = {
+                    showPaymentPage = false
+                },
+                onPaymentSuccess = {
+                    showPaymentPage = false
+                    submitted = true
+                }
+            )
+
+            "Touch 'n Go" -> TnGPaymentPage(
+                onBack = {
+                    showPaymentPage = false
+                },
+                onPaymentSuccess = {
+                    showPaymentPage = false
+                    submitted = true
+                }
+            )
+        }
+
+        return
+    }
+
+    val isFormValid =
+        date.isNotEmpty() &&
+                time.isNotEmpty()
 
     ServiceFormPage(
         title = "Maintenance",
@@ -1571,33 +1653,274 @@ private fun MaintenancePage(
             )
         }
 
+        // --------------------------------------------------------
+        // MAINTENANCE FEE
+        // --------------------------------------------------------
+
+        if (!submitted) {
+
+            SectionTitle(
+                "Service fee"
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = White
+                ),
+                border = BorderStroke(
+                    1.dp,
+                    BorderLight
+                ),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement =
+                        Arrangement.SpaceBetween,
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Row(
+                        verticalAlignment =
+                            Alignment.CenterVertically,
+                        horizontalArrangement =
+                            Arrangement.spacedBy(10.dp)
+                    ) {
+
+                        Icon(
+                            imageVector = Icons.Filled.Payment,
+                            contentDescription = null,
+                            tint = BrandGreenColour,
+                            modifier = Modifier.size(24.dp)
+                        )
+
+                        Column {
+
+                            Text(
+                                text = "Maintenance Fee",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextDark
+                            )
+
+                            Text(
+                                text = "Payable to confirm booking",
+                                fontSize = 11.sp,
+                                color = TextGray
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "RM 50.00",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandGreenColour
+                    )
+                }
+            }
+
+            // ----------------------------------------------------
+            // PAYMENT METHODS
+            // ----------------------------------------------------
+
+            SectionTitle(
+                "Select payment method"
+            )
+
+            paymentMethods.forEach { method ->
+
+                val isSelected =
+                    selectedPaymentMethod == method.name
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(
+                            RoundedCornerShape(12.dp)
+                        )
+                        .clickable {
+
+                            selectedPaymentMethod =
+                                method.name
+                        },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = White
+                    ),
+                    border = BorderStroke(
+                        1.dp,
+                        if (isSelected) {
+                            BrandGreenColour
+                        } else {
+                            BorderLight
+                        }
+                    ),
+                    elevation =
+                        CardDefaults.cardElevation(0.dp)
+                ) {
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal = 16.dp,
+                                vertical = 12.dp
+                            ),
+                        verticalAlignment =
+                            Alignment.CenterVertically,
+                        horizontalArrangement =
+                            Arrangement.SpaceBetween
+                    ) {
+
+                        Row(
+                            verticalAlignment =
+                                Alignment.CenterVertically,
+                            horizontalArrangement =
+                                Arrangement.spacedBy(12.dp)
+                        ) {
+
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(
+                                        RoundedCornerShape(8.dp)
+                                    )
+                                    .background(
+                                        method.color.copy(
+                                            alpha = 0.12f
+                                        )
+                                    ),
+                                contentAlignment =
+                                    Alignment.Center
+                            ) {
+
+                                Icon(
+                                    painter = method.icon,
+                                    contentDescription =
+                                        method.name,
+                                    tint = Color.Unspecified,
+                                    modifier =
+                                        Modifier.size(24.dp)
+                                )
+                            }
+
+                            Text(
+                                text = method.name,
+                                fontSize = 14.sp,
+                                fontWeight =
+                                    FontWeight.Medium,
+                                color = TextDark
+                            )
+                        }
+
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = {
+
+                                selectedPaymentMethod =
+                                    method.name
+                            },
+                            colors =
+                                RadioButtonDefaults.colors(
+                                    selectedColor =
+                                        BrandGreenColour
+                                )
+                        )
+                    }
+                }
+            }
+        }
+
+        // --------------------------------------------------------
+        // CHECKOUT BUTTON
+        // --------------------------------------------------------
+
         SubmitButton(
             text =
                 if (submitted) {
-                    "REQUEST SUBMITTED"
+                    "BOOKING CONFIRMED"
                 } else {
-                    "SCHEDULE CHECK"
+                    "PROCEED TO PAYMENT (RM 50.00)"
                 },
             onClick = {
 
                 if (
-                    date.isNotEmpty() &&
-                    time.isNotEmpty()
+                    isFormValid &&
+                    !submitted
                 ) {
 
-                    submitted = true
+                    showPaymentPage = true
                 }
             }
         )
 
+        // --------------------------------------------------------
+        // SUCCESS MESSAGE
+        // --------------------------------------------------------
+
         if (submitted) {
 
-            Text(
-                "Maintenance request submitted successfully.",
-                fontSize = 13.sp,
-                color = BrandGreenColour
-            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = White
+                ),
+                border = BorderStroke(
+                    1.dp,
+                    BrandGreenColour
+                ),
+                elevation =
+                    CardDefaults.cardElevation(0.dp)
+            ) {
+
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment =
+                        Alignment.CenterHorizontally,
+                    verticalArrangement =
+                        Arrangement.spacedBy(8.dp)
+                ) {
+
+                    Icon(
+                        imageVector =
+                            Icons.Filled.CheckCircle,
+                        contentDescription = null,
+                        tint = BrandGreenColour,
+                        modifier =
+                            Modifier.size(36.dp)
+                    )
+
+                    Text(
+                        text =
+                            "Maintenance request submitted successfully.",
+                        fontSize = 13.sp,
+                        color = BrandGreenColour,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Text(
+                        text =
+                            "Your RM 50.00 fee via $selectedPaymentMethod has been processed. Your appointment will be confirmed by support.",
+                        fontSize = 12.sp,
+                        color = TextGray,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 17.sp
+                    )
+                }
+            }
         }
+
+        // --------------------------------------------------------
+        // DATE PICKER
+        // --------------------------------------------------------
 
         if (showDatePicker) {
 
@@ -1642,6 +1965,10 @@ private fun MaintenancePage(
             )
         }
 
+        // --------------------------------------------------------
+        // TIME PICKER
+        // --------------------------------------------------------
+
         if (showTimePicker) {
 
             ServiceTimePickerDialog(
@@ -1660,13 +1987,12 @@ private fun MaintenancePage(
     }
 }
 
-// ---------------------------------------------------------------------
+
+// ================================================================
 // CLEANING PAGE
-// Updated to require a RM 50.00 payment (checkout) after the customer
-// fills in the location, date and time — following the same payment
-// flow pattern used in LegaEligibilityScreen (Touch 'n Go / Visa /
-// Mastercard -> VisaPaymentPage / MastercardPaymentPage / TnGPaymentPage).
-// ---------------------------------------------------------------------
+// Cleaning fee changed from RM 50.00 to RM 100.00
+// ================================================================
+
 @Composable
 private fun CleaningPage(
     onBack: () -> Unit,
@@ -1697,7 +2023,6 @@ private fun CleaningPage(
         mutableStateOf(false)
     }
 
-    // --- Payment / checkout state ---
     var selectedPaymentMethod by remember {
         mutableStateOf("Touch 'n Go")
     }
@@ -1724,9 +2049,10 @@ private fun CleaningPage(
         )
     )
 
-    // Show the dedicated payment page when checkout has started
     if (showPaymentPage) {
+
         when (selectedPaymentMethod) {
+
             "Visa" -> VisaPaymentPage(
                 onBack = {
                     showPaymentPage = false
@@ -1736,6 +2062,7 @@ private fun CleaningPage(
                     submitted = true
                 }
             )
+
             "Mastercard" -> MastercardPaymentPage(
                 onBack = {
                     showPaymentPage = false
@@ -1745,6 +2072,7 @@ private fun CleaningPage(
                     submitted = true
                 }
             )
+
             "Touch 'n Go" -> TnGPaymentPage(
                 onBack = {
                     showPaymentPage = false
@@ -1755,6 +2083,7 @@ private fun CleaningPage(
                 }
             )
         }
+
         return
     }
 
@@ -1834,41 +2163,52 @@ private fun CleaningPage(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement =
+                        Arrangement.SpaceBetween,
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
 
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalAlignment =
+                            Alignment.CenterVertically,
+                        horizontalArrangement =
+                            Arrangement.spacedBy(10.dp)
                     ) {
 
                         Icon(
-                            imageVector = Icons.Filled.Payment,
+                            imageVector =
+                                Icons.Filled.Payment,
                             contentDescription = null,
                             tint = BrandGreenColour,
-                            modifier = Modifier.size(24.dp)
+                            modifier =
+                                Modifier.size(24.dp)
                         )
 
                         Column {
 
                             Text(
-                                text = "Solar Panel Cleaning Fee",
+                                text =
+                                    "Solar Panel Cleaning Fee",
                                 fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight =
+                                    FontWeight.SemiBold,
                                 color = TextDark
                             )
 
                             Text(
-                                text = "Payable to confirm booking",
+                                text =
+                                    "Payable to confirm booking",
                                 fontSize = 11.sp,
                                 color = TextGray
                             )
                         }
                     }
 
+                    // CHANGED: RM 50.00 -> RM 100.00
+
                     Text(
-                        text = "RM 50.00",
+                        text = "RM 100.00",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = BrandGreenColour
@@ -1882,14 +2222,19 @@ private fun CleaningPage(
 
             paymentMethods.forEach { method ->
 
-                val isSelected = selectedPaymentMethod == method.name
+                val isSelected =
+                    selectedPaymentMethod == method.name
 
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(
+                            RoundedCornerShape(12.dp)
+                        )
                         .clickable {
-                            selectedPaymentMethod = method.name
+
+                            selectedPaymentMethod =
+                                method.name
                         },
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
@@ -1903,7 +2248,8 @@ private fun CleaningPage(
                             BorderLight
                         }
                     ),
-                    elevation = CardDefaults.cardElevation(0.dp)
+                    elevation =
+                        CardDefaults.cardElevation(0.dp)
                 ) {
 
                     Row(
@@ -1913,35 +2259,49 @@ private fun CleaningPage(
                                 horizontal = 16.dp,
                                 vertical = 12.dp
                             ),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        verticalAlignment =
+                            Alignment.CenterVertically,
+                        horizontalArrangement =
+                            Arrangement.SpaceBetween
                     ) {
 
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalAlignment =
+                                Alignment.CenterVertically,
+                            horizontalArrangement =
+                                Arrangement.spacedBy(12.dp)
                         ) {
 
                             Box(
                                 modifier = Modifier
                                     .size(36.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(method.color.copy(alpha = 0.12f)),
-                                contentAlignment = Alignment.Center
+                                    .clip(
+                                        RoundedCornerShape(8.dp)
+                                    )
+                                    .background(
+                                        method.color.copy(
+                                            alpha = 0.12f
+                                        )
+                                    ),
+                                contentAlignment =
+                                    Alignment.Center
                             ) {
 
                                 Icon(
                                     painter = method.icon,
-                                    contentDescription = method.name,
+                                    contentDescription =
+                                        method.name,
                                     tint = Color.Unspecified,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier =
+                                        Modifier.size(24.dp)
                                 )
                             }
 
                             Text(
                                 text = method.name,
                                 fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
+                                fontWeight =
+                                    FontWeight.Medium,
                                 color = TextDark
                             )
                         }
@@ -1949,11 +2309,15 @@ private fun CleaningPage(
                         RadioButton(
                             selected = isSelected,
                             onClick = {
-                                selectedPaymentMethod = method.name
+
+                                selectedPaymentMethod =
+                                    method.name
                             },
-                            colors = RadioButtonDefaults.colors(
-                                selectedColor = BrandGreenColour
-                            )
+                            colors =
+                                RadioButtonDefaults.colors(
+                                    selectedColor =
+                                        BrandGreenColour
+                                )
                         )
                     }
                 }
@@ -1965,11 +2329,15 @@ private fun CleaningPage(
                 if (submitted) {
                     "BOOKING CONFIRMED"
                 } else {
-                    "PROCEED TO PAYMENT (RM 50.00)"
+                    // CHANGED: RM 50.00 -> RM 100.00
+                    "PROCEED TO PAYMENT (RM 100.00)"
                 },
             onClick = {
 
-                if (isFormValid && !submitted) {
+                if (
+                    isFormValid &&
+                    !submitted
+                ) {
 
                     showPaymentPage = true
                 }
@@ -1988,31 +2356,39 @@ private fun CleaningPage(
                     1.dp,
                     BrandGreenColour
                 ),
-                elevation = CardDefaults.cardElevation(0.dp)
+                elevation =
+                    CardDefaults.cardElevation(0.dp)
             ) {
 
                 Column(
                     modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalAlignment =
+                        Alignment.CenterHorizontally,
+                    verticalArrangement =
+                        Arrangement.spacedBy(8.dp)
                 ) {
 
                     Icon(
-                        imageVector = Icons.Filled.CheckCircle,
+                        imageVector =
+                            Icons.Filled.CheckCircle,
                         contentDescription = null,
                         tint = BrandGreenColour,
-                        modifier = Modifier.size(36.dp)
+                        modifier =
+                            Modifier.size(36.dp)
                     )
 
                     Text(
-                        text = "Cleaning request submitted successfully.",
+                        text =
+                            "Cleaning request submitted successfully.",
                         fontSize = 13.sp,
                         color = BrandGreenColour,
                         textAlign = TextAlign.Center
                     )
 
                     Text(
-                        text = "Your RM 50.00 fee via $selectedPaymentMethod has been processed. Your appointment will be confirmed by support.",
+                        // CHANGED: RM 50.00 -> RM 100.00
+                        text =
+                            "Your RM 100.00 fee via $selectedPaymentMethod has been processed. Your appointment will be confirmed by support.",
                         fontSize = 12.sp,
                         color = TextGray,
                         textAlign = TextAlign.Center,
@@ -2125,7 +2501,8 @@ private fun ServiceFormPage(
                     1.dp,
                     BorderLight
                 ),
-                elevation = CardDefaults.cardElevation(0.dp)
+                elevation =
+                    CardDefaults.cardElevation(0.dp)
             ) {
 
                 Column(
@@ -2314,7 +2691,8 @@ private fun FAQItem(
             1.dp,
             BorderLight
         ),
-        elevation = CardDefaults.cardElevation(0.dp)
+        elevation =
+            CardDefaults.cardElevation(0.dp)
     ) {
 
         Column(
