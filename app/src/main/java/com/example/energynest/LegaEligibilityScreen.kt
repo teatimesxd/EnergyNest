@@ -57,6 +57,7 @@ fun LegaEligibilityScreen(
     var zipcode by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
     var state by remember { mutableStateOf("") }
+    var propertyType by remember { mutableStateOf("Terrace") }
     var showMapPicker by remember { mutableStateOf(false) }
 
     // Payment & Submission State
@@ -301,6 +302,76 @@ fun LegaEligibilityScreen(
                             )
                         }
                     }
+
+                    // Property Type Selection
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "PROPERTY TYPE",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextGray
+                        )
+                        var expanded by remember { mutableStateOf(false) }
+                        val propertyTypes = listOf("Terrace", "Semi-D", "Bungalow")
+                        
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .border(1.dp, if (expanded) BrandGreen else BorderLight, RoundedCornerShape(12.dp))
+                                .background(White)
+                                .clickable(enabled = !isSubmitted) { expanded = !expanded }
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.home_icon),
+                                        contentDescription = null,
+                                        tint = TextGray,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = propertyType,
+                                        fontSize = 16.sp,
+                                        color = TextDark
+                                    )
+                                }
+                                Icon(
+                                    painter = painterResource(id = R.drawable.arrow_drop_down),
+                                    contentDescription = "Select Property Type",
+                                    tint = TextDark
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false },
+                                modifier = Modifier.background(White).fillMaxWidth(0.9f)
+                            ) {
+                                propertyTypes.forEach { type ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = type,
+                                                fontSize = 16.sp,
+                                                color = TextDark
+                                            )
+                                        },
+                                        onClick = {
+                                            propertyType = type
+                                            expanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // Map Picker Dialog
@@ -488,7 +559,7 @@ fun LegaEligibilityScreen(
                 }
 
                 // Action Button
-                val isFormValid = houseNo.isNotBlank() && street.isNotBlank() && zipcode.isNotBlank() && city.isNotBlank() && state.isNotBlank()
+                val isFormValid = houseNo.isNotBlank() && street.isNotBlank() && zipcode.isNotBlank() && city.isNotBlank() && state.isNotBlank() && propertyType.isNotBlank()
 
                 Button(
                     onClick = {

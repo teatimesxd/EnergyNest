@@ -26,6 +26,7 @@ private val TextDark = Color(0xFF191C1E)
 private val TextGray = Color(0xFF5A6065)
 private val BrandGreenColour = Color(0xFF00B87C)
 private val LightGrayBg = Color(0xFFF2F4F6)
+private val ProgressBg = Color(0xFFE5E7EB)
 private val BorderLight = Color(0xFFE2E8F0)
 private val White = Color.White
 
@@ -35,9 +36,7 @@ fun CreamScreen(
     onCheckEligibility: () -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
-    var propertyType by remember { mutableStateOf("Terrace") }
     var roofSpace by remember { mutableFloatStateOf(1200f) }
-    val propertyTypes = remember { listOf("Terrace", "Semi-D", "Bungalow") }
 
     val minIncome = remember(roofSpace) { (roofSpace * 0.208).roundToInt() }
     val maxIncome = remember(roofSpace) { (roofSpace * 0.333).roundToInt() }
@@ -174,66 +173,6 @@ fun CreamScreen(
                             color = TextDark
                         )
 
-                        // Property Type Dropdown
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                text = "PROPERTY TYPE",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextGray,
-                                letterSpacing = 0.5.sp
-                            )
-                            var expanded by remember { mutableStateOf(false) }
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp)
-                                    .border(1.dp, BorderLight, RoundedCornerShape(8.dp))
-                                    .background(White)
-                                    .clickable { expanded = !expanded }
-                                    .padding(horizontal = 16.dp),
-                                contentAlignment = Alignment.CenterStart
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = propertyType,
-                                        fontSize = 15.sp,
-                                        color = TextDark
-                                    )
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.arrow_drop_down),
-                                        contentDescription = "Select Property Type",
-                                        tint = TextDark
-                                    )
-                                }
-                                DropdownMenu(
-                                    expanded = expanded,
-                                    onDismissRequest = { expanded = false },
-                                    containerColor = White
-                                ) {
-                                    propertyTypes.forEach { type ->
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(
-                                                    text = type,
-                                                    fontSize = 15.sp,
-                                                    color = TextDark
-                                                )
-                                            },
-                                            onClick = {
-                                                propertyType = type
-                                                expanded = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
                         // Roof Space Slider
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Row(
@@ -265,11 +204,11 @@ fun CreamScreen(
                             Slider(
                                 value = roofSpace,
                                 onValueChange = { roofSpace = it },
-                                valueRange = 500f..5000f,
+                                valueRange = 500f..2000f,
                                 colors = SliderDefaults.colors(
                                     thumbColor = BrandGreenColour,
                                     activeTrackColor = BrandGreenColour,
-                                    inactiveTrackColor = LightGrayBg
+                                    inactiveTrackColor = ProgressBg
                                 ),
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -279,7 +218,7 @@ fun CreamScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(text = "500", fontSize = 12.sp, color = TextGray)
-                                Text(text = "5,000+", fontSize = 12.sp, color = TextGray)
+                                Text(text = "2,000", fontSize = 12.sp, color = TextGray)
                             }
                         }
                     }

@@ -1,6 +1,7 @@
 package com.example.energynest
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -8,7 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
@@ -19,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -55,9 +59,47 @@ fun TermsConditionPage(
                             Color.White,
                             shape = RoundedCornerShape(24.dp)
                         )
-                        .padding(horizontal = 28.dp, vertical = 40.dp)
+                        .padding(horizontal = 28.dp, vertical = 32.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
+
+                    // Back Button - inside the white box
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                    ) {
+                        IconButton(
+                            onClick = onBackClick,
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .size(46.dp)
+                                .shadow(
+                                    elevation = 4.dp,
+                                    shape = CircleShape
+                                )
+                                .background(
+                                    color = Color.White,
+                                    shape = CircleShape
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = Color(0xFFE2E8F0),
+                                    shape = CircleShape
+                                )
+                        ) {
+                            Icon(
+                                painter = painterResource(
+                                    id = R.drawable.back_arrow
+                                ),
+                                contentDescription = "Back",
+                                tint = primaryGreen,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     // Title
                     Text(
@@ -128,21 +170,6 @@ fun TermsConditionPage(
 
                     Spacer(modifier = Modifier.height(40.dp))
                 }
-            }
-
-            // Back Button
-            IconButton(
-                onClick = onBackClick,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 12.dp, top = 30.dp)
-                    .height(56.dp)
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.back_arrow),
-                    contentDescription = "Back",
-                    tint = primaryGreen
-                )
             }
         }
     }
