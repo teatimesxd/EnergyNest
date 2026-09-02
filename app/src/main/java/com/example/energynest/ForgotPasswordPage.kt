@@ -44,44 +44,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.SupabaseClient
 import com.example.energynest.ui.theme.EnergyNestTheme
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.createSupabaseClient
-import io.github.jan.supabase.postgrest.Postgrest
 import kotlinx.coroutines.launch
 
 @Composable
 fun ForgotPasswordPage(
     recoveryVerified: Boolean = false,
-    supabaseClient: SupabaseClient = remember {
-        createSupabaseClient(
-            supabaseUrl = "https://skanmdzsnfoquwljukfk.supabase.co",
-            supabaseKey = "sb_publishable_LTLKeWepLBaIi8RW3Fd23w_OVLDbLqZ"
-        ) {
-            install(Auth) {
-                host = "reset-password"
-                scheme = "energynest"
-            }
-            install(Postgrest)
-        }
-    },
     onBackToLogin: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
 
-    // PAGE FLOW (0: Enter Email, 1: Check Email, 2: Create New Password)
-    var currentStep by remember {
-        mutableStateOf(if (recoveryVerified) 2 else 0)
-    }
-
-    LaunchedEffect(recoveryVerified) {
-        if (recoveryVerified) {
-            currentStep = 2
-        }
-    }
-
+    // Workflow = Enter Email, Check Email, Create New Password
+    var currentStep by remember { mutableStateOf(if (recoveryVerified) 2 else 0) }
     var userEmail by remember { mutableStateOf("") }
     var step1Error by remember { mutableStateOf(false) }
     var step1Message by remember { mutableStateOf("") }
@@ -93,6 +69,16 @@ fun ForgotPasswordPage(
     var passwordMessage by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var passwordResetSuccess by remember { mutableStateOf(false) }
+
+    // Recovery Verify
+    LaunchedEffect(recoveryVerified) {
+        if (recoveryVerified) {
+            currentStep = 2
+            passwordError = false
+            passwordMessage = ""
+            passwordResetSuccess = false
+        }
+    }
 
     val primaryGreen = Color(0xFF10B981)
     val textDark = Color(0xFF1E293B)
@@ -121,7 +107,7 @@ fun ForgotPasswordPage(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Step 0: Enter Email
+                // Enter Email
                 if (currentStep == 0) {
                     Text(
                         text = "Forgot Password?",
@@ -146,7 +132,7 @@ fun ForgotPasswordPage(
                             step1Error = false
                             step1Message = ""
                         },
-                        label = { Text(text = "Email Address") },
+                        label = { Text("Email Address") },
                         placeholder = {
                             Text(
                                 text = "user@example.com",
@@ -186,6 +172,7 @@ fun ForgotPasswordPage(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // Send Reset Link
                     Button(
                         onClick = {
                             if (userEmail.isBlank()) {
@@ -200,25 +187,17 @@ fun ForgotPasswordPage(
                                 isLoading = true
                                 coroutineScope.launch {
                                     try {
-                                        supabaseClient.auth.resetPasswordForEmail(
+                                        SupabaseClient.client.auth.resetPasswordForEmail(
                                             email = userEmail,
                                             redirectUrl = "energynest://reset-password"
                                         )
-                                        isLoading = false
                                         currentStep = 1
                                     } catch (e: Exception) {
-                                        isLoading = false
                                         step1Error = true
-                                        val errorMessage = e.message?.lowercase() ?: ""
-                                        if (errorMessage.contains("rate limit") ||
-                                            errorMessage.contains("too many requests") ||
-                                            errorMessage.contains("429")
-                                        ) {
-                                            step1Message = "Too many password reset emails have been requested. Please wait for one hour before trying again."
-                                        } else {
-                                            step1Message = "Unable to send the password reset email. Please check your internet connection and try again."
-                                        }
+                                        step1Message = "Unable to send the password reset email. Please try again."
                                         Log.e("RESET_EMAIL", "Supabase error: ${e.message}", e)
+                                    } finally {
+                                        isLoading = false
                                     }
                                 }
                             }
@@ -262,13 +241,11 @@ fun ForgotPasswordPage(
                         text = "Back to Login",
                         color = primaryGreen,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable {
-                            onBackToLogin()
-                        }
+                        modifier = Modifier.clickable { onBackToLogin() }
                     )
                 }
 
-                // Step 1: Check Email
+                // Check Email
                 else if (currentStep == 1) {
                     Text(
                         text = "Check Your Email",
@@ -306,27 +283,18 @@ fun ForgotPasswordPage(
                             isLoading = true
                             coroutineScope.launch {
                                 try {
-                                    supabaseClient.auth.resetPasswordForEmail(
+                                    SupabaseClient.client.auth.resetPasswordForEmail(
                                         email = userEmail,
                                         redirectUrl = "energynest://reset-password"
                                     )
-                                    isLoading = false
                                     step1Error = false
                                     step1Message = "A new password reset link has been sent. Please check your email."
                                 } catch (e: Exception) {
-                                    isLoading = false
                                     step1Error = true
-                                    val errorMessage = e.message?.lowercase() ?: ""
-                                    if (errorMessage.contains("rate limit") ||
-                                        errorMessage.contains("too many requests") ||
-                                        errorMessage.contains("email rate limit") ||
-                                        errorMessage.contains("429")
-                                    ) {
-                                        step1Message = "Too many password reset emails have been requested. Please wait for one hour before trying again."
-                                    } else {
-                                        step1Message = "Unable to resend the password reset email. Please check your internet connection and try again."
-                                    }
+                                    step1Message = "Unable to resend the password reset email."
                                     Log.e("RESEND_EMAIL", "Supabase error: ${e.message}", e)
+                                } finally {
+                                    isLoading = false
                                 }
                             }
                         },
@@ -359,7 +327,7 @@ fun ForgotPasswordPage(
                     }
                 }
 
-                // Step 2: Create New Password
+                // Create New Password
                 else if (currentStep == 2) {
                     Text(
                         text = "Create New Password",
@@ -374,6 +342,7 @@ fun ForgotPasswordPage(
                         color = Color.Gray
                     )
 
+                    // NEW PASSWORD
                     OutlinedTextField(
                         value = newPassword,
                         onValueChange = {
@@ -381,7 +350,7 @@ fun ForgotPasswordPage(
                             passwordError = false
                             passwordMessage = ""
                         },
-                        label = { Text(text = "New Password") },
+                        label = { Text("New Password") },
                         placeholder = {
                             Text(
                                 text = "Enter your new password",
@@ -427,7 +396,7 @@ fun ForgotPasswordPage(
                             passwordError = false
                             passwordMessage = ""
                         },
-                        label = { Text(text = "Confirm Password") },
+                        label = { Text("Confirm Password") },
                         placeholder = {
                             Text(
                                 text = "Enter your new password again",
@@ -476,6 +445,7 @@ fun ForgotPasswordPage(
                         )
                     }
 
+                    // Reset Password
                     Button(
                         onClick = {
                             passwordError = false
@@ -489,26 +459,32 @@ fun ForgotPasswordPage(
                                 passwordMessage = "Please confirm your new password."
                             } else if (newPassword.length < 6) {
                                 passwordError = true
-                                passwordMessage = "Your new password must contain at least 6 characters."
+                                passwordMessage = "Your password must contain at least 6 characters."
                             } else if (newPassword != confirmPassword) {
                                 passwordError = true
-                                passwordMessage = "The passwords do not match. Please make sure both passwords are the same."
+                                passwordMessage = "The passwords do not match."
                             } else {
                                 isLoading = true
                                 coroutineScope.launch {
                                     try {
-                                        supabaseClient.auth.updateUser {
+                                        val session = SupabaseClient.client.auth.currentSessionOrNull()
+                                        if (session == null) {
+                                            passwordError = true
+                                            passwordMessage = "No password recovery session found. Please request a new reset link."
+                                            return@launch
+                                        }
+                                        SupabaseClient.client.auth.updateUser {
                                             password = newPassword
                                         }
-                                        isLoading = false
                                         passwordError = false
                                         passwordResetSuccess = true
                                         passwordMessage = "Your password has been reset successfully!"
                                     } catch (e: Exception) {
-                                        isLoading = false
                                         passwordError = true
-                                        passwordMessage = "Unable to reset your password. Your reset link may have expired or is invalid. Please request a new password reset link and try again."
-                                        Log.e("RESET_PASSWORD", "Supabase reset password error: ${e.message}", e)
+                                        passwordMessage = "Unable to reset password: ${e.message}"
+                                        Log.e("RESET_PASSWORD", "Supabase error: ${e.message}", e)
+                                    } finally {
+                                        isLoading = false
                                     }
                                 }
                             }
@@ -535,7 +511,8 @@ fun ForgotPasswordPage(
                         }
                     }
 
-                    if (passwordError && passwordMessage.contains("expired")) {
+                    // Request for new reset password link
+                    if (passwordError) {
                         Button(
                             onClick = {
                                 currentStep = 0
@@ -543,6 +520,7 @@ fun ForgotPasswordPage(
                                 passwordMessage = ""
                                 newPassword = ""
                                 confirmPassword = ""
+                                passwordResetSuccess = false
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = primaryGreen),
                             modifier = Modifier
@@ -556,9 +534,7 @@ fun ForgotPasswordPage(
 
                     if (passwordResetSuccess) {
                         Button(
-                            onClick = {
-                                onBackToLogin()
-                            },
+                            onClick = { onBackToLogin() },
                             colors = ButtonDefaults.buttonColors(containerColor = primaryGreen),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -572,7 +548,7 @@ fun ForgotPasswordPage(
             }
         }
 
-        // Top Back Button
+        // Back Button
         IconButton(
             onClick = {
                 when (currentStep) {
@@ -605,8 +581,6 @@ fun ForgotPasswordPage(
 @Composable
 fun ForgotPasswordPreview() {
     EnergyNestTheme {
-        ForgotPasswordPage(
-            recoveryVerified = false
-        )
+        ForgotPasswordPage(recoveryVerified = false)
     }
 }
