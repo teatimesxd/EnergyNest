@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -46,40 +46,41 @@ fun ProfileScreen(
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
     ) {
-        // ---- Compact Top Header ----
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color(0xFF00B87C),
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-            Text(
-                text = "Profile",
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF191C1E)
-            )
-            IconButton(onClick = onEditClick, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    Icons.Default.Edit,
-                    contentDescription = "Edit",
-                    tint = Color(0xFF00B87C),
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-        }
+        // ---- Top App Bar ----
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.back_arrow),
+                        contentDescription = "Back",
+                        tint = Color(0xFF191C1E) // TextDark
+                    )
+                }
 
-        HorizontalDivider(thickness = 1.dp, color = Color(0xFFE2E8F0))
+                Text(
+                    text = "Profile",
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF191C1E) // TextDark
+                )
+
+                // ---- Edit Icon ----
+                IconButton(onClick = onEditClick) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = Color(0xFF191C1E) // TextDark
+                    )
+                }
+            }
+            HorizontalDivider(thickness = 1.dp, color = Color(0xFFE2E8F0)) // BorderLight
+        }
 
         Column(
             modifier = Modifier
@@ -152,12 +153,12 @@ fun ProfileScreen(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
                             ) {
-                                Toast.makeText(context, "⚠️ TnB Account Number cannot be edited", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Account Number cannot be edited", Toast.LENGTH_SHORT).show()
                             }
                             .padding(vertical = 4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("TnB Account Number", fontSize = 12.sp, color = Color.Gray)
+                        Text("Account Number", fontSize = 12.sp, color = Color.Gray)
                         Spacer(modifier = Modifier.height(2.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("9000 1234 5678", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.Black)
@@ -224,7 +225,7 @@ fun ProfileItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 3.dp)
+            .padding(vertical = 6.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null

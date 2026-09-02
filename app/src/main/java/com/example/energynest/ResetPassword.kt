@@ -125,7 +125,8 @@ fun ResetPasswordScreen(
             Text(
                 "Reset Password",
                 fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
             )
             Box(modifier = Modifier.size(40.dp))
         }

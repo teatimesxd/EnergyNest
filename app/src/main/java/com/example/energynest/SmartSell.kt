@@ -665,6 +665,8 @@ fun SmartSellScreen(
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black,
                             focusedBorderColor = BrandGreenColour,
                             focusedLabelColor = BrandGreenColour,
                             cursorColor = BrandGreenColour
