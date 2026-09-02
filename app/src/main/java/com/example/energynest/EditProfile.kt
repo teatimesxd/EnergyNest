@@ -1,3 +1,5 @@
+
+
 package com.example.energynest
 
 import android.widget.Toast
@@ -119,7 +121,7 @@ fun EditProfileScreen(
             IconButton(onClick = { onBack() }, modifier = Modifier.size(40.dp)) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color(0xFF00B87C), modifier = Modifier.size(28.dp))
             }
-            Text("Edit Profile", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text("Edit Profile", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Black)
             Box(modifier = Modifier.size(40.dp))
         }
 
