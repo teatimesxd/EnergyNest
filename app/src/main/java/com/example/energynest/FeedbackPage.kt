@@ -2,6 +2,7 @@ package com.example.energynest
 
 import android.app.Activity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,8 +11,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -28,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -46,6 +50,7 @@ fun FeedbackPage(
     var feedback by remember { mutableStateOf("") }
     var feedbackError by remember { mutableStateOf(false) }
     var feedbackMessage by remember { mutableStateOf("") }
+
     val primaryGreen = Color(0xFF10B981)
     val textDark = Color(0xFF1E293B)
     val textGray = Color(0xFF505F76)
@@ -57,26 +62,71 @@ fun FeedbackPage(
             .fillMaxSize()
             .background(backgroundGray)
     ) {
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(20.dp)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
 
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Main Feedback Card
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         Color.White,
-                        shape = RoundedCornerShape(24.dp)
+                        shape = RoundedCornerShape(32.dp)
                     )
-                    .padding(horizontal = 28.dp, vertical = 40.dp)
+                    .padding(
+                        start = 20.dp,
+                        end = 28.dp,
+                        top = 12.dp,
+                        bottom = 40.dp
+                    )
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Spacer(modifier = Modifier.height(20.dp))
+
+                // Back Button - inside the white box
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(46.dp)
+                ) {
+                    IconButton(
+                        onClick = onBackClick,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .size(46.dp)
+                            .shadow(
+                                elevation = 4.dp,
+                                shape = CircleShape
+                            )
+                            .background(
+                                color = Color.White,
+                                shape = CircleShape
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = Color(0xFFE2E8F0),
+                                shape = CircleShape
+                            )
+                    ) {
+                        Icon(
+                            painter = painterResource(
+                                id = R.drawable.back_arrow
+                            ),
+                            contentDescription = "Back",
+                            tint = primaryGreen,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
                     text = "Feedback",
@@ -130,7 +180,11 @@ fun FeedbackPage(
                 if (feedbackMessage.isNotEmpty()) {
                     Text(
                         text = feedbackMessage,
-                        color = if (feedbackError) errorRed else primaryGreen,
+                        color = if (feedbackError) {
+                            errorRed
+                        } else {
+                            primaryGreen
+                        },
                         fontSize = 14.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
@@ -143,10 +197,12 @@ fun FeedbackPage(
                     onClick = {
                         if (feedback.trim().isBlank()) {
                             feedbackError = true
-                            feedbackMessage = "Please enter your feedback before submitting."
+                            feedbackMessage =
+                                "Please enter your feedback before submitting."
                         } else {
                             feedbackError = false
-                            feedbackMessage = "Thank you! Your feedback has been submitted successfully."
+                            feedbackMessage =
+                                "Thank you! Your feedback has been submitted successfully."
                             feedback = ""
                         }
                     },
@@ -160,7 +216,9 @@ fun FeedbackPage(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.send_icon),
+                        painter = painterResource(
+                            id = R.drawable.send_icon
+                        ),
                         contentDescription = "Submit Feedback",
                         tint = Color.White
                     )
@@ -176,22 +234,6 @@ fun FeedbackPage(
 
                 Spacer(modifier = Modifier.height(30.dp))
             }
-        }
-
-        // Back Button
-        IconButton(
-            onClick = {
-                onBackClick()
-            },
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(start = 12.dp, top = 30.dp)
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.back_arrow),
-                contentDescription = "Back",
-                tint = primaryGreen
-            )
         }
     }
 }
