@@ -1,6 +1,5 @@
 package com.example.energynest
 
-import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -46,7 +45,6 @@ import com.example.energynest.ui.theme.EnergyNestTheme
 fun FeedbackPage(
     onBackClick: () -> Unit = {}
 ) {
-    val context = LocalContext.current
     var feedback by remember { mutableStateOf("") }
     var feedbackError by remember { mutableStateOf(false) }
     var feedbackMessage by remember { mutableStateOf("") }
