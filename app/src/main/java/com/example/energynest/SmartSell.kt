@@ -30,7 +30,6 @@ private val BrandGreenColour = Color(0xFF00B87C)
 private val LightGreenBg = Color(0xFFD8F3E5)
 private val ProgressBg = Color(0xFFE5E7EB)
 private val CardBorderColor = Color(0xFFE2E8F0)
-private val ActiveBlue = Color(0xFF2563EB)
 private val CreditBoxBg = Color(0xFFF3F4F6)
 private val FloorCircleBg = Color(0xFFEAECEE)
 private val White = Color.White
@@ -274,18 +273,21 @@ fun SmartSellScreen(
                                 )
                             }
 
-                            Icon(
-                                painter = painterResource(id = R.drawable.check_circle_icon),
-                                contentDescription = "Auto-Sell Toggle",
-                                tint = if (autoSellEnabled) ActiveBlue else TextGray,
-                                modifier = Modifier
-                                    .size(26.dp)
-                                    .clickable { autoSellEnabled = !autoSellEnabled }
+                            Switch(
+                                checked = autoSellEnabled,
+                                onCheckedChange = { autoSellEnabled = it },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = White,
+                                    checkedTrackColor = BrandGreenColour,
+                                    uncheckedThumbColor = White,
+                                    uncheckedTrackColor = ProgressBg,
+                                    uncheckedBorderColor = Color.Transparent
+                                )
                             )
                         }
 
                         Text(
-                            text = "Automatically sell excess power to TNB under the 1:1 Solar ATAP credit program.",
+                            text = "Automatically sell excess power to TNB under the 1:1 Solar ATAP credit program when your battery storage exceeds 80%.",
                             fontSize = 13.sp,
                             color = TextGray,
                             lineHeight = 18.sp

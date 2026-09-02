@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -53,6 +54,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -194,17 +196,32 @@ fun PaymentHistoryListScreen(
             }
         }
 
-        // Back Button
+        // Floating Back Button
         IconButton(
             onClick = onBack,
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(start = 12.dp, top = 30.dp)
+                .padding(start = 8.dp, top = 24.dp)
+                .size(46.dp)
+                .shadow(
+                    elevation = 4.dp,
+                    shape = CircleShape
+                )
+                .background(
+                    color = Color.White,
+                    shape = CircleShape
+                )
+                .border(
+                    width = 1.dp,
+                    color = Color(0xFFE2E8F0),
+                    shape = CircleShape
+                )
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.back_arrow),
                 contentDescription = "Back",
-                tint = primaryGreen
+                tint = primaryGreen,
+                modifier = Modifier.size(22.dp)
             )
         }
     }
@@ -455,17 +472,32 @@ fun PaymentHistoryDetailContent(
             }
         }
 
-        // Back Button
+        // Floating Back Button
         IconButton(
             onClick = onBack,
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(start = 12.dp, top = 30.dp)
+                .padding(start = 8.dp, top = 24.dp)
+                .size(46.dp)
+                .shadow(
+                    elevation = 4.dp,
+                    shape = CircleShape
+                )
+                .background(
+                    color = Color.White,
+                    shape = CircleShape
+                )
+                .border(
+                    width = 1.dp,
+                    color = Color(0xFFE2E8F0),
+                    shape = CircleShape
+                )
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.back_arrow),
                 contentDescription = "Back",
-                tint = primaryGreen
+                tint = primaryGreen,
+                modifier = Modifier.size(22.dp)
             )
         }
     }
