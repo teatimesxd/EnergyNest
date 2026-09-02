@@ -44,132 +44,128 @@ fun TermsConditionPage(
         modifier = Modifier.fillMaxSize(),
         color = backgroundGray
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp)
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(20.dp)
+                    .padding(top = 16.dp)
+                    .background(
+                        Color.White,
+                        shape = RoundedCornerShape(24.dp)
+                    )
+                    .padding(
+                        start = 28.dp,
+                        end = 28.dp,
+                        top = 76.dp,
+                        bottom = 40.dp
+                    )
+                    .verticalScroll(rememberScrollState())
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
+                // Title
+                Text(
+                    text = "Terms & Conditions",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = textDark,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Color.White,
-                            shape = RoundedCornerShape(24.dp)
-                        )
-                        .padding(horizontal = 28.dp, vertical = 32.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
+                HorizontalDivider(
+                    modifier = Modifier.fillMaxWidth(),
+                    thickness = 2.dp,
+                    color = primaryGreen
+                )
 
-                    // Back Button - inside the white box
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(46.dp)
-                    ) {
-                        IconButton(
-                            onClick = onBackClick,
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .size(46.dp)
-                                .shadow(
-                                    elevation = 4.dp,
-                                    shape = CircleShape
-                                )
-                                .background(
-                                    color = Color.White,
-                                    shape = CircleShape
-                                )
-                                .border(
-                                    width = 1.dp,
-                                    color = Color(0xFFE2E8F0),
-                                    shape = CircleShape
-                                )
-                        ) {
-                            Icon(
-                                painter = painterResource(
-                                    id = R.drawable.back_arrow
-                                ),
-                                contentDescription = "Back",
-                                tint = primaryGreen,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
+                Spacer(modifier = Modifier.height(24.dp))
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                TermsSectionTitle(title = "1. ACCEPTANCE OF TERMS")
+                TermsBodyText(
+                    text = "By accessing or using the EnergyNest mobile application, you agree to comply with these Terms and Conditions. If you do not agree with any part of these terms, please do not use the application."
+                )
 
-                    // Title
-                    Text(
-                        text = "Terms & Conditions",
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = textDark,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                TermsSectionTitle(title = "2. USER ACCOUNT")
+                TermsBodyText(
+                    text = "You are responsible for providing accurate and complete information when creating an EnergyNest account. You are also responsible for maintaining the confidentiality of your account credentials and for activities performed using your account."
+                )
+
+                TermsSectionTitle(title = "3. USE OF ENERGYNEST SERVICES")
+                TermsBodyText(
+                    text = "EnergyNest provides features and information related to energy monitoring, energy consumption, solar energy and other available services. The application should only be used for lawful purposes and according to these Terms and Conditions."
+                )
+
+                TermsSectionTitle(title = "4. USER RESPONSIBILITIES")
+                TermsBodyText(
+                    text = "Users must not misuse the application, attempt to access another user's account, interfere with the application's operation or use the application for unlawful activities."
+                )
+
+                TermsSectionTitle(title = "5. INFORMATION ACCURACY")
+                TermsBodyText(
+                    text = "EnergyNest aims to provide accurate information and services. However, information displayed in the application may occasionally contain errors, delays or inaccuracies. Users should verify important information when necessary."
+                )
+
+                TermsSectionTitle(title = "6. SERVICE AVAILABILITY")
+                TermsBodyText(
+                    text = "EnergyNest may modify, update, temporarily suspend or discontinue certain features or services without prior notice when necessary for maintenance, improvements or other operational reasons."
+                )
+
+                TermsSectionTitle(title = "7. INTELLECTUAL PROPERTY")
+                TermsBodyText(
+                    text = "The EnergyNest application, including its design, logo, text, graphics and other content, is protected by applicable intellectual property laws. Users may not copy, reproduce or distribute the application's content without permission."
+                )
+
+                TermsSectionTitle(title = "8. LIMITATION OF LIABILITY")
+                TermsBodyText(
+                    text = "EnergyNest is not responsible for indirect losses, damages or interruptions resulting from the use or inability to use the application, except where liability is required by applicable law."
+                )
+
+                TermsSectionTitle(title = "9. CHANGES TO TERMS")
+                TermsBodyText(
+                    text = "We may update these Terms and Conditions from time to time. Continued use of EnergyNest after changes are published means that you accept the updated Terms and Conditions."
+                )
+
+                TermsSectionTitle(title = "10. CONTACT US")
+                TermsBodyText(
+                    text = "If you have any questions regarding these Terms and Conditions, please contact the EnergyNest support team through the available support channels."
+                )
+
+                Spacer(modifier = Modifier.height(40.dp))
+            }
+
+            // Modern Back Button
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 8.dp, top = 24.dp)
+                    .size(46.dp)
+                    .shadow(
+                        elevation = 4.dp,
+                        shape = CircleShape
                     )
-
-                    HorizontalDivider(
-                        modifier = Modifier.fillMaxWidth(),
-                        thickness = 2.dp,
-                        color = primaryGreen
+                    .background(
+                        color = Color.White,
+                        shape = CircleShape
                     )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    TermsSectionTitle(title = "1. ACCEPTANCE OF TERMS")
-                    TermsBodyText(
-                        text = "By accessing or using the EnergyNest mobile application, you agree to comply with these Terms and Conditions. If you do not agree with any part of these terms, please do not use the application."
+                    .border(
+                        width = 1.dp,
+                        color = Color(0xFFE2E8F0),
+                        shape = CircleShape
                     )
-
-                    TermsSectionTitle(title = "2. USER ACCOUNT")
-                    TermsBodyText(
-                        text = "You are responsible for providing accurate and complete information when creating an EnergyNest account. You are also responsible for maintaining the confidentiality of your account credentials and for activities performed using your account."
-                    )
-
-                    TermsSectionTitle(title = "3. USE OF ENERGYNEST SERVICES")
-                    TermsBodyText(
-                        text = "EnergyNest provides features and information related to energy monitoring, energy consumption, solar energy and other available services. The application should only be used for lawful purposes and according to these Terms and Conditions."
-                    )
-
-                    TermsSectionTitle(title = "4. USER RESPONSIBILITIES")
-                    TermsBodyText(
-                        text = "Users must not misuse the application, attempt to access another user's account, interfere with the application's operation or use the application for unlawful activities."
-                    )
-
-                    TermsSectionTitle(title = "5. INFORMATION ACCURACY")
-                    TermsBodyText(
-                        text = "EnergyNest aims to provide accurate information and services. However, information displayed in the application may occasionally contain errors, delays or inaccuracies. Users should verify important information when necessary."
-                    )
-
-                    TermsSectionTitle(title = "6. SERVICE AVAILABILITY")
-                    TermsBodyText(
-                        text = "EnergyNest may modify, update, temporarily suspend or discontinue certain features or services without prior notice when necessary for maintenance, improvements or other operational reasons."
-                    )
-
-                    TermsSectionTitle(title = "7. INTELLECTUAL PROPERTY")
-                    TermsBodyText(
-                        text = "The EnergyNest application, including its design, logo, text, graphics and other content, is protected by applicable intellectual property laws. Users may not copy, reproduce or distribute the application's content without permission."
-                    )
-
-                    TermsSectionTitle(title = "8. LIMITATION OF LIABILITY")
-                    TermsBodyText(
-                        text = "EnergyNest is not responsible for indirect losses, damages or interruptions resulting from the use or inability to use the application, except where liability is required by applicable law."
-                    )
-
-                    TermsSectionTitle(title = "9. CHANGES TO TERMS")
-                    TermsBodyText(
-                        text = "We may update these Terms and Conditions from time to time. Continued use of EnergyNest after changes are published means that you accept the updated Terms and Conditions."
-                    )
-
-                    TermsSectionTitle(title = "10. CONTACT US")
-                    TermsBodyText(
-                        text = "If you have any questions regarding these Terms and Conditions, please contact the EnergyNest support team through the available support channels."
-                    )
-
-                    Spacer(modifier = Modifier.height(40.dp))
-                }
+            ) {
+                Icon(
+                    painter = painterResource(
+                        id = R.drawable.back_arrow
+                    ),
+                    contentDescription = "Back",
+                    tint = primaryGreen,
+                    modifier = Modifier.size(22.dp)
+                )
             }
         }
     }

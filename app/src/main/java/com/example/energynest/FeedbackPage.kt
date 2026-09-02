@@ -61,179 +61,167 @@ fun FeedbackPage(
         modifier = Modifier
             .fillMaxSize()
             .background(backgroundGray)
+            .padding(20.dp)
     ) {
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Main Feedback Card
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(20.dp)
+                .padding(top = 16.dp)
+                .background(
+                    Color.White,
+                    shape = RoundedCornerShape(32.dp)
+                )
+                .padding(
+                    start = 20.dp,
+                    end = 28.dp,
+                    top = 76.dp,
+                    bottom = 40.dp
+                )
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+
+            Text(
+                text = "Feedback",
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold,
+                color = textDark
+            )
+
+            Text(
+                text = "We would love to hear from you. Share your suggestions, comments or report any problems you experienced while using EnergyNest.",
+                fontSize = 14.sp,
+                lineHeight = 22.sp,
+                textAlign = TextAlign.Center,
+                color = textGray,
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Main Feedback Card
-            Column(
+            Text(
+                text = "Your Feedback",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = textGray,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = feedback,
+                onValueChange = {
+                    feedback = it
+                    feedbackError = false
+                    feedbackMessage = ""
+                },
+                label = {
+                    Text(text = "Tell us what you think")
+                },
+                placeholder = {
+                    Text(text = "Enter your feedback here...")
+                },
+                textStyle = LocalTextStyle.current.copy(
+                    color = Color.Black
+                ),
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Color.White,
-                        shape = RoundedCornerShape(32.dp)
-                    )
-                    .padding(
-                        start = 20.dp,
-                        end = 28.dp,
-                        top = 12.dp,
-                        bottom = 40.dp
-                    )
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+                    .fillMaxWidth()
+                    .height(180.dp),
+                shape = RoundedCornerShape(12.dp),
+                isError = feedbackError
+            )
 
-                // Back Button - inside the white box
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(46.dp)
-                ) {
-                    IconButton(
-                        onClick = onBackClick,
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .size(46.dp)
-                            .shadow(
-                                elevation = 4.dp,
-                                shape = CircleShape
-                            )
-                            .background(
-                                color = Color.White,
-                                shape = CircleShape
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = Color(0xFFE2E8F0),
-                                shape = CircleShape
-                            )
-                    ) {
-                        Icon(
-                            painter = painterResource(
-                                id = R.drawable.back_arrow
-                            ),
-                            contentDescription = "Back",
-                            tint = primaryGreen,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
+            if (feedbackMessage.isNotEmpty()) {
                 Text(
-                    text = "Feedback",
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = textDark
-                )
-
-                Text(
-                    text = "We would love to hear from you. Share your suggestions, comments or report any problems you experienced while using EnergyNest.",
+                    text = feedbackMessage,
+                    color = if (feedbackError) {
+                        errorRed
+                    } else {
+                        primaryGreen
+                    },
                     fontSize = 14.sp,
-                    lineHeight = 22.sp,
                     textAlign = TextAlign.Center,
-                    color = textGray,
                     modifier = Modifier.fillMaxWidth()
                 )
+            }
 
-                Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    if (feedback.trim().isBlank()) {
+                        feedbackError = true
+                        feedbackMessage =
+                            "Please enter your feedback before submitting."
+                    } else {
+                        feedbackError = false
+                        feedbackMessage =
+                            "Thank you! Your feedback has been submitted successfully."
+                        feedback = ""
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = primaryGreen,
+                    contentColor = Color.White
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    painter = painterResource(
+                        id = R.drawable.send_icon
+                    ),
+                    contentDescription = "Submit Feedback",
+                    tint = Color.White
+                )
+
+                Spacer(modifier = Modifier.width(10.dp))
 
                 Text(
-                    text = "Your Feedback",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = textGray,
-                    modifier = Modifier.fillMaxWidth()
+                    text = "Submit Feedback",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
-
-                OutlinedTextField(
-                    value = feedback,
-                    onValueChange = {
-                        feedback = it
-                        feedbackError = false
-                        feedbackMessage = ""
-                    },
-                    label = {
-                        Text(text = "Tell us what you think")
-                    },
-                    placeholder = {
-                        Text(text = "Enter your feedback here...")
-                    },
-                    textStyle = LocalTextStyle.current.copy(
-                        color = Color.Black
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    isError = feedbackError
-                )
-
-                if (feedbackMessage.isNotEmpty()) {
-                    Text(
-                        text = feedbackMessage,
-                        color = if (feedbackError) {
-                            errorRed
-                        } else {
-                            primaryGreen
-                        },
-                        fontSize = 14.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Button(
-                    onClick = {
-                        if (feedback.trim().isBlank()) {
-                            feedbackError = true
-                            feedbackMessage =
-                                "Please enter your feedback before submitting."
-                        } else {
-                            feedbackError = false
-                            feedbackMessage =
-                                "Thank you! Your feedback has been submitted successfully."
-                            feedback = ""
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = primaryGreen,
-                        contentColor = Color.White
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(
-                            id = R.drawable.send_icon
-                        ),
-                        contentDescription = "Submit Feedback",
-                        tint = Color.White
-                    )
-
-                    Spacer(modifier = Modifier.width(10.dp))
-
-                    Text(
-                        text = "Submit Feedback",
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(30.dp))
             }
+
+            Spacer(modifier = Modifier.height(30.dp))
+        }
+
+        // Modern Back Button
+        IconButton(
+            onClick = onBackClick,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 8.dp, top = 24.dp)
+                .size(46.dp)
+                .shadow(
+                    elevation = 4.dp,
+                    shape = CircleShape
+                )
+                .background(
+                    color = Color.White,
+                    shape = CircleShape
+                )
+                .border(
+                    width = 1.dp,
+                    color = Color(0xFFE2E8F0),
+                    shape = CircleShape
+                )
+        ) {
+            Icon(
+                painter = painterResource(
+                    id = R.drawable.back_arrow
+                ),
+                contentDescription = "Back",
+                tint = primaryGreen,
+                modifier = Modifier.size(22.dp)
+            )
         }
     }
 }
