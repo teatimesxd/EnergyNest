@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,6 +57,7 @@ fun SmartSellScreen(
     var showWithdrawSheet by remember { mutableStateOf(false) }
     var withdrawAmountText by remember { mutableStateOf("") }
     var selectedPaymentMethod by remember { mutableStateOf("Touch 'n Go eWallet") }
+    var accountOrPhoneText by remember { mutableStateOf("") }
     var withdrawSuccess by remember { mutableStateOf(false) }
     var withdrawError by remember { mutableStateOf<String?>(null) }
 
@@ -647,15 +650,20 @@ fun SmartSellScreen(
                 } else {
                     OutlinedTextField(
                         value = withdrawAmountText,
-                        onValueChange = {
-                            withdrawAmountText = it
-                            withdrawError = null
+                        onValueChange = { input ->
+                            if (input.all { it.isDigit() || it == '.' }) {
+                                if (input.count { it == '.' } <= 1) {
+                                    withdrawAmountText = input
+                                    withdrawError = null
+                                }
+                            }
                         },
                         label = { Text("Withdrawal Amount (RM)") },
                         placeholder = { Text("0.00") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = BrandGreenColour,
                             focusedLabelColor = BrandGreenColour,
@@ -678,7 +686,7 @@ fun SmartSellScreen(
                         color = TextDark
                     )
 
-                    val paymentMethods = listOf("Touch 'n Go eWallet", "Bank Transfer (Maybank/TNB)", "DuitNow QR")
+                    val paymentMethods = listOf("Touch 'n Go eWallet", "Bank Transfer (Maybank/TNB)", "DuitNow")
                     paymentMethods.forEach { method ->
                         Row(
                             modifier = Modifier
@@ -689,7 +697,11 @@ fun SmartSellScreen(
                                     color = if (selectedPaymentMethod == method) BrandGreenColour else CardBorderColor,
                                     shape = RoundedCornerShape(10.dp)
                                 )
-                                .clickable { selectedPaymentMethod = method }
+                                .clickable { 
+                                    selectedPaymentMethod = method 
+                                    accountOrPhoneText = "" // Clear when switching
+                                    withdrawError = null
+                                }
                                 .padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -702,11 +714,47 @@ fun SmartSellScreen(
                             )
                             RadioButton(
                                 selected = (selectedPaymentMethod == method),
-                                onClick = { selectedPaymentMethod = method },
+                                onClick = { 
+                                    selectedPaymentMethod = method 
+                                    accountOrPhoneText = ""
+                                    withdrawError = null
+                                },
                                 colors = RadioButtonDefaults.colors(selectedColor = BrandGreenColour)
                             )
                         }
                     }
+
+                    // ---- Dynamic Account/Phone Number Field ----
+                    val label = when {
+                        selectedPaymentMethod.contains("Touch 'n Go", ignoreCase = true) -> "Phone Number"
+                        selectedPaymentMethod.contains("Bank", ignoreCase = true) -> "Bank Account Number"
+                        else -> "Account Detail"
+                    }
+                    
+                    val placeholder = when {
+                        selectedPaymentMethod.contains("Touch 'n Go", ignoreCase = true) -> "0123456789"
+                        selectedPaymentMethod.contains("Bank", ignoreCase = true) -> "1234567890"
+                        else -> "Enter details"
+                    }
+
+                    OutlinedTextField(
+                        value = accountOrPhoneText,
+                        onValueChange = { 
+                            accountOrPhoneText = it.filter { char -> char.isDigit() }
+                            withdrawError = null
+                        },
+                        label = { Text(label) },
+                        placeholder = { Text(placeholder) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = BrandGreenColour,
+                            focusedLabelColor = BrandGreenColour,
+                            cursorColor = BrandGreenColour
+                        )
+                    )
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -732,6 +780,9 @@ fun SmartSellScreen(
                                     }
                                     amount > accumulatedCredits -> {
                                         withdrawError = "Amount exceeds available balance."
+                                    }
+                                    accountOrPhoneText.isBlank() -> {
+                                        withdrawError = "Please enter your $label."
                                     }
                                     else -> {
                                         accumulatedCredits -= amount

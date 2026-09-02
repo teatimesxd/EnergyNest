@@ -148,7 +148,8 @@ class MainActivity : ComponentActivity() {
                                     onOpenDrawer = { scope.launch { drawerState.open() } },
                                     onCheckEligibility = {
                                         navController.navigate(Screen.LegaEligibility.route)
-                                    }
+                                    },
+                                    onProfileClick = { navController.navigate(Screen.Profile.route) }
                                 )
                             }
 
@@ -161,7 +162,8 @@ class MainActivity : ComponentActivity() {
 
                             composable(Screen.ElectricAnalysis.route) {
                                 ElectricAnalysisScreen(
-                                    onOpenDrawer = { scope.launch { drawerState.open() } }
+                                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                                    onProfileClick = { navController.navigate(Screen.Profile.route) }
                                 )
                             }
 
@@ -202,14 +204,29 @@ class MainActivity : ComponentActivity() {
                                 SettingPage(
                                     onBackClick = { navController.popBackStack() },
                                     onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                                    onNavigateToChangePassword = { navController.navigate(Screen.ResetPassword.route) },
+                                    onNavigateToPrivacyPolicy = { navController.navigate(Screen.PrivacyPolicy.route) },
                                     onNavigateToTerms = {
                                         navController.navigate(Screen.TermsAndConditions.route)
                                     },
+                                    onNavigateToFeedback = { navController.navigate(Screen.Feedback.route) },
                                     onLogoutConfirmed = {
                                         navController.navigate(Screen.Login.route) {
                                             popUpTo(0) { inclusive = true }
                                         }
                                     }
+                                )
+                            }
+
+                            composable(Screen.PrivacyPolicy.route) {
+                                PrivacyPolicyPage(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            composable(Screen.Feedback.route) {
+                                FeedbackPage(
+                                    onBackClick = { navController.popBackStack() }
                                 )
                             }
 

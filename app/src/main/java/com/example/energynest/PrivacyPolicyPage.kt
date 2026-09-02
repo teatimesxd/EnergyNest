@@ -138,7 +138,6 @@ fun PrivacyPolicyPage(
             IconButton(
                 onClick = {
                     onBackClick()
-                    (context as? Activity)?.finish()
                 },
                 modifier = Modifier
                     .align(Alignment.TopStart)

@@ -182,7 +182,6 @@ fun FeedbackPage(
         IconButton(
             onClick = {
                 onBackClick()
-                (context as? Activity)?.finish()
             },
             modifier = Modifier
                 .align(Alignment.TopStart)

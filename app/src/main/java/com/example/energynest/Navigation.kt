@@ -13,6 +13,8 @@ sealed class Screen(val route: String) {
     object Profile : Screen("profile")
     object Settings : Screen("settings")
     object TermsAndConditions : Screen("terms_and_conditions")
+    object PrivacyPolicy : Screen("privacy_policy")
+    object Feedback : Screen("feedback")
     object Login : Screen("login")
     object Register : Screen("register")
     object ForgotPassword : Screen("forgot_password")

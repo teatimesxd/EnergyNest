@@ -107,7 +107,6 @@ fun EditProfileScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
-            .statusBarsPadding()
     ) {
         Row(
             modifier = Modifier

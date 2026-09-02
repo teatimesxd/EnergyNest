@@ -249,7 +249,6 @@ fun PaymentResultScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
-            .statusBarsPadding()
     ) {
         Row(
             modifier = Modifier
@@ -651,7 +650,6 @@ fun PaymentMethodSelectionScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
-            .statusBarsPadding()
     ) {
         Row(
             modifier = Modifier
@@ -908,7 +906,6 @@ fun VisaPaymentPage(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
-            .statusBarsPadding()
     ) {
         Row(
             modifier = Modifier
@@ -1292,7 +1289,6 @@ fun MastercardPaymentPage(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
-            .statusBarsPadding()
     ) {
         Row(
             modifier = Modifier
@@ -1639,7 +1635,6 @@ fun TnGPaymentPage(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
-            .statusBarsPadding()
     ) {
         Row(
             modifier = Modifier
