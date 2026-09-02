@@ -45,18 +45,31 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.energynest.ui.theme.EnergyNestTheme
+import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import kotlinx.coroutines.launch
 
 @Composable
 fun ForgotPasswordPage(
     recoveryVerified: Boolean = false,
+    supabaseClient: SupabaseClient = remember {
+        createSupabaseClient(
+            supabaseUrl = "https://skanmdzsnfoquwljukfk.supabase.co",
+            supabaseKey = "sb_publishable_LTLKeWepLBaIi8RW3Fd23w_OVLDbLqZ"
+        ) {
+            install(Auth) {
+                host = "reset-password"
+                scheme = "energynest"
+            }
+            install(Postgrest)
+        }
+    },
     onBackToLogin: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val supabase = com.example.SupabaseClient.client
 
     // PAGE FLOW (0: Enter Email, 1: Check Email, 2: Create New Password)
     var currentStep by remember {
@@ -187,7 +200,7 @@ fun ForgotPasswordPage(
                                 isLoading = true
                                 coroutineScope.launch {
                                     try {
-                                        supabase.auth.resetPasswordForEmail(
+                                        supabaseClient.auth.resetPasswordForEmail(
                                             email = userEmail,
                                             redirectUrl = "energynest://reset-password"
                                         )
@@ -293,7 +306,7 @@ fun ForgotPasswordPage(
                             isLoading = true
                             coroutineScope.launch {
                                 try {
-                                    supabase.auth.resetPasswordForEmail(
+                                    supabaseClient.auth.resetPasswordForEmail(
                                         email = userEmail,
                                         redirectUrl = "energynest://reset-password"
                                     )
@@ -484,7 +497,7 @@ fun ForgotPasswordPage(
                                 isLoading = true
                                 coroutineScope.launch {
                                     try {
-                                        supabase.auth.updateUser {
+                                        supabaseClient.auth.updateUser {
                                             password = newPassword
                                         }
                                         isLoading = false

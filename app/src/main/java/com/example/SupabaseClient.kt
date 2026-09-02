@@ -9,7 +9,10 @@ object SupabaseClient {
         supabaseUrl = "https://skanmdzsnfoquwljukfk.supabase.co",
         supabaseKey = "sb_publishable_LTLKeWepLBaIi8RW3Fd23w_OVLDbLqZ"
     ) {
-        install(Auth)
+        install(Auth) {
+            host = "reset-password"
+            scheme = "energynest"
+        }
         install(Postgrest)
     }
 }
