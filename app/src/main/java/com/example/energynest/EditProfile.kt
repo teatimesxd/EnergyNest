@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.*
 
 @Composable
 fun EditProfileScreen(
@@ -130,6 +131,7 @@ fun EditProfileScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding()
                 .verticalScroll(scrollState)
                 .padding(horizontal = 20.dp)
                 .padding(top = 8.dp, bottom = 24.dp),

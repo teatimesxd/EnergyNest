@@ -1164,7 +1164,8 @@ private fun CustomerServicePage(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Background),
+            .background(Background)
+            .imePadding(),
         contentPadding = PaddingValues(
             bottom = 28.dp
         )
@@ -2590,7 +2591,8 @@ private fun ServiceFormPage(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Background),
+            .background(Background)
+            .imePadding(),
         contentPadding = PaddingValues(
             bottom = 28.dp
         )

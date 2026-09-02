@@ -33,8 +33,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 
@@ -272,13 +274,15 @@ fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit)
                 ) {
                     Text(
                         text = "Choose Your Location",
-                        style = MaterialTheme.typography.titleLarge
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.Black
                     )
 
                     IconButton(onClick = onDismiss) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Close"
+                            contentDescription = "Close",
+                            tint = Color.Black
                         )
                     }
                 }
@@ -294,8 +298,31 @@ fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit)
                     OutlinedTextField(
                         value = searchText,
                         onValueChange = { searchText = it },
-                        label = { Text("Search location") },
+                        label = {
+                            Text(
+                                text = "Search location",
+                                color = Color.Black
+                            )
+                        },
+                        textStyle = LocalTextStyle.current.copy(
+                            color = Color.Black
+                        ),
                         singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black,
+
+                            focusedLabelColor = Color.Black,
+                            unfocusedLabelColor = Color.Black,
+
+                            focusedBorderColor = Color(0xFF10B981),
+                            unfocusedBorderColor = Color.Black,
+
+                            cursorColor = Color(0xFF10B981),
+
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White
+                        ),
                         modifier = Modifier.weight(1f)
                     )
 
