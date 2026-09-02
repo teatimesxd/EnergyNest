@@ -87,12 +87,16 @@ fun LegaEligibilityScreen(
 
     // Common TextField Colors
     val greenTextFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.Black,
+        unfocusedTextColor = Color.Black,
+        disabledTextColor = Color.Black,
         focusedBorderColor = BrandGreen,
         unfocusedBorderColor = BorderLight,
         focusedContainerColor = White,
         unfocusedContainerColor = White,
         cursorColor = BrandGreen,
-        focusedLabelColor = BrandGreen
+        focusedLabelColor = BrandGreen,
+        unfocusedLabelColor = TextGray
     )
 
     val paymentMethods = listOf(

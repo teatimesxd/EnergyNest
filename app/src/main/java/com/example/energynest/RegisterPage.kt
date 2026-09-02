@@ -330,7 +330,7 @@ fun RegisterPage(
                 }
             }
         } else {
-            registerMessage = "Please fix the errors above."
+            registerMessage = "Please check the errors above."
         }
     }
 

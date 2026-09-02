@@ -52,6 +52,10 @@ fun SettingPage(
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
 
+    val userProfile = UserSession.user
+    val userName = userProfile?.name ?: "Loading..."
+    val userEmail = userProfile?.email ?: "loading@example.com"
+
     val primaryGreen = Color(0xFF10B981)
     val textDark = Color(0xFF1E293B)
     val textGray = Color(0xFF505F76)
@@ -117,16 +121,16 @@ fun SettingPage(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "John Tan",
+                            text = userName,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = textDark
+                            color = Color.Black
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "john@example.com",
-                            fontSize = 14.sp,
-                            color = textGray
+                            text = userEmail,
+                            fontSize = 13.sp,
+                            color = Color.Gray
                         )
                     }
                 }
