@@ -118,7 +118,7 @@ fun ResetPasswordScreen(
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     "Back",
-                    tint = Color(0xFF00B87C),
+                    tint = Color(0xFF000000),
                     modifier = Modifier.size(28.dp)
                 )
             }
