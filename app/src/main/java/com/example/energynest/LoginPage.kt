@@ -60,6 +60,7 @@ fun LoginPage(
     var passwordVisible by remember { mutableStateOf(false) }
     var loginMessage by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var isLoginError by remember { mutableStateOf(false) }
 
     var accountError by remember { mutableStateOf(false) }
     var accountErrorMessage by remember { mutableStateOf("") }
@@ -124,6 +125,7 @@ fun LoginPage(
                 accountError = false
                 accountErrorMessage = ""
                 loginMessage = ""
+                isLoginError = false
             },
             isError = accountError,
             modifier = Modifier.fillMaxWidth()
@@ -169,6 +171,7 @@ fun LoginPage(
                 passwordError = false
                 passwordErrorMessage = ""
                 loginMessage = ""
+                isLoginError = false
             },
             visible = passwordVisible,
             onVisibilityToggle = {
@@ -198,6 +201,7 @@ fun LoginPage(
                 accountErrorMessage = ""
                 passwordErrorMessage = ""
                 loginMessage = ""
+                isLoginError = false
 
                 var valid = true
 
@@ -248,16 +252,19 @@ fun LoginPage(
                                     }
                                     .decodeSingleOrNull<User>()
                             }
-                            
+
                             if (result != null) {
                                 UserSession.user = result
                                 loginMessage = "Login successful!"
+                                isLoginError = false
                                 onLoginSuccess()
                             } else {
                                 loginMessage = "Invalid email or password."
+                                isLoginError = true
                             }
                         } catch (e: Exception) {
                             loginMessage = "Login failed: ${e.message}"
+                            isLoginError = true
                         } finally {
                             isLoading = false
                         }
@@ -306,7 +313,7 @@ fun LoginPage(
         if (loginMessage.isNotEmpty()) {
             Text(
                 text = loginMessage,
-                color = primaryGreen,
+                color = if (isLoginError) errorRed else primaryGreen,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold
             )

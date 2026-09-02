@@ -405,7 +405,7 @@ fun MapPicker(onAddressSelected: (AddressResult) -> Unit, onDismiss: () -> Unit)
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 8.dp),
-                        color = Color.DarkGray
+                        color = Color.Black
                     )
                 }
 

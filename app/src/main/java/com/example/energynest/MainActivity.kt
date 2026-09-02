@@ -229,7 +229,7 @@ class MainActivity : ComponentActivity() {
                             }
 
                             composable(Screen.ResetPassword.route) {
-                                ResetPasswordScreen(
+                                ChangePasswordScreen(
                                     onBack = { navController.popBackStack() },
                                     onResetSuccess = { navController.popBackStack() }
                                 )

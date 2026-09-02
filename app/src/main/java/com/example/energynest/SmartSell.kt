@@ -799,7 +799,7 @@ fun SmartSellScreen(
                         color = TextDark
                     )
 
-                    val paymentMethods = listOf("Touch 'n Go eWallet", "Bank Transfer (Maybank/TNB)", "DuitNow")
+                    val paymentMethods = listOf("Touch 'n Go eWallet", "Bank Transfer (Maybank/TNB)")
                     paymentMethods.forEach { method ->
                         Row(
                             modifier = Modifier
