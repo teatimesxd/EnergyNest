@@ -378,7 +378,7 @@ fun ProfileScreenWrapper(
                                     set("name", updatedProfile.name)
                                     set("email", updatedProfile.email)
                                     set("phone_number", updatedProfile.phoneNumber)
-                                    // Address updates are usually handled in Lega/Edit 
+                                    // Address updates are usually handled in Lega/Edit
                                     // but we can add them here if EditProfile allows
                                     set("house_no", updatedProfile.houseNo)
                                     set("street", updatedProfile.street)

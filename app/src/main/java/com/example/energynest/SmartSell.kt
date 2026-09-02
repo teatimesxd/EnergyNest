@@ -55,11 +55,13 @@ fun SmartSellScreen(
 
     var accumulatedCredits by remember { mutableDoubleStateOf(0.0) }
     var autoSellEnabled by remember { mutableStateOf(false) }
+    var storedEnergyPercent by remember { mutableFloatStateOf(0f) }
+    var storedEnergyKwh by remember { mutableFloatStateOf(0f) }
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         try {
-            val result = withContext(Dispatchers.IO) {
+            val sellResult = withContext(Dispatchers.IO) {
                 SupabaseClient.client.from("Smart_Sell")
                     .select {
                         filter { eq("ic_number", userIc) }
@@ -68,9 +70,23 @@ fun SmartSellScreen(
                     .decodeList<SmartSellData>()
                     .firstOrNull()
             }
-            if (result != null) {
-                accumulatedCredits = result.accumulatedCredit
-                autoSellEnabled = result.autoSellEnabled ?: false
+            if (sellResult != null) {
+                accumulatedCredits = sellResult.accumulatedCredit
+                autoSellEnabled = sellResult.autoSellEnabled ?: false
+            }
+
+            val homeResult = withContext(Dispatchers.IO) {
+                SupabaseClient.client.from("Home")
+                    .select {
+                        filter { eq("ic_number", userIc) }
+                        order("date", order = Order.DESCENDING)
+                    }
+                    .decodeList<HomeStats>()
+                    .firstOrNull()
+            }
+            if (homeResult != null) {
+                storedEnergyPercent = homeResult.storedEnergyPct.toFloat()
+                storedEnergyKwh = homeResult.storedEnergyKwh.toFloat()
             }
         } catch (e: Exception) {
             // Error handling
@@ -78,9 +94,6 @@ fun SmartSellScreen(
             isLoading = false
         }
     }
-
-    val storedEnergyPercent = 0.75f
-    val storedEnergyKwh = 12.2f
     val totalPowerUsage = 20
     val floors = remember { listOf("Floor 1", "Floor 2") }
 
