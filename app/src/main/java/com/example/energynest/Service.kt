@@ -9,6 +9,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -655,13 +658,18 @@ private fun FormTextField(
         placeholder = {
             Text(placeholder)
         },
+        textStyle = LocalTextStyle.current.copy(
+            color = Color.Black
+        ),
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(10.dp),
         singleLine = true,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = BrandGreenColour,
             focusedLabelColor = BrandGreenColour,
-            cursorColor = BrandGreenColour
+            cursorColor = BrandGreenColour,
+            unfocusedTextColor = Color.Black,
+            focusedTextColor = Color.Black
         )
     )
 }
@@ -1216,6 +1224,9 @@ private fun CustomerServicePage(
                                 "Describe your question or issue (max 100 chars)"
                             )
                         },
+                        textStyle = LocalTextStyle.current.copy(
+                            color = Color.Black
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(120.dp),
@@ -1227,7 +1238,11 @@ private fun CustomerServicePage(
                             focusedLabelColor =
                                 BrandGreenColour,
                             cursorColor =
-                                BrandGreenColour
+                                BrandGreenColour,
+                            unfocusedTextColor =
+                                Color.Black,
+                            focusedTextColor =
+                                Color.Black
                         )
                     )
 
@@ -1645,6 +1660,13 @@ private fun MaintenancePage(
     }
 }
 
+// ---------------------------------------------------------------------
+// CLEANING PAGE
+// Updated to require a RM 50.00 payment (checkout) after the customer
+// fills in the location, date and time — following the same payment
+// flow pattern used in LegaEligibilityScreen (Touch 'n Go / Visa /
+// Mastercard -> VisaPaymentPage / MastercardPaymentPage / TnGPaymentPage).
+// ---------------------------------------------------------------------
 @Composable
 private fun CleaningPage(
     onBack: () -> Unit,
@@ -1674,6 +1696,72 @@ private fun CleaningPage(
     var showTimePicker by remember {
         mutableStateOf(false)
     }
+
+    // --- Payment / checkout state ---
+    var selectedPaymentMethod by remember {
+        mutableStateOf("Touch 'n Go")
+    }
+
+    var showPaymentPage by remember {
+        mutableStateOf(false)
+    }
+
+    val paymentMethods = listOf(
+        PaymentMethodType(
+            "Touch 'n Go",
+            painterResource(id = R.drawable.ewallet),
+            Color(0xFF00A651)
+        ),
+        PaymentMethodType(
+            "Visa",
+            painterResource(id = R.drawable.visa),
+            Color(0xFF1A237E)
+        ),
+        PaymentMethodType(
+            "Mastercard",
+            painterResource(id = R.drawable.mastercard),
+            Color(0xFFE65100)
+        )
+    )
+
+    // Show the dedicated payment page when checkout has started
+    if (showPaymentPage) {
+        when (selectedPaymentMethod) {
+            "Visa" -> VisaPaymentPage(
+                onBack = {
+                    showPaymentPage = false
+                },
+                onPaymentSuccess = {
+                    showPaymentPage = false
+                    submitted = true
+                }
+            )
+            "Mastercard" -> MastercardPaymentPage(
+                onBack = {
+                    showPaymentPage = false
+                },
+                onPaymentSuccess = {
+                    showPaymentPage = false
+                    submitted = true
+                }
+            )
+            "Touch 'n Go" -> TnGPaymentPage(
+                onBack = {
+                    showPaymentPage = false
+                },
+                onPaymentSuccess = {
+                    showPaymentPage = false
+                    submitted = true
+                }
+            )
+        }
+        return
+    }
+
+    val isFormValid =
+        address.isNotBlank() &&
+                date.isNotEmpty() &&
+                time.isNotEmpty()
 
     ServiceFormPage(
         title = "Cleaning",
@@ -1723,33 +1811,215 @@ private fun CleaningPage(
             "Solar panel cleaning"
         )
 
+        if (!submitted) {
+
+            SectionTitle(
+                "Service fee"
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = White
+                ),
+                border = BorderStroke(
+                    1.dp,
+                    BorderLight
+                ),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+
+                        Icon(
+                            imageVector = Icons.Filled.Payment,
+                            contentDescription = null,
+                            tint = BrandGreenColour,
+                            modifier = Modifier.size(24.dp)
+                        )
+
+                        Column {
+
+                            Text(
+                                text = "Solar Panel Cleaning Fee",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextDark
+                            )
+
+                            Text(
+                                text = "Payable to confirm booking",
+                                fontSize = 11.sp,
+                                color = TextGray
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "RM 50.00",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandGreenColour
+                    )
+                }
+            }
+
+            SectionTitle(
+                "Select payment method"
+            )
+
+            paymentMethods.forEach { method ->
+
+                val isSelected = selectedPaymentMethod == method.name
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            selectedPaymentMethod = method.name
+                        },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = White
+                    ),
+                    border = BorderStroke(
+                        1.dp,
+                        if (isSelected) {
+                            BrandGreenColour
+                        } else {
+                            BorderLight
+                        }
+                    ),
+                    elevation = CardDefaults.cardElevation(0.dp)
+                ) {
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal = 16.dp,
+                                vertical = 12.dp
+                            ),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(method.color.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+
+                                Icon(
+                                    painter = method.icon,
+                                    contentDescription = method.name,
+                                    tint = Color.Unspecified,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+
+                            Text(
+                                text = method.name,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = TextDark
+                            )
+                        }
+
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = {
+                                selectedPaymentMethod = method.name
+                            },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = BrandGreenColour
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
         SubmitButton(
             text =
                 if (submitted) {
-                    "BOOKING REQUESTED"
+                    "BOOKING CONFIRMED"
                 } else {
-                    "BOOK CLEANING"
+                    "PROCEED TO PAYMENT (RM 50.00)"
                 },
             onClick = {
 
-                if (
-                    address.isNotBlank() &&
-                    date.isNotEmpty() &&
-                    time.isNotEmpty()
-                ) {
+                if (isFormValid && !submitted) {
 
-                    submitted = true
+                    showPaymentPage = true
                 }
             }
         )
 
         if (submitted) {
 
-            Text(
-                "Cleaning request submitted successfully. Your appointment will be confirmed by support.",
-                fontSize = 13.sp,
-                color = BrandGreenColour
-            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = White
+                ),
+                border = BorderStroke(
+                    1.dp,
+                    BrandGreenColour
+                ),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+
+                    Icon(
+                        imageVector = Icons.Filled.CheckCircle,
+                        contentDescription = null,
+                        tint = BrandGreenColour,
+                        modifier = Modifier.size(36.dp)
+                    )
+
+                    Text(
+                        text = "Cleaning request submitted successfully.",
+                        fontSize = 13.sp,
+                        color = BrandGreenColour,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Text(
+                        text = "Your RM 50.00 fee via $selectedPaymentMethod has been processed. Your appointment will be confirmed by support.",
+                        fontSize = 12.sp,
+                        color = TextGray,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 17.sp
+                    )
+                }
+            }
         }
 
         if (showDatePicker) {
