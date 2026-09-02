@@ -9,16 +9,27 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
+import com.example.SupabaseClient
 import com.example.energynest.ui.components.AppBottomNavBar
 import com.example.energynest.ui.theme.EnergyNestTheme
+import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,6 +43,9 @@ class MainActivity : ComponentActivity() {
 
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
+
+                val userProfile = UserSession.user
+                val userIc = UserSession.icNumber
 
                 val showBottomBar = currentRoute in listOf(
                     Screen.Home.route,
@@ -63,7 +77,8 @@ class MainActivity : ComponentActivity() {
                                         restoreState = true
                                     }
                                 }
-                            }
+                            },
+                            userProfile = userProfile
                         )
                     }
                 ) {
@@ -120,8 +135,20 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
-                            composable(Screen.ForgotPassword.route) {
+                            composable(
+                                route = Screen.ForgotPassword.route + "?recoveryVerified={recoveryVerified}",
+                                arguments = listOf(
+                                    navArgument("recoveryVerified") { defaultValue = "false" }
+                                ),
+                                deepLinks = listOf(
+                                    navDeepLink {
+                                        uriPattern = "energynest://reset-password"
+                                    }
+                                )
+                            ) { backStackEntry ->
+                                val recoveryVerified = backStackEntry.arguments?.getString("recoveryVerified") == "true"
                                 ForgotPasswordPage(
+                                    recoveryVerified = recoveryVerified,
                                     onBackToLogin = {
                                         navController.popBackStack()
                                     }
@@ -131,6 +158,7 @@ class MainActivity : ComponentActivity() {
                             // ---- Main App Screens ----
                             composable(Screen.Home.route) {
                                 HomeScreen(
+                                    userIc = userIc,
                                     onOpenDrawer = { scope.launch { drawerState.open() } },
                                     onProfileClick = { navController.navigate(Screen.Profile.route) }
                                 )
@@ -138,6 +166,7 @@ class MainActivity : ComponentActivity() {
 
                             composable(Screen.SmartSell.route) {
                                 SmartSellScreen(
+                                    userIc = userIc,
                                     onOpenDrawer = { scope.launch { drawerState.open() } },
                                     onProfileClick = { navController.navigate(Screen.Profile.route) }
                                 )
@@ -155,6 +184,7 @@ class MainActivity : ComponentActivity() {
 
                             composable(Screen.Services.route) {
                                 ServicesScreen(
+                                    userIc = userIc,
                                     onOpenDrawer = { scope.launch { drawerState.open() } },
                                     onProfileClick = { navController.navigate(Screen.Profile.route) }
                                 )
@@ -162,6 +192,7 @@ class MainActivity : ComponentActivity() {
 
                             composable(Screen.ElectricAnalysis.route) {
                                 ElectricAnalysisScreen(
+                                    userIc = userIc,
                                     onOpenDrawer = { scope.launch { drawerState.open() } },
                                     onProfileClick = { navController.navigate(Screen.Profile.route) }
                                 )
@@ -169,6 +200,7 @@ class MainActivity : ComponentActivity() {
 
                             composable(Screen.LegaEligibility.route) {
                                 LegaEligibilityScreen(
+                                    userIc = userIc,
                                     onBack = { navController.popBackStack() },
                                     onCompleteAssessment = { navController.popBackStack() }
                                 )
@@ -176,16 +208,19 @@ class MainActivity : ComponentActivity() {
 
                             composable(Screen.PaymentHistory.route) {
                                 PaymentHistoryScreen(
+                                    userIc = userIc,
                                     onBack = { navController.popBackStack() }
                                 )
                             }
 
                             composable(Screen.Profile.route) {
                                 ProfileScreenWrapper(
+                                    userIc = userIc,
                                     onBackToHome = { navController.popBackStack() },
                                     onChangePasswordClick = { navController.navigate(Screen.ResetPassword.route) },
                                     onPaymentHistoryClick = { navController.navigate(Screen.PaymentHistory.route) },
                                     onLogoutConfirm = {
+                                        UserSession.logout()
                                         navController.navigate(Screen.Login.route) {
                                             popUpTo(0) { inclusive = true }
                                         }
@@ -211,6 +246,7 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onNavigateToFeedback = { navController.navigate(Screen.Feedback.route) },
                                     onLogoutConfirmed = {
+                                        UserSession.logout()
                                         navController.navigate(Screen.Login.route) {
                                             popUpTo(0) { inclusive = true }
                                         }

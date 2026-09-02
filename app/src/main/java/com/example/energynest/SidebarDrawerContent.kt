@@ -34,7 +34,8 @@ data class DrawerMenuItem(
 fun SidebarDrawerContent(
     currentRoute: String? = null,
     onCloseDrawer: () -> Unit,
-    onNavigate: (String) -> Unit
+    onNavigate: (String) -> Unit,
+    userProfile: User? = null
 ) {
     val context = LocalContext.current
 
@@ -75,24 +76,24 @@ fun SidebarDrawerContent(
                         .scale(scale)
                 )
 
-                Text(
-                    text = "EnergyNest",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-
             Text(
-                text = "Spark Green Energy To Malaysia",
-                fontSize = 13.sp,
-                color = Color.Gray,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp),
-                textAlign = TextAlign.Center
+                text = userProfile?.name ?: "Hello, Homeowner",
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black,
+                modifier = Modifier.padding(top = 8.dp)
             )
+        }
+
+        Text(
+            text = userProfile?.email ?: "Spark Green Energy To Malaysia",
+            fontSize = 13.sp,
+            color = Color.Gray,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
+            textAlign = TextAlign.Center
+        )
 
             // ---- Main Nav Items ----
             val menuItems = listOf(

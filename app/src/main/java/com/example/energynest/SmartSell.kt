@@ -22,6 +22,16 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.SupabaseClient
+import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.UUID
 
 private val Background = Color(0xFFF6F8F7)
 private val TextDark = Color(0xFF191C1E)
@@ -37,14 +47,41 @@ private val White = Color.White
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SmartSellScreen(
+    userIc: String,
     onOpenDrawer: () -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
+    val coroutineScope = rememberCoroutineScope()
+
+    var accumulatedCredits by remember { mutableDoubleStateOf(0.0) }
+    var autoSellEnabled by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        try {
+            val result = withContext(Dispatchers.IO) {
+                SupabaseClient.client.from("Smart_Sell")
+                    .select {
+                        filter { eq("ic_number", userIc) }
+                        order("smart_sell_id", order = Order.DESCENDING)
+                    }
+                    .decodeList<SmartSellData>()
+                    .firstOrNull()
+            }
+            if (result != null) {
+                accumulatedCredits = result.accumulatedCredit
+                autoSellEnabled = result.autoSellEnabled ?: false
+            }
+        } catch (e: Exception) {
+            // Error handling
+        } finally {
+            isLoading = false
+        }
+    }
+
     val storedEnergyPercent = 0.75f
     val storedEnergyKwh = 12.2f
-    var accumulatedCredits by remember { mutableDoubleStateOf(45.20) }
     val totalPowerUsage = 20
-    var autoSellEnabled by remember { mutableStateOf(true) }
     val floors = remember { listOf("Floor 1", "Floor 2") }
 
     // Manual Sell Bottom Sheet State
@@ -275,7 +312,23 @@ fun SmartSellScreen(
 
                             Switch(
                                 checked = autoSellEnabled,
-                                onCheckedChange = { autoSellEnabled = it },
+                                onCheckedChange = { isChecked -> 
+                                    autoSellEnabled = isChecked
+                                    coroutineScope.launch {
+                                        try {
+                                            withContext(Dispatchers.IO) {
+                                                SupabaseClient.client.from("Smart_Sell")
+                                                    .update({
+                                                        set("auto_sell_enabled", isChecked)
+                                                    }) {
+                                                        filter { eq("ic_number", userIc) }
+                                                    }
+                                            }
+                                        } catch (e: Exception) {
+                                            // Handle error
+                                        }
+                                    }
+                                },
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = White,
                                     checkedTrackColor = BrandGreenColour,
@@ -551,8 +604,51 @@ fun SmartSellScreen(
 
                     Button(
                         onClick = {
-                            accumulatedCredits += estimatedEarnings
-                            showSellSheet = false
+                            val earnings = estimatedEarnings
+                            coroutineScope.launch {
+                                try {
+                                    val now = Date()
+                                    val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now)
+                                    val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(now)
+                                    
+                                    val payment = PaymentData(
+                                        title = "Manual Energy Discharge",
+                                        referenceNo = UUID.randomUUID().toString(),
+                                        method = "Grid Sell",
+                                        date = dateStr,
+                                        time = timeStr,
+                                        subtotal = earnings.toDouble(),
+                                        sst = 0.0,
+                                        amount = earnings.toDouble(),
+                                        status = true
+                                    )
+
+                                    val paymentResult = withContext(Dispatchers.IO) {
+                                        SupabaseClient.client.from("Payment")
+                                            .insert(payment) { select() }
+                                            .decodeSingle<PaymentData>()
+                                    }
+
+                                    val smartSellEntry = SmartSellData(
+                                        icNumber = userIc,
+                                        paymentId = paymentResult.paymentId,
+                                        accumulatedCredit = accumulatedCredits + earnings,
+                                        amountKwh = sellAmountKwh.toDouble(),
+                                        estimatedBillCredit = earnings.toDouble(),
+                                        autoSellEnabled = autoSellEnabled
+                                    )
+
+                                    withContext(Dispatchers.IO) {
+                                        SupabaseClient.client.from("Smart_Sell")
+                                            .insert(smartSellEntry)
+                                    }
+
+                                    accumulatedCredits += earnings
+                                    showSellSheet = false
+                                } catch (e: Exception) {
+                                    // Handle error
+                                }
+                            }
                         },
                         modifier = Modifier
                             .weight(1.5f)
@@ -789,8 +885,50 @@ fun SmartSellScreen(
                                         withdrawError = "Please enter your $label."
                                     }
                                     else -> {
-                                        accumulatedCredits -= amount
-                                        withdrawSuccess = true
+                                        coroutineScope.launch {
+                                            try {
+                                                val now = Date()
+                                                val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now)
+                                                val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(now)
+
+                                                val payment = PaymentData(
+                                                    title = "Withdrawal - $selectedPaymentMethod",
+                                                    referenceNo = UUID.randomUUID().toString(),
+                                                    method = selectedPaymentMethod,
+                                                    date = dateStr,
+                                                    time = timeStr,
+                                                    subtotal = amount,
+                                                    sst = 0.0,
+                                                    amount = amount,
+                                                    status = true
+                                                )
+
+                                                val paymentResult = withContext(Dispatchers.IO) {
+                                                    SupabaseClient.client.from("Payment")
+                                                        .insert(payment) { select() }
+                                                        .decodeSingle<PaymentData>()
+                                                }
+
+                                                // Update accumulated credits in DB
+                                                val newBalance = accumulatedCredits - amount
+                                                withContext(Dispatchers.IO) {
+                                                    SupabaseClient.client.from("Smart_Sell")
+                                                        .insert(SmartSellData(
+                                                            icNumber = userIc,
+                                                            paymentId = paymentResult.paymentId,
+                                                            accumulatedCredit = newBalance,
+                                                            amountKwh = 0.0,
+                                                            estimatedBillCredit = -amount,
+                                                            autoSellEnabled = autoSellEnabled
+                                                        ))
+                                                }
+
+                                                accumulatedCredits = newBalance
+                                                withdrawSuccess = true
+                                            } catch (e: Exception) {
+                                                withdrawError = "Failed to process withdrawal: ${e.message}"
+                                            }
+                                        }
                                     }
                                 }
                             },
@@ -812,5 +950,5 @@ fun SmartSellScreen(
 @Preview(showBackground = true)
 @Composable
 fun PreviewSmartSellScreen() {
-    SmartSellScreen()
+    SmartSellScreen(userIc = "123456789012")
 }

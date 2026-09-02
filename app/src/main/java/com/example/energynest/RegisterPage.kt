@@ -35,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,7 +56,14 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
+import com.example.SupabaseClient
 import com.example.energynest.ui.theme.EnergyNestTheme
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 val PrimaryGreen = Color(0xFF10B981)
 val ErrorRed = Color(0xFFEF4444)
@@ -176,6 +184,9 @@ fun RegisterPage(
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
 
+    var isLoading by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
     var nameError by remember { mutableStateOf(false) }
     var icError by remember { mutableStateOf(false) }
     var emailError by remember { mutableStateOf(false) }
@@ -279,8 +290,45 @@ fun RegisterPage(
         }
 
         if (valid) {
-            registerMessage = "Registration successful!"
-            onRegisterSuccess()
+            coroutineScope.launch {
+                try {
+                    isLoading = true
+                    registerMessage = "Creating account..."
+                    
+                    val cleanEmail = email.trim()
+                    val cleanPassword = password.trim()
+
+                    // 1. Insert user details into public.User table directly
+                    val newUser = User(
+                        icNumber = icNumber,
+                        name = fullName,
+                        email = cleanEmail,
+                        phoneNumber = phoneNumber,
+                        houseNo = "", 
+                        street = street,
+                        zipCode = zipcode.toDoubleOrNull() ?: 0.0,
+                        city = city,
+                        state = state,
+                        password = cleanPassword,
+                        accountId = null, 
+                        accountStatus = "Active"
+                    )
+
+                    withContext(Dispatchers.IO) {
+                        SupabaseClient.client.from("User").insert(newUser)
+                    }
+
+                    // 2. Set the global session
+                    UserSession.user = newUser
+
+                    registerMessage = "Registration successful!"
+                    onRegisterSuccess()
+                } catch (e: Exception) {
+                    registerMessage = "Registration failed: ${e.message}"
+                } finally {
+                    isLoading = false
+                }
+            }
         } else {
             registerMessage = "Please fix the errors above."
         }
@@ -708,6 +756,7 @@ fun RegisterPage(
                     onClick = {
                         validateAndRegister()
                     },
+                    enabled = !isLoading,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = primaryGreen,
                         contentColor = Color.White
@@ -721,16 +770,24 @@ fun RegisterPage(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Register",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Icon(
-                            painter = painterResource(id = R.drawable.arrow_icon),
-                            contentDescription = null
-                        )
+                        if (isLoading) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "Register",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Icon(
+                                painter = painterResource(id = R.drawable.arrow_icon),
+                                contentDescription = null
+                            )
+                        }
                     }
                 }
 

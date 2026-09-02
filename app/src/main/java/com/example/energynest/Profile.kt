@@ -21,13 +21,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-data class UserProfile(
-    val name: String = "John Smith",
-    val email: String = "johnsmith@yahoo.com",
-    val phone: String = "+60 12 345 6789",
-    val address: String = "Kuala Lumpur, Malaysia"
-)
+import com.example.SupabaseClient
+import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun ProfileScreen(
@@ -37,9 +35,23 @@ fun ProfileScreen(
     onPaymentHistoryClick: () -> Unit = {},
     onLogOutClick: () -> Unit = {},
     onDeleteAccountClick: () -> Unit = {},
-    userProfile: UserProfile = UserProfile()
+    userProfile: User? = null
 ) {
     val context = LocalContext.current
+
+    val safeProfile = userProfile ?: User(
+        icNumber = "000000000000",
+        name = "Loading...",
+        email = "loading@example.com",
+        phoneNumber = "+60 00 000 0000",
+        houseNo = "",
+        street = "",
+        zipCode = 0.0,
+        city = "",
+        state = "",
+        accountId = "0000 0000 0000",
+        accountStatus = "Active"
+    )
 
     Column(
         modifier = Modifier
@@ -88,7 +100,7 @@ fun ProfileScreen(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            val initials = userProfile.name.trim().split(" ")
+            val initials = safeProfile.name.trim().split(" ")
                 .filter { it.isNotEmpty() }
                 .take(2)
                 .mapNotNull { it.firstOrNull()?.uppercase() }
@@ -118,7 +130,7 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = userProfile.name,
+                text = safeProfile.name,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
@@ -127,7 +139,7 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(2.dp))
 
             Text(
-                text = userProfile.email,
+                text = safeProfile.email,
                 fontSize = 13.sp,
                 color = Color.Gray
             )
@@ -161,7 +173,7 @@ fun ProfileScreen(
                         Text("Account Number", fontSize = 12.sp, color = Color.Gray)
                         Spacer(modifier = Modifier.height(2.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("9000 1234 5678", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                            Text(safeProfile.accountId ?: "N/A", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(Icons.Default.Lock, "Locked", tint = Color.Gray, modifier = Modifier.size(14.dp))
                         }
@@ -184,9 +196,9 @@ fun ProfileScreen(
                         Text("Account Status", fontSize = 12.sp, color = Color.Gray)
                         Spacer(modifier = Modifier.height(2.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF00B87C)))
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(if (safeProfile.accountStatus == "Active") Color(0xFF00B87C) else Color.Red))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Active", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00B87C))
+                            Text(safeProfile.accountStatus, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (safeProfile.accountStatus == "Active") Color(0xFF00B87C) else Color.Red)
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(Icons.Default.Lock, "Locked", tint = Color.Gray, modifier = Modifier.size(14.dp))
                         }
@@ -319,46 +331,86 @@ fun LogOutDialog(
 
 @Composable
 fun ProfileScreenWrapper(
+    userIc: String,
     onBackToHome: () -> Unit = {},
     onChangePasswordClick: () -> Unit = {},
     onPaymentHistoryClick: () -> Unit = {},
     onLogoutConfirm: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var showEditProfile by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showLogOutDialog by remember { mutableStateOf(false) }
-    var userProfile by remember {
-        mutableStateOf(
-            UserProfile(
-                name = "John Smith",
-                email = "johnsmith@yahoo.com",
-                phone = "+60 12 345 6789",
-                address = "Kuala Lumpur, Malaysia"
-            )
-        )
+    var userProfile by remember { mutableStateOf<User?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(userIc) {
+        if (userIc.isNotEmpty()) {
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    SupabaseClient.client.from("User")
+                        .select {
+                            filter { eq("ic_number", userIc) }
+                        }
+                        .decodeSingle<User>()
+                }
+                userProfile = result
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error loading profile: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                isLoading = false
+            }
+        } else {
+            isLoading = false
+        }
     }
 
-    if (showEditProfile) {
+    if (showEditProfile && userProfile != null) {
         EditProfileScreen(
-            initialProfile = userProfile,
+            initialProfile = userProfile!!,
             onSave = { updatedProfile ->
-                userProfile = updatedProfile
-                showEditProfile = false
+                coroutineScope.launch {
+                    try {
+                        withContext(Dispatchers.IO) {
+                            SupabaseClient.client.from("User")
+                                .update({
+                                    set("name", updatedProfile.name)
+                                    set("email", updatedProfile.email)
+                                    set("phone_number", updatedProfile.phoneNumber)
+                                    // Address updates are usually handled in Lega/Edit 
+                                    // but we can add them here if EditProfile allows
+                                    set("house_no", updatedProfile.houseNo)
+                                    set("street", updatedProfile.street)
+                                }) {
+                                    filter { eq("ic_number", userIc) }
+                                }
+                        }
+                        userProfile = updatedProfile
+                        showEditProfile = false
+                        Toast.makeText(context, "Profile updated successfully!", Toast.LENGTH_SHORT).show()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Update failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
             },
             onBack = { showEditProfile = false }
         )
     } else {
         Box(modifier = Modifier.fillMaxSize()) {
-            ProfileScreen(
-                onBack = onBackToHome,
-                onEditClick = { showEditProfile = true },
-                onChangePasswordClick = onChangePasswordClick,
-                onPaymentHistoryClick = onPaymentHistoryClick,
-                onLogOutClick = { showLogOutDialog = true },
-                onDeleteAccountClick = { showDeleteDialog = true },
-                userProfile = userProfile
-            )
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else {
+                ProfileScreen(
+                    onBack = onBackToHome,
+                    onEditClick = { showEditProfile = true },
+                    onChangePasswordClick = onChangePasswordClick,
+                    onPaymentHistoryClick = onPaymentHistoryClick,
+                    onLogOutClick = { showLogOutDialog = true },
+                    onDeleteAccountClick = { showDeleteDialog = true },
+                    userProfile = userProfile
+                )
+            }
 
             if (showDeleteDialog) {
                 DeleteAccountDialog(

@@ -1,5 +1,5 @@
 package com.example.energynest
-
+// only demo user here , need to change to actual user when login database connected
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,8 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.github.jan.supabase.createSupabaseClient
-import io.github.jan.supabase.postgrest.Postgrest
+import com.example.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.Dispatchers
@@ -30,14 +29,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-val supabase = createSupabaseClient(
-    supabaseUrl = "https://byrlgjgjzcwwdpnznuiq.supabase.co",
-    supabaseKey = "sb_publishable_FV9wvw0kv59rBrHec9BNxA_moyCubSv"
-) {
-    install(Postgrest)
-}
-
-private var cachedStats: HomeEnergyStats? = null
+private var cachedStats: HomeStats? = null
 
 private val Background = Color(0xFFF6F8F7)
 private val TextDark = Color(0xFF191C1E)
@@ -47,25 +39,13 @@ private val LightGreenBg = Color(0xFFD8F3E5)
 private val ProgressBg = Color(0xFFE5E7EB)
 private val BorderLight = Color(0xFFE2E8F0)
 
-@Serializable
-data class HomeEnergyStats(
-    @SerialName("id") val id: String? = null,
-    @SerialName("user_id") val userId: String = "demo_user",
-    @SerialName("date") val date: String? = null,
-    @SerialName("generated_kwh") val generatedKwh: Double = 0.0,
-    @SerialName("stored_energy_pct") val storedEnergyPct: Double = 0.0,
-    @SerialName("stored_energy_kwh") val storedEnergyKwh: Double = 0.0,
-    @SerialName("estimated_usage_mins") val estimatedUsageMins: Int = 0,
-    @SerialName("carbon_reduced_kg") val carbonReducedKg: Double = 0.0,
-    @SerialName("today_savings_myr") val todaySavingsMyr: Double = 0.0
-)
-
 @Composable
 fun HomeScreen(
+    userIc: String,
     onOpenDrawer: () -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
-    var stats by remember { mutableStateOf(cachedStats ?: HomeEnergyStats()) }
+    var stats by remember { mutableStateOf(cachedStats ?: HomeStats(icNumber = "demo", date = "", generatedKwh = 0.0, storedEnergyPct = 0.0, storedEnergyKwh = 0.0, estimatedUsageDuration = 0.0, co2Emission = 0.0, totalSavings = 0.0)) }
     var isLoading by remember { mutableStateOf(cachedStats == null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -80,12 +60,12 @@ fun HomeScreen(
             errorMessage = null
 
             val result = withContext(Dispatchers.IO) {
-                supabase.from("home_energy_stats")
+                SupabaseClient.client.from("Home")
                     .select {
-                        filter { eq("user_id", "demo_user") }
+                        filter { eq("ic_number", userIc) } 
                         order("date", order = Order.DESCENDING)
                     }
-                    .decodeList<HomeEnergyStats>()
+                    .decodeList<HomeStats>()
                     .firstOrNull()
             }
 
@@ -114,9 +94,10 @@ fun HomeScreen(
             CircularProgressIndicator(color = BrandGreenColour)
         }
     } else {
-        val durationFormatted = remember(stats.estimatedUsageMins) {
-            val hours = stats.estimatedUsageMins / 60
-            val mins = stats.estimatedUsageMins % 60
+        val durationFormatted = remember(stats.estimatedUsageDuration) {
+            val totalMins = stats.estimatedUsageDuration.toInt()
+            val hours = totalMins / 60
+            val mins = totalMins % 60
             when {
                 hours > 0 && mins > 0 -> "$hours hours and $mins minutes."
                 hours > 0 -> "$hours hours."
@@ -361,7 +342,7 @@ fun HomeScreen(
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = "${stats.carbonReducedKg.toInt()}kg",
+                                    text = "${stats.co2Emission.toInt()}kg",
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = TextDark
@@ -393,7 +374,7 @@ fun HomeScreen(
                                 color = TextGray
                             )
                             Text(
-                                text = "RM ${String.format("%.2f", stats.todaySavingsMyr)}",
+                                text = "RM ${String.format("%.2f", stats.totalSavings)}",
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextDark

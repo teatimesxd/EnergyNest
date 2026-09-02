@@ -28,8 +28,8 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun EditProfileScreen(
-    initialProfile: UserProfile = UserProfile(),
-    onSave: (UserProfile) -> Unit = {},
+    initialProfile: User = User(icNumber = "", name = "", email = "", phoneNumber = "", houseNo = "", street = "", zipCode = 0.0, city = "", state = ""),
+    onSave: (User) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -37,8 +37,8 @@ fun EditProfileScreen(
 
     var name by remember { mutableStateOf(initialProfile.name) }
     var email by remember { mutableStateOf(initialProfile.email) }
-    var phone by remember { mutableStateOf(initialProfile.phone) }
-    var address by remember { mutableStateOf(initialProfile.address) }
+    var phone by remember { mutableStateOf(initialProfile.phoneNumber) }
+    var address by remember { mutableStateOf("${initialProfile.houseNo}, ${initialProfile.street}") }
 
     var editingField by remember { mutableStateOf<String?>(null) }
 
@@ -218,7 +218,7 @@ fun EditProfileScreen(
                     phoneError = validatePhone(phone)
                     addressError = validateAddress(address)
                     if (!hasErrors()) {
-                        onSave(UserProfile(name, email, phone, address))
+                        onSave(initialProfile.copy(name = name, email = email, phoneNumber = phone))
                         Toast.makeText(context, "✅ Profile updated!", Toast.LENGTH_LONG).show()
                     }
                 },

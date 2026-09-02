@@ -35,6 +35,15 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
+import com.example.SupabaseClient
+import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.UUID
 
 private val Background = Color(0xFFF6F8F7)
 private val TextDark = Color(0xFF191C1E)
@@ -46,10 +55,12 @@ private val LightGreenBg = Color(0xFFD8F3E5)
 
 @Composable
 fun LegaEligibilityScreen(
+    userIc: String,
     onBack: () -> Unit = {},
     onCompleteAssessment: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     // Separated Address State
     var houseNo by remember { mutableStateOf("") }
@@ -92,27 +103,95 @@ fun LegaEligibilityScreen(
 
     // Handle Active Payment Page Display
     if (showPaymentPage) {
+        val onPaymentSuccessAction = {
+            coroutineScope.launch {
+                try {
+                    val now = Date()
+                    val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now)
+                    val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(now)
+
+                    // 1. Create Payment Record
+                    val payment = PaymentData(
+                        title = "LEGA Roof Assessment Deposit",
+                        referenceNo = UUID.randomUUID().toString(),
+                        method = selectedPaymentMethod,
+                        date = dateStr,
+                        time = timeStr,
+                        subtotal = 50.0,
+                        sst = 0.0,
+                        amount = 50.0,
+                        status = true
+                    )
+
+                    val paymentResult = withContext(Dispatchers.IO) {
+                        SupabaseClient.client.from("Payment")
+                            .insert(payment) { select() }
+                            .decodeSingle<PaymentData>()
+                    }
+
+                    // 2. Create Cream Record
+                    val cream = CreamData(
+                        paymentId = paymentResult.paymentId,
+                        isEligible = true,
+                        estimatedIncomeMin = 100.0,
+                        estimatedIncomeMax = 300.0,
+                        shadingLevel = "Low"
+                    )
+
+                    val creamResult = withContext(Dispatchers.IO) {
+                        SupabaseClient.client.from("Cream")
+                            .insert(cream) { select() }
+                            .decodeSingle<CreamData>()
+                    }
+
+                    // 3. Create Property Record
+                    val property = PropertyData(
+                        icNumber = userIc,
+                        creamId = creamResult.creamId!!,
+                        propertyType = propertyType,
+                        roofSpaceSqFt = 1200.0 
+                    )
+
+                    withContext(Dispatchers.IO) {
+                        SupabaseClient.client.from("Property")
+                            .insert(property)
+                    }
+
+                    // 4. Update User Address
+                    withContext(Dispatchers.IO) {
+                        SupabaseClient.client.from("User")
+                            .update({
+                                set("house_no", houseNo)
+                                set("street", street)
+                                set("zip_code", zipcode.toDoubleOrNull() ?: 0.0)
+                                set("city", city)
+                                set("state", state)
+                            }) {
+                                filter { eq("ic_number", userIc) }
+                            }
+                    }
+
+                    showPaymentPage = false
+                    isSubmitted = true
+                } catch (e: Exception) {
+                    // Handle error
+                }
+            }
+            Unit
+        }
+
         when (selectedPaymentMethod) {
             "Visa" -> VisaPaymentPage(
                 onBack = { showPaymentPage = false },
-                onPaymentSuccess = {
-                    showPaymentPage = false
-                    isSubmitted = true
-                }
+                onPaymentSuccess = onPaymentSuccessAction
             )
             "Mastercard" -> MastercardPaymentPage(
                 onBack = { showPaymentPage = false },
-                onPaymentSuccess = {
-                    showPaymentPage = false
-                    isSubmitted = true
-                }
+                onPaymentSuccess = onPaymentSuccessAction
             )
             "Touch 'n Go" -> TnGPaymentPage(
                 onBack = { showPaymentPage = false },
-                onPaymentSuccess = {
-                    showPaymentPage = false
-                    isSubmitted = true
-                }
+                onPaymentSuccess = onPaymentSuccessAction
             )
         }
         return
@@ -591,5 +670,5 @@ fun LegaEligibilityScreen(
 @Preview(showBackground = true)
 @Composable
 fun LegaEligibilityScreenPreview() {
-    LegaEligibilityScreen()
+    LegaEligibilityScreen(userIc = "123456789012")
 }

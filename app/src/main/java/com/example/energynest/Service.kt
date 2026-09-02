@@ -26,11 +26,19 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.SupabaseClient
+import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Date
 import java.util.Locale
+import java.util.UUID
+import java.text.SimpleDateFormat
 
 private val Background = Color(0xFFF6F8F7)
 private val TextDark = Color(0xFF191C1E)
@@ -56,10 +64,12 @@ private data class FAQData(
 
 @Composable
 fun ServicesScreen(
+    userIc: String,
     onOpenDrawer: () -> Unit = {},
     onOpenProfile: () -> Unit = {},
     onProfileClick: () -> Unit = onOpenProfile
 ) {
+    val coroutineScope = rememberCoroutineScope()
     var currentPage by remember {
         mutableStateOf(ServicePage.HOME)
     }
@@ -90,21 +100,27 @@ fun ServicesScreen(
             onBack = {
                 currentPage = ServicePage.HOME
             },
-            onOpenProfile = handleProfileClick
+            onOpenProfile = handleProfileClick,
+            coroutineScope = coroutineScope,
+            userIc = userIc
         )
 
         ServicePage.MAINTENANCE -> MaintenancePage(
             onBack = {
                 currentPage = ServicePage.HOME
             },
-            onOpenProfile = handleProfileClick
+            onOpenProfile = handleProfileClick,
+            coroutineScope = coroutineScope,
+            userIc = userIc
         )
 
         ServicePage.CLEANING -> CleaningPage(
             onBack = {
                 currentPage = ServicePage.HOME
             },
-            onOpenProfile = handleProfileClick
+            onOpenProfile = handleProfileClick,
+            coroutineScope = coroutineScope,
+            userIc = userIc
         )
 
         ServicePage.FAQ -> FAQPage(
@@ -1316,7 +1332,9 @@ private fun CustomerServicePage(
 @Composable
 private fun ConsultationPage(
     onBack: () -> Unit,
-    onOpenProfile: () -> Unit = {}
+    onOpenProfile: () -> Unit = {},
+    coroutineScope: kotlinx.coroutines.CoroutineScope,
+    userIc: String
 ) {
 
     var date by remember {
@@ -1402,8 +1420,39 @@ private fun ConsultationPage(
                     date.isNotEmpty() &&
                     time.isNotEmpty()
                 ) {
+                    coroutineScope.launch {
+                        try {
+                            // 1. Create Service Record
+                            val service = ServiceData(
+                                type = "Consultation",
+                                notes = "Energy consultation request",
+                                status = "Pending"
+                            )
 
-                    submitted = true
+                            val serviceResult = withContext(Dispatchers.IO) {
+                                SupabaseClient.client.from("Service")
+                                    .insert(service) { select() }
+                                    .decodeSingle<ServiceData>()
+                            }
+
+                            // 2. Create Booking Record
+                            val booking = BookingData(
+                                icNumber = userIc,
+                                serviceId = serviceResult.serviceId!!,
+                                date = date,
+                                time = time
+                            )
+
+                            withContext(Dispatchers.IO) {
+                                SupabaseClient.client.from("Booking")
+                                    .insert(booking)
+                            }
+
+                            submitted = true
+                        } catch (e: Exception) {
+                            // Handle error
+                        }
+                    }
                 }
             }
         )
@@ -1479,15 +1528,12 @@ private fun ConsultationPage(
 }
 
 
-// ================================================================
-// MAINTENANCE PAGE
-// Added RM 50.00 payment checkout.
-// ================================================================
-
 @Composable
 private fun MaintenancePage(
     onBack: () -> Unit,
-    onOpenProfile: () -> Unit = {}
+    onOpenProfile: () -> Unit = {},
+    coroutineScope: kotlinx.coroutines.CoroutineScope,
+    userIc: String
 ) {
 
     var date by remember {
@@ -1541,11 +1587,69 @@ private fun MaintenancePage(
         )
     )
 
-    // ------------------------------------------------------------
-    // PAYMENT CHECKOUT
-    // ------------------------------------------------------------
-
     if (showPaymentPage) {
+
+        val onPaymentSuccessAction = {
+            coroutineScope.launch {
+                try {
+                    val now = Date()
+                    val dateStrLocal = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now)
+                    val timeStrLocal = SimpleDateFormat("HH:mm:ss", Locale.US).format(now)
+
+                    // 1. Create Payment Record
+                    val payment = PaymentData(
+                        title = "Solar Maintenance Fee",
+                        referenceNo = UUID.randomUUID().toString(),
+                        method = selectedPaymentMethod,
+                        date = dateStrLocal,
+                        time = timeStrLocal,
+                        subtotal = 50.0,
+                        sst = 0.0,
+                        amount = 50.0,
+                        status = true
+                    )
+
+                    val paymentResult = withContext(Dispatchers.IO) {
+                        SupabaseClient.client.from("Payment")
+                            .insert(payment) { select() }
+                            .decodeSingle<PaymentData>()
+                    }
+
+                    // 2. Create Service Record
+                    val service = ServiceData(
+                        paymentId = paymentResult.paymentId,
+                        type = "Maintenance",
+                        notes = issue,
+                        status = "Confirmed"
+                    )
+
+                    val serviceResult = withContext(Dispatchers.IO) {
+                        SupabaseClient.client.from("Service")
+                            .insert(service) { select() }
+                            .decodeSingle<ServiceData>()
+                    }
+
+                    // 3. Create Booking Record
+                    val booking = BookingData(
+                        icNumber = userIc,
+                        serviceId = serviceResult.serviceId!!,
+                        date = date,
+                        time = time
+                    )
+
+                    withContext(Dispatchers.IO) {
+                        SupabaseClient.client.from("Booking")
+                            .insert(booking)
+                    }
+
+                    showPaymentPage = false
+                    submitted = true
+                } catch (e: Exception) {
+                    // Handle error
+                }
+            }
+            Unit
+        }
 
         when (selectedPaymentMethod) {
 
@@ -1553,30 +1657,21 @@ private fun MaintenancePage(
                 onBack = {
                     showPaymentPage = false
                 },
-                onPaymentSuccess = {
-                    showPaymentPage = false
-                    submitted = true
-                }
+                onPaymentSuccess = onPaymentSuccessAction
             )
 
             "Mastercard" -> MastercardPaymentPage(
                 onBack = {
                     showPaymentPage = false
                 },
-                onPaymentSuccess = {
-                    showPaymentPage = false
-                    submitted = true
-                }
+                onPaymentSuccess = onPaymentSuccessAction
             )
 
             "Touch 'n Go" -> TnGPaymentPage(
                 onBack = {
                     showPaymentPage = false
                 },
-                onPaymentSuccess = {
-                    showPaymentPage = false
-                    submitted = true
-                }
+                onPaymentSuccess = onPaymentSuccessAction
             )
         }
 
@@ -1653,10 +1748,6 @@ private fun MaintenancePage(
             )
         }
 
-        // --------------------------------------------------------
-        // MAINTENANCE FEE
-        // --------------------------------------------------------
-
         if (!submitted) {
 
             SectionTitle(
@@ -1725,10 +1816,6 @@ private fun MaintenancePage(
                     )
                 }
             }
-
-            // ----------------------------------------------------
-            // PAYMENT METHODS
-            // ----------------------------------------------------
 
             SectionTitle(
                 "Select payment method"
@@ -1838,10 +1925,6 @@ private fun MaintenancePage(
             }
         }
 
-        // --------------------------------------------------------
-        // CHECKOUT BUTTON
-        // --------------------------------------------------------
-
         SubmitButton(
             text =
                 if (submitted) {
@@ -1860,10 +1943,6 @@ private fun MaintenancePage(
                 }
             }
         )
-
-        // --------------------------------------------------------
-        // SUCCESS MESSAGE
-        // --------------------------------------------------------
 
         if (submitted) {
 
@@ -1918,10 +1997,6 @@ private fun MaintenancePage(
             }
         }
 
-        // --------------------------------------------------------
-        // DATE PICKER
-        // --------------------------------------------------------
-
         if (showDatePicker) {
 
             ServiceDatePickerDialog(
@@ -1965,10 +2040,6 @@ private fun MaintenancePage(
             )
         }
 
-        // --------------------------------------------------------
-        // TIME PICKER
-        // --------------------------------------------------------
-
         if (showTimePicker) {
 
             ServiceTimePickerDialog(
@@ -1988,15 +2059,12 @@ private fun MaintenancePage(
 }
 
 
-// ================================================================
-// CLEANING PAGE
-// Cleaning fee changed from RM 50.00 to RM 100.00
-// ================================================================
-
 @Composable
 private fun CleaningPage(
     onBack: () -> Unit,
-    onOpenProfile: () -> Unit = {}
+    onOpenProfile: () -> Unit = {},
+    coroutineScope: kotlinx.coroutines.CoroutineScope,
+    userIc: String
 ) {
 
     var address by remember {
@@ -2051,36 +2119,90 @@ private fun CleaningPage(
 
     if (showPaymentPage) {
 
+        val onPaymentSuccessAction = {
+            coroutineScope.launch {
+                try {
+                    val now = Date()
+                    val dateStrLocal = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now)
+                    val timeStrLocal = SimpleDateFormat("HH:mm:ss", Locale.US).format(now)
+
+                    // 1. Create Payment Record
+                    val payment = PaymentData(
+                        title = "Solar Cleaning Fee",
+                        referenceNo = UUID.randomUUID().toString(),
+                        method = selectedPaymentMethod,
+                        date = dateStrLocal,
+                        time = timeStrLocal,
+                        subtotal = 100.0,
+                        sst = 0.0,
+                        amount = 100.0,
+                        status = true
+                    )
+
+                    val paymentResult = withContext(Dispatchers.IO) {
+                        SupabaseClient.client.from("Payment")
+                            .insert(payment) { select() }
+                            .decodeSingle<PaymentData>()
+                    }
+
+                    // 2. Create Service Record
+                    val service = ServiceData(
+                        paymentId = paymentResult.paymentId,
+                        type = "Cleaning",
+                        notes = "Location: $address",
+                        location = address,
+                        status = "Confirmed"
+                    )
+
+                    val serviceResult = withContext(Dispatchers.IO) {
+                        SupabaseClient.client.from("Service")
+                            .insert(service) { select() }
+                            .decodeSingle<ServiceData>()
+                    }
+
+                    // 3. Create Booking Record
+                    val booking = BookingData(
+                        icNumber = userIc,
+                        serviceId = serviceResult.serviceId!!,
+                        date = date,
+                        time = time
+                    )
+
+                    withContext(Dispatchers.IO) {
+                        SupabaseClient.client.from("Booking")
+                            .insert(booking)
+                    }
+
+                    showPaymentPage = false
+                    submitted = true
+                } catch (e: Exception) {
+                    // Handle error
+                }
+            }
+            Unit
+        }
+
         when (selectedPaymentMethod) {
 
             "Visa" -> VisaPaymentPage(
                 onBack = {
                     showPaymentPage = false
                 },
-                onPaymentSuccess = {
-                    showPaymentPage = false
-                    submitted = true
-                }
+                onPaymentSuccess = onPaymentSuccessAction
             )
 
             "Mastercard" -> MastercardPaymentPage(
                 onBack = {
                     showPaymentPage = false
                 },
-                onPaymentSuccess = {
-                    showPaymentPage = false
-                    submitted = true
-                }
+                onPaymentSuccess = onPaymentSuccessAction
             )
 
             "Touch 'n Go" -> TnGPaymentPage(
                 onBack = {
                     showPaymentPage = false
                 },
-                onPaymentSuccess = {
-                    showPaymentPage = false
-                    submitted = true
-                }
+                onPaymentSuccess = onPaymentSuccessAction
             )
         }
 
@@ -2205,8 +2327,6 @@ private fun CleaningPage(
                         }
                     }
 
-                    // CHANGED: RM 50.00 -> RM 100.00
-
                     Text(
                         text = "RM 100.00",
                         fontSize = 18.sp,
@@ -2329,7 +2449,6 @@ private fun CleaningPage(
                 if (submitted) {
                     "BOOKING CONFIRMED"
                 } else {
-                    // CHANGED: RM 50.00 -> RM 100.00
                     "PROCEED TO PAYMENT (RM 100.00)"
                 },
             onClick = {
@@ -2386,7 +2505,6 @@ private fun CleaningPage(
                     )
 
                     Text(
-                        // CHANGED: RM 50.00 -> RM 100.00
                         text =
                             "Your RM 100.00 fee via $selectedPaymentMethod has been processed. Your appointment will be confirmed by support.",
                         fontSize = 12.sp,
@@ -2759,5 +2877,5 @@ private fun FAQItem(
 @Preview(showBackground = true)
 @Composable
 fun ServiceScreenPreview() {
-    ServicesScreen()
+    ServicesScreen(userIc = "123456789012")
 }

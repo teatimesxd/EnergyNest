@@ -22,11 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,7 +35,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.SupabaseClient
 import com.example.energynest.ui.theme.EnergyNestTheme
+import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 // Check Email Format
 fun isValidLoginEmail(email: String): Boolean {
@@ -53,10 +54,12 @@ fun LoginPage(
     onNavigateToRegister: () -> Unit = {},
     onNavigateToForgotPassword: () -> Unit = {}
 ) {
+    val coroutineScope = rememberCoroutineScope()
     var account by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var loginMessage by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
     var accountError by remember { mutableStateOf(false) }
     var accountErrorMessage by remember { mutableStateOf("") }
@@ -226,10 +229,42 @@ fun LoginPage(
 
                 // Login Successful
                 if (valid) {
-                    loginMessage = "Login successful!"
-                    onLoginSuccess()
+                    coroutineScope.launch {
+                        try {
+                            isLoading = true
+                            loginMessage = "Checking credentials..."
+                            
+                            val cleanEmail = account.trim()
+                            val cleanPassword = password.trim()
+
+                            // 1. Query the User table for a match
+                            val result = withContext(Dispatchers.IO) {
+                                SupabaseClient.client.from("User")
+                                    .select {
+                                        filter {
+                                            eq("email", cleanEmail)
+                                            eq("password", cleanPassword)
+                                        }
+                                    }
+                                    .decodeSingleOrNull<User>()
+                            }
+                            
+                            if (result != null) {
+                                UserSession.user = result
+                                loginMessage = "Login successful!"
+                                onLoginSuccess()
+                            } else {
+                                loginMessage = "Invalid email or password."
+                            }
+                        } catch (e: Exception) {
+                            loginMessage = "Login failed: ${e.message}"
+                        } finally {
+                            isLoading = false
+                        }
+                    }
                 }
             },
+            enabled = !isLoading,
             colors = ButtonDefaults.buttonColors(
                 containerColor = primaryGreen,
                 contentColor = Color.White
@@ -243,20 +278,28 @@ fun LoginPage(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Login",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+                if (isLoading) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = "Login",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
 
-                Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
 
-                Icon(
-                    painter = painterResource(id = R.drawable.arrow_icon),
-                    contentDescription = "Login",
-                    modifier = Modifier.size(24.dp),
-                    tint = Color.White
-                )
+                    Icon(
+                        painter = painterResource(id = R.drawable.arrow_icon),
+                        contentDescription = "Login",
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.White
+                    )
+                }
             }
         }
 

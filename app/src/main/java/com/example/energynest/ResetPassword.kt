@@ -23,8 +23,13 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.SupabaseClient
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.builtin.Email
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 
 @Composable
 fun ResetPasswordScreen(
@@ -338,10 +343,20 @@ fun ResetPasswordScreen(
                     if (validateAll()) {
                         isResetting = true
                         coroutineScope.launch {
-                            delay(1500)
-                            isResetting = false
-                            Toast.makeText(context, "✅ Password reset successful!", Toast.LENGTH_LONG).show()
-                            onResetSuccess()
+                            try {
+                                // Supabase Auth password update
+                                withContext(Dispatchers.IO) {
+                                    SupabaseClient.client.auth.updateUser {
+                                        this.password = newPassword
+                                    }
+                                }
+                                Toast.makeText(context, "✅ Password reset successful!", Toast.LENGTH_LONG).show()
+                                onResetSuccess()
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                            } finally {
+                                isResetting = false
+                            }
                         }
                     }
                 },

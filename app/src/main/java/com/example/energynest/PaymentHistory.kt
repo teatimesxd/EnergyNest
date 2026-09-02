@@ -47,11 +47,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -66,11 +62,49 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import com.example.SupabaseClient
+import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Columns
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+@Serializable
+data class SmartSellWithPayment(
+    @SerialName("smart_sell_id") val smartSellId: Int,
+    @SerialName("Payment") val payment: PaymentData
+)
+
+@Serializable
+data class BookingWithServiceAndPayment(
+    @SerialName("booking_id") val bookingId: Int,
+    @SerialName("Service") val service: ServiceWithPayment
+)
+
+@Serializable
+data class ServiceWithPayment(
+    @SerialName("service_id") val serviceId: Int,
+    @SerialName("Payment") val payment: PaymentData
+)
+
+@Serializable
+data class PropertyWithCreamAndPayment(
+    @SerialName("ic_number") val icNumber: String,
+    @SerialName("Cream") val cream: CreamWithPayment
+)
+
+@Serializable
+data class CreamWithPayment(
+    @SerialName("cream_id") val creamId: Int,
+    @SerialName("Payment") val payment: PaymentData
+)
 
 // Data Classes
 data class PaymentHistoryItem(
@@ -96,11 +130,62 @@ data class PaymentDetail(
 // Main Screen
 @Composable
 fun PaymentHistoryScreen(
+    userIc: String,
     onBack: () -> Unit = {}
 ) {
     var currentScreen by remember { mutableStateOf("list") }
     var selectedItemId by remember { mutableStateOf<Int?>(null) }
-    val historyItems = remember { generateDummyHistory() }
+    var historyItems by remember { mutableStateOf<List<PaymentHistoryItem>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(userIc) {
+        if (userIc.isEmpty()) {
+            isLoading = false
+            return@LaunchedEffect
+        }
+        try {
+            val items = withContext(Dispatchers.IO) {
+                // 1. Fetch from Smart_Sell (Credits & Sales)
+                val sellPayments = SupabaseClient.client.from("Smart_Sell")
+                    .select(Columns.raw("*, Payment(*)")) {
+                        filter { eq("ic_number", userIc) }
+                    }.decodeList<SmartSellWithPayment>()
+
+                // 2. Fetch from Booking (Maintenance/Cleaning/Consultation)
+                val bookingPayments = SupabaseClient.client.from("Booking")
+                    .select(Columns.raw("*, Service(*, Payment(*))")) {
+                        filter { eq("ic_number", userIc) }
+                    }.decodeList<BookingWithServiceAndPayment>()
+
+                // 3. Fetch from Property (CREAM Roof Assessment)
+                val propertyPayments = SupabaseClient.client.from("Property")
+                    .select(Columns.raw("*, Cream(*, Payment(*))")) {
+                        filter { eq("ic_number", userIc) }
+                    }.decodeList<PropertyWithCreamAndPayment>()
+                
+                val allMappedItems = mutableListOf<PaymentHistoryItem>()
+
+                sellPayments.forEach { allMappedItems.add(createHistoryItem(it.payment)) }
+                bookingPayments.forEach { allMappedItems.add(createHistoryItem(it.service.payment)) }
+                propertyPayments.forEach { allMappedItems.add(createHistoryItem(it.cream.payment)) }
+
+                // Sort by date descending
+                allMappedItems.sortedByDescending { it.date }
+            }
+            historyItems = items
+        } catch (e: Exception) {
+            // Error handling
+        } finally {
+            isLoading = false
+        }
+    }
+
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            androidx.compose.material3.CircularProgressIndicator(color = Color(0xFF10B981))
+        }
+        return
+    }
 
     when (currentScreen) {
         "list" -> PaymentHistoryListScreen(
@@ -123,6 +208,27 @@ fun PaymentHistoryScreen(
             }
         }
     }
+}
+
+// Helper to convert DB Payment to History Item
+private fun createHistoryItem(p: PaymentData): PaymentHistoryItem {
+    return PaymentHistoryItem(
+        id = p.paymentId ?: 0,
+        title = p.title,
+        amount = p.amount,
+        date = p.date,
+        isCredit = p.title.contains("Sell") || p.title.contains("Discharge") || p.title.contains("Earnings"),
+        details = PaymentDetail(
+            paymentTime = p.time,
+            referenceNumber = p.referenceNo,
+            mobileNumber = "", 
+            paymentMethod = p.method,
+            item = p.title,
+            subtotal = p.subtotal,
+            tax = p.sst,
+            total = p.amount
+        )
+    )
 }
 
 // List Screen
@@ -169,27 +275,37 @@ fun PaymentHistoryListScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    val grouped = items.groupBy {
-                        SimpleDateFormat("MMMM yyyy", Locale.US).format(
-                            SimpleDateFormat("dd/MM/yyyy", Locale.US).parse(it.date) ?: Date()
-                        )
+                if (items.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No payment records found.", color = textGray)
                     }
-                    grouped.forEach { (monthYear, groupItems) ->
-                        item {
-                            Text(
-                                text = monthYear,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = textGray,
-                                modifier = Modifier.padding(vertical = 4.dp)
-                            )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        val grouped = items.groupBy {
+                            try {
+                                SimpleDateFormat("MMMM yyyy", Locale.US).format(
+                                    SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(it.date) ?: Date()
+                                )
+                            } catch (e: Exception) {
+                                "Other"
+                            }
                         }
-                        items(groupItems) { item ->
-                            PaymentHistoryCard(item, onItemClick)
+                        grouped.forEach { (monthYear, groupItems) ->
+                            item {
+                                Text(
+                                    text = monthYear,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = textGray,
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                )
+                            }
+                            items(groupItems) { item ->
+                                PaymentHistoryCard(item, onItemClick)
+                            }
                         }
                     }
                 }
@@ -697,37 +813,13 @@ fun generateAndSavePdf(context: Context, item: PaymentHistoryItem) {
     }
 }
 
-// Dummy data generator
-fun generateDummyHistory(): List<PaymentHistoryItem> {
-    return listOf(
-        PaymentHistoryItem(1, "Deposit for CREAM Program Request", 50.0, "18/01/2026", false,
-            PaymentDetail("05-07-2025, 12:00PM", "NGA267389248DSAACV99", "012-8899-1456",
-                "E-WALLET", "Deposit for CREAM Program Request", 48.30, 1.70, 50.00)),
-        PaymentHistoryItem(2, "Maintenance Fees For Panel Solar", 100.0, "23/01/2026", false,
-            PaymentDetail("23-01-2026, 10:30AM", "MAINT202601231030", "012-8899-1456",
-                "VISA", "Maintenance Fees For Panel Solar", 100.00, 0.00, 100.00)),
-        PaymentHistoryItem(3, "Cleaning Fees For Panel Solar", 30.0, "31/01/2026", false,
-            PaymentDetail("31-01-2026, 09:15AM", "CLEAN202601310915", "012-8899-1456",
-                "MASTERCARD", "Cleaning Fees For Panel Solar", 30.00, 0.00, 30.00)),
-        PaymentHistoryItem(4, "Sell Electricity to TnB Malaysia", 500.0, "01/02/2026", true,
-            PaymentDetail("01-02-2026, 08:00AM", "SELL202602010800", "012-8899-1456",
-                "BANK TRANSFER", "Sell Electricity to TnB Malaysia", 500.00, 0.00, 500.00)),
-        PaymentHistoryItem(5, "Repair Fees For Panel Solar", 70.0, "21/02/2026", false,
-            PaymentDetail("21-02-2026, 11:45AM", "REPAIR202602211145", "012-8899-1456",
-                "TOUCH 'N GO", "Repair Fees For Panel Solar", 70.00, 0.00, 70.00)),
-        PaymentHistoryItem(6, "Maintenance Fees For Panel Solar", 100.0, "29/02/2026", false,
-            PaymentDetail("29-02-2026, 02:00PM", "MAINT202602291400", "012-8899-1456",
-                "E-WALLET", "Maintenance Fees For Panel Solar", 100.00, 0.00, 100.00))
-    )
-}
-
 // Preview
 @Preview(showBackground = true)
 @Composable
 fun PreviewPaymentHistoryScreen() {
     MaterialTheme {
         PaymentHistoryListScreen(
-            items = generateDummyHistory(),
+            items = emptyList(),
             onBack = {},
             onItemClick = {}
         )

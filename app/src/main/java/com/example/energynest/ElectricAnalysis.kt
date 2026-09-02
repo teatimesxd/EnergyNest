@@ -164,6 +164,7 @@ private fun formatPercent(pct: Double): String = String.format(Locale.US, "%.1f%
 
 @Composable
 fun ElectricAnalysisScreen(
+    userIc: String = "", // Added parameter to keep MainActivity signature consistent
     onOpenDrawer: () -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
@@ -646,6 +647,6 @@ private fun UsageProgressBar(fraction: Float) {
 @Composable
 private fun ElectricAnalysisScreenPreview() {
     MaterialTheme {
-        ElectricAnalysisScreen()
+        ElectricAnalysisScreen(userIc = "123456789012")
     }
 }
