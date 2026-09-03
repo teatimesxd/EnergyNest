@@ -307,7 +307,8 @@ fun LegaEligibilityScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Background),
+            .background(Background)
+            .imePadding(),
         contentPadding = PaddingValues(bottom = 32.dp)
     ) {
         // App Bar
