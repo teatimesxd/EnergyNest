@@ -11,11 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,12 +22,18 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.SupabaseClient
+import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.math.abs
 
@@ -53,70 +55,19 @@ enum class ConsumptionPeriod(val label: String) {
     MONTHLY("Monthly")
 }
 
-private data class MonthRecord(
-    val label: String,
-    val shortLabel: String,
-    val daysInMonth: Int,
-    val totalEnergyKwh: Double,
-    val usageBreakdown: List<Pair<String, Int>>
-)
-
-private const val COST_PER_KWH_RM = 0.39
-private const val CO2_PER_KWH_KG = 0.42
-
-private val dailyShapeKwh = listOf(28.0, 46.0, 37.0, 60.0, 51.0, 65.0, 55.0, 76.0, 62.0, 86.0)
-private val dailyShapeLabels = listOf("1", "4", "7", "10", "13", "16", "19", "22", "25", "28")
-private val weeklyShapeFraction = listOf(0.22, 0.25, 0.24, 0.29)
-private val weeklyLabels = listOf("Wk 1", "Wk 2", "Wk 3", "Wk 4")
-
-private val monthRecords = listOf(
-    MonthRecord(
-        label = "Aug 2026", shortLabel = "Aug", daysInMonth = 31, totalEnergyKwh = 1248.0,
-        usageBreakdown = listOf(
-            "Air Conditioning" to 42, "Lighting" to 21, "Equipment" to 19,
-            "Appliances" to 12, "Other" to 6
-        )
-    ),
-    MonthRecord(
-        label = "Jul 2026", shortLabel = "Jul", daysInMonth = 31, totalEnergyKwh = 1151.0,
-        usageBreakdown = listOf(
-            "Air Conditioning" to 39, "Lighting" to 23, "Equipment" to 20,
-            "Appliances" to 12, "Other" to 6
-        )
-    ),
-    MonthRecord(
-        label = "Jun 2026", shortLabel = "Jun", daysInMonth = 30, totalEnergyKwh = 1102.0,
-        usageBreakdown = listOf(
-            "Air Conditioning" to 37, "Lighting" to 24, "Equipment" to 21,
-            "Appliances" to 13, "Other" to 5
-        )
-    ),
-    MonthRecord(
-        label = "May 2026", shortLabel = "May", daysInMonth = 31, totalEnergyKwh = 986.0,
-        usageBreakdown = listOf(
-            "Air Conditioning" to 33, "Lighting" to 25, "Equipment" to 22,
-            "Appliances" to 14, "Other" to 6
-        )
-    ),
-    MonthRecord(
-        label = "Apr 2026", shortLabel = "Apr", daysInMonth = 30, totalEnergyKwh = 915.0,
-        usageBreakdown = listOf(
-            "Air Conditioning" to 30, "Lighting" to 26, "Equipment" to 23,
-            "Appliances" to 15, "Other" to 6
-        )
-    )
-)
-
 private data class ChartSeries(val values: List<Double>, val labels: List<String>)
 
 private data class MonthlyReport(
     val label: String,
-    val totalEnergyKwh: Double,
-    val totalEnergyChangePct: Double?,
-    val estimatedCostRM: Double,
-    val avgDailyKwh: Double,
-    val avgDailyChangePct: Double?,
-    val co2Kg: Double,
+    val totalGenerated: Double,
+    val totalGeneratedChangePct: Double?,
+    val carbonReduced: Double,
+    val carbonReducedChangePct: Double?,
+    val todaySavingsRM: Double,
+    val todaySavingsChangePct: Double?,
+    val averageDaily: Double,
+    val averageDailyChangePct: Double?,
+    val totalUsageKwh: Double, 
     val usageBreakdown: List<Pair<String, Int>>,
     val daily: ChartSeries,
     val weekly: ChartSeries,
@@ -128,49 +79,207 @@ private fun percentChange(current: Double, previous: Double?): Double? {
     return ((current - previous) / previous) * 100.0
 }
 
-private fun buildReport(index: Int): MonthlyReport {
-    val record = monthRecords[index]
-    val previous = monthRecords.getOrNull(index + 1)
+private fun buildReport(
+    record: ElectricUsage,
+    previous: ElectricUsage?,
+    allRecords: List<ElectricUsage>,
+    latestHomeHistory: List<HomeStats>
+): MonthlyReport {
+    val isLatest = allRecords.firstOrNull() == record
+    
+    val totalGen: Double
+    val carbon: Double
+    val savings: Double
+    val avgDaily: Double
 
-    val totalEnergy = record.totalEnergyKwh
-    val avgDaily = totalEnergy / record.daysInMonth
-    val previousAvgDaily = previous?.let { it.totalEnergyKwh / it.daysInMonth }
+    if (isLatest && latestHomeHistory.isNotEmpty()) {
+        totalGen = latestHomeHistory.sumOf { it.generatedKwh }
+        carbon = latestHomeHistory.sumOf { it.co2Emission }
+        savings = latestHomeHistory.sumOf { it.totalSavings }
+        avgDaily = totalGen / latestHomeHistory.size 
+    } else {
+        totalGen = record.totalEnergyKwh
+        carbon = record.co2Emission
+        savings = record.estimatedCost
+        avgDaily = record.averageDaily
+    }
 
-    val scale = totalEnergy / monthRecords.first().totalEnergyKwh
-    val dailyValues = dailyShapeKwh.map { it * scale }
-    val weeklyValues = weeklyShapeFraction.map { it * totalEnergy }
-    val trendSlice = monthRecords.subList(index, monthRecords.size).reversed()
+    val usageBreakdown = listOf(
+        "Air Conditioning" to (record.acPercent ?: 0),
+        "Lighting" to (record.lightingPercent ?: 0),
+        "Equipment" to (record.equipmentPercent ?: 0),
+        "Appliances" to (record.appliancePercent ?: 0),
+        "Other" to (record.otherPercent ?: 0)
+    )
+
+    // --- DAILY DATA ---
+    val dailyValues: List<Double>
+    val dailyLabels: List<String>
+    if (isLatest && latestHomeHistory.isNotEmpty()) {
+        val history = latestHomeHistory.take(10).reversed()
+        dailyValues = history.map { it.generatedKwh }
+        dailyLabels = history.map { it.date.split("-").last() } 
+    } else {
+        dailyValues = emptyList()
+        dailyLabels = emptyList()
+    }
+
+    // --- WEEKLY DATA ---
+    val weeklyValues: List<Double>
+    val weeklyLabels: List<String>
+    if (isLatest && latestHomeHistory.isNotEmpty()) {
+        val chunks = latestHomeHistory.chunked(7).take(4).reversed()
+        weeklyValues = chunks.map { week -> week.sumOf { it.generatedKwh } }
+        weeklyLabels = List(weeklyValues.size) { "Wk ${weeklyValues.size - it}" }.reversed()
+    } else {
+        weeklyValues = emptyList()
+        weeklyLabels = emptyList()
+    }
+
+    // --- MONTHLY DATA ---
+    val trendSlice = allRecords.take(5).reversed()
+    val monthlySeries = ChartSeries(
+        values = trendSlice.map { it.totalEnergyKwh },
+        labels = trendSlice.map { it.monthLabel }
+    )
 
     return MonthlyReport(
-        label = record.label,
-        totalEnergyKwh = totalEnergy,
-        totalEnergyChangePct = percentChange(totalEnergy, previous?.totalEnergyKwh),
-        estimatedCostRM = totalEnergy * COST_PER_KWH_RM,
-        avgDailyKwh = avgDaily,
-        avgDailyChangePct = percentChange(avgDaily, previousAvgDaily),
-        co2Kg = totalEnergy * CO2_PER_KWH_KG,
-        usageBreakdown = record.usageBreakdown,
-        daily = ChartSeries(dailyValues, dailyShapeLabels),
+        label = record.monthLabel,
+        totalGenerated = totalGen,
+        totalGeneratedChangePct = percentChange(totalGen, previous?.totalEnergyKwh),
+        carbonReduced = carbon,
+        carbonReducedChangePct = percentChange(carbon, previous?.co2Emission),
+        todaySavingsRM = savings,
+        todaySavingsChangePct = percentChange(savings, previous?.estimatedCost),
+        averageDaily = avgDaily,
+        averageDailyChangePct = percentChange(avgDaily, previous?.averageDaily),
+        totalUsageKwh = totalGen,
+        usageBreakdown = usageBreakdown,
+        daily = ChartSeries(dailyValues, dailyLabels),
         weekly = ChartSeries(weeklyValues, weeklyLabels),
-        monthly = ChartSeries(trendSlice.map { it.totalEnergyKwh }, trendSlice.map { it.shortLabel })
+        monthly = monthlySeries
     )
 }
 
-private fun formatEnergy(kwh: Double): String = String.format(Locale.US, "%,.0f kWh", kwh)
+private fun formatEnergy(kwh: Double): String = String.format(Locale.US, "%.1f kWh", kwh)
 private fun formatAvgDaily(kwh: Double): String = String.format(Locale.US, "%.1f kWh", kwh)
 private fun formatCost(rm: Double): String = "RM " + String.format(Locale.US, "%,.2f", rm)
-private fun formatCo2(kg: Double): String = String.format(Locale.US, "%,.0f kg", kg)
+private fun formatCo2(kg: Double): String = "${kg.toInt()} kg"
 private fun formatPercent(pct: Double): String = String.format(Locale.US, "%.1f%%", abs(pct))
 
 @Composable
 fun ElectricAnalysisScreen(
-    userIc: String = "", // Added parameter to keep MainActivity signature consistent
+    userIc: String = "",
     onOpenDrawer: () -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
-    var selectedMonthIndex by remember { mutableStateOf(0) }
+    var usageRecords by remember { mutableStateOf<List<ElectricUsage>>(emptyList()) }
+    var homeHistory by remember { mutableStateOf<List<HomeStats>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var selectedMonthIndex by remember { mutableIntStateOf(0) }
     var selectedPeriod by remember { mutableStateOf(ConsumptionPeriod.DAILY) }
-    val report = remember(selectedMonthIndex) { buildReport(selectedMonthIndex) }
+
+    val isPreview = LocalInspectionMode.current
+
+    LaunchedEffect(userIc) {
+        if (isPreview) {
+            usageRecords = listOf(
+                ElectricUsage(null, userIc, "Aug 2026", 1248.0, 486.0, 40.0, 524.0, 42, 21, 19, 12, 6),
+                ElectricUsage(null, userIc, "Jul 2026", 1151.0, 448.0, 37.0, 483.0, 40, 23, 20, 11, 6)
+            )
+            homeHistory = List(14) { i ->
+                HomeStats(i, userIc, "2026-08-${31-i}", 40.0 + i % 10, 85.0, 12.2, 450.0, 524.0, 486.0)
+            }
+            isLoading = false
+            return@LaunchedEffect
+        }
+
+        if (userIc.isEmpty()) {
+            isLoading = false
+            return@LaunchedEffect
+        }
+        try {
+            isLoading = true
+            val (uResults, hResults) = withContext(Dispatchers.IO) {
+                val u = SupabaseClient.client.from("Electric_usage")
+                    .select { filter { eq("ic_number", userIc) } }
+                    .decodeList<ElectricUsage>()
+                
+                val h = SupabaseClient.client.from("Home")
+                    .select {
+                        filter { eq("ic_number", userIc) }
+                        order("date", order = Order.DESCENDING)
+                        limit(31) 
+                    }.decodeList<HomeStats>()
+                
+                Pair(u, h)
+            }
+            usageRecords = uResults.sortedByDescending { it.usageId ?: 0 }
+            homeHistory = hResults
+        } catch (e: Exception) {
+            // Error handling
+        } finally {
+            isLoading = false
+        }
+    }
+
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize().background(BgColor), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = GreenPrimary)
+        }
+        return
+    }
+
+    if (usageRecords.isEmpty() && homeHistory.isEmpty()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White) 
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.battery_icon),
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = Color.LightGray.copy(alpha = 0.5f)
+            )
+            Spacer(Modifier.height(16.dp))
+            Text("No energy usage data found.", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
+            Text("Start generating energy to see your analysis here.", fontSize = 14.sp, color = TextSecondary, textAlign = TextAlign.Center)
+        }
+        return
+    }
+
+    // Always Prepend Live "Current" Snapshot for Comparison
+    val effectiveRecords = remember(usageRecords, homeHistory) {
+        if (homeHistory.isNotEmpty()) {
+            val totalGen = homeHistory.sumOf { it.generatedKwh }
+            val totalSavings = homeHistory.sumOf { it.totalSavings }
+            val avgDaily = totalGen / homeHistory.size
+            val totalCo2 = homeHistory.sumOf { it.co2Emission }
+            
+            val liveRecord = ElectricUsage(
+                icNumber = userIc,
+                monthLabel = "Current",
+                totalEnergyKwh = totalGen,
+                estimatedCost = totalSavings,
+                averageDaily = avgDaily,
+                co2Emission = totalCo2
+            )
+            // Combine: Live Snapshot + DB History
+            listOf(liveRecord) + usageRecords
+        } else {
+            usageRecords
+        }
+    }
+
+    val report = remember(selectedMonthIndex, effectiveRecords, homeHistory) {
+        val current = effectiveRecords.getOrNull(selectedMonthIndex) ?: effectiveRecords.first()
+        val previous = effectiveRecords.getOrNull(selectedMonthIndex + 1)
+        buildReport(current, previous, effectiveRecords, homeHistory)
+    }
 
     Column(
         modifier = Modifier
@@ -197,8 +306,8 @@ fun ElectricAnalysisScreen(
 
             Spacer(Modifier.height(16.dp))
             MonthSelector(
-                selectedLabel = monthRecords[selectedMonthIndex].label,
-                allLabels = monthRecords.map { it.label },
+                selectedLabel = effectiveRecords[selectedMonthIndex].monthLabel,
+                allLabels = effectiveRecords.map { it.monthLabel },
                 onSelect = { index -> selectedMonthIndex = index }
             )
 
@@ -339,29 +448,29 @@ private fun StatsGrid(report: MonthlyReport) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             StatCard(
                 modifier = Modifier.weight(1f),
-                label = "Total Energy",
-                value = formatEnergy(report.totalEnergyKwh),
-                changePct = report.totalEnergyChangePct
+                label = "Total Generated",
+                value = formatEnergy(report.totalGenerated),
+                changePct = report.totalGeneratedChangePct
             )
             StatCard(
                 modifier = Modifier.weight(1f),
-                label = "Estimated Cost",
-                value = formatCost(report.estimatedCostRM),
-                changePct = report.totalEnergyChangePct
+                label = "Today's Savings",
+                value = formatCost(report.todaySavingsRM),
+                changePct = report.todaySavingsChangePct
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             StatCard(
                 modifier = Modifier.weight(1f),
                 label = "Average Daily",
-                value = formatAvgDaily(report.avgDailyKwh),
-                changePct = report.avgDailyChangePct
+                value = formatAvgDaily(report.averageDaily),
+                changePct = report.averageDailyChangePct
             )
             StatCard(
                 modifier = Modifier.weight(1f),
-                label = "CO\u2082 Emissions",
-                value = formatCo2(report.co2Kg),
-                changePct = report.totalEnergyChangePct
+                label = "Carbon Reduced",
+                value = formatCo2(report.carbonReduced),
+                changePct = report.carbonReducedChangePct
             )
         }
     }
@@ -392,10 +501,10 @@ private fun StatCard(
         Spacer(Modifier.height(6.dp))
         if (changePct != null) {
             Text(
-                text = (if (changePct >= 0) "\u2191 " else "\u2193 ") + formatPercent(changePct),
+                text = (if (changePct >= 0) "↑ " else "↓ ") + formatPercent(changePct),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
-                color = GreenPrimary
+                color = if (changePct >= 0) GreenPrimary else Color.Red
             )
         } else {
             Text(
@@ -419,9 +528,10 @@ private fun EnergyConsumptionCard(
         ConsumptionPeriod.WEEKLY -> report.weekly
         ConsumptionPeriod.MONTHLY -> report.monthly
     }
+    
     val compareText = when (selectedPeriod) {
         ConsumptionPeriod.DAILY -> "vs last month"
-        ConsumptionPeriod.WEEKLY -> "vs last month"
+        ConsumptionPeriod.WEEKLY -> "vs last week"
         ConsumptionPeriod.MONTHLY -> "over ${series.values.size} months"
     }
 
@@ -453,18 +563,18 @@ private fun EnergyConsumptionCard(
 
         Spacer(Modifier.height(12.dp))
         Text(
-            text = formatEnergy(report.totalEnergyKwh),
+            text = formatEnergy(report.totalUsageKwh),
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = TextPrimary
         )
         Spacer(Modifier.height(4.dp))
-        if (report.totalEnergyChangePct != null) {
+        if (report.totalGeneratedChangePct != null) {
             Text(
-                text = (if (report.totalEnergyChangePct >= 0) "\u2191 " else "\u2193 ") +
-                        "${formatPercent(report.totalEnergyChangePct)} $compareText",
+                text = (if (report.totalGeneratedChangePct >= 0) "↑ " else "↓ ") +
+                        "${formatPercent(report.totalGeneratedChangePct)} $compareText",
                 fontSize = 13.sp,
-                color = GreenPrimary
+                color = if (report.totalGeneratedChangePct >= 0) GreenPrimary else Color.Red
             )
         } else {
             Text(text = "No prior data to compare", fontSize = 13.sp, color = TextSecondary)
@@ -519,6 +629,23 @@ private fun TabChip(text: String, selected: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun BarChart(values: List<Double>, labels: List<String>) {
+    if (values.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(160.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Data not available for this period.",
+                fontSize = 12.sp,
+                color = TextSecondary,
+                textAlign = TextAlign.Center
+            )
+        }
+        return
+    }
+
     val maxValue = (values.maxOrNull() ?: 1.0).coerceAtLeast(0.0001)
     val fractions = values.map { (it / maxValue).toFloat().coerceIn(0.05f, 1f) }
 
@@ -627,19 +754,21 @@ private fun UsageProgressBar(fraction: Float) {
             cornerRadius = cornerRadius
         )
 
-        val fillWidth = (size.width * fraction).coerceAtLeast(size.height)
-        val fillPath = Path().apply {
-            addRoundRect(
-                RoundRect(
-                    rect = Rect(Offset.Zero, Size(fillWidth, size.height)),
-                    topLeft = cornerRadius,
-                    bottomLeft = cornerRadius,
-                    topRight = CornerRadius.Zero,
-                    bottomRight = CornerRadius.Zero
+        if (fraction > 0f) {
+            val fillWidth = (size.width * fraction).coerceAtLeast(size.height)
+            val fillPath = Path().apply {
+                addRoundRect(
+                    RoundRect(
+                        rect = Rect(Offset.Zero, Size(fillWidth, size.height)),
+                        topLeft = cornerRadius,
+                        bottomLeft = cornerRadius,
+                        topRight = if (fraction >= 1f) cornerRadius else CornerRadius.Zero,
+                        bottomRight = if (fraction >= 1f) cornerRadius else CornerRadius.Zero
+                    )
                 )
-            )
+            }
+            drawPath(path = fillPath, color = GreenPrimary)
         }
-        drawPath(path = fillPath, color = GreenPrimary)
     }
 }
 
@@ -647,6 +776,6 @@ private fun UsageProgressBar(fraction: Float) {
 @Composable
 private fun ElectricAnalysisScreenPreview() {
     MaterialTheme {
-        ElectricAnalysisScreen(userIc = "123456789012")
+        ElectricAnalysisScreen()
     }
 }

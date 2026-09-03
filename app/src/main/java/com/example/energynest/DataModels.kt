@@ -63,7 +63,12 @@ data class ElectricUsage(
     @SerialName("total_energy_kwh") val totalEnergyKwh: Double,
     @SerialName("estimated_cost") val estimatedCost: Double,
     @SerialName("average_daily") val averageDaily: Double,
-    @SerialName("co2_emission") val co2Emission: Double
+    @SerialName("co2_emission") val co2Emission: Double,
+    @SerialName("ac_percent") val acPercent: Int? = 0,
+    @SerialName("lighting_percent") val lightingPercent: Int? = 0,
+    @SerialName("equipment_percent") val equipmentPercent: Int? = 0,
+    @SerialName("appliance_percent") val appliancePercent: Int? = 0,
+    @SerialName("other_percent") val otherPercent: Int? = 0
 )
 
 /**
