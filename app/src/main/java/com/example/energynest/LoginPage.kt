@@ -71,13 +71,34 @@ fun LoginPage(
     }
 
     LaunchedEffect(Unit) {
+
         val isLoggedIn = sharedPreferences.getBoolean(
             "is_logged_in",
             false
         )
 
-        if (isLoggedIn) {
-            onLoginSuccess()
+        val savedIc = sharedPreferences.getString(
+            "user_ic",
+            ""
+        ) ?: ""
+
+        if (isLoggedIn && savedIc.isNotEmpty()) {
+            try {
+                val savedUser = withContext(Dispatchers.IO) {
+                    SupabaseClient.client.from("User").select {
+                            filter {
+                                eq("ic_number", savedIc)
+                            }
+                        }.decodeSingleOrNull<User>()
+                }
+
+                if (savedUser != null) {
+                    UserSession.user = savedUser
+                    onLoginSuccess()
+                }
+
+            } catch (e: Exception) {
+            }
         }
     }
 
@@ -283,15 +304,10 @@ fun LoginPage(
 
                             if (result != null) {
 
-                                // Save current user session
+                                // Save current user temporarily while app is running
                                 UserSession.user = result
 
-                                // Save login state into SharedPreferences
-                                val sharedPreferences = context.getSharedPreferences(
-                                    "EnergyNestPrefs",
-                                    android.content.Context.MODE_PRIVATE
-                                )
-
+                                // Save login information permanently
                                 sharedPreferences.edit()
                                     .putBoolean("is_logged_in", true)
                                     .putString("user_ic", result.icNumber)
@@ -300,7 +316,9 @@ fun LoginPage(
                                 loginMessage = "Login successful!"
                                 isLoginError = false
 
+                                // Navigate to Home Page
                                 onLoginSuccess()
+
                             } else {
                                 loginMessage = "Invalid email or password."
                                 isLoginError = true

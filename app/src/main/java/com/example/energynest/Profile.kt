@@ -1,5 +1,6 @@
 package com.example.energynest
 
+import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -313,7 +314,7 @@ fun LogOutDialog(
             Column {
                 Text("Are you sure want to log out?", fontSize = 15.sp, color = Color.Black)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("You will need to login in again to access your account.", fontSize = 13.sp, color = Color.Gray)
+                Text("You will need to login again to access your account.", fontSize = 13.sp, color = Color.Gray)
             }
         },
         confirmButton = {
@@ -340,30 +341,68 @@ fun ProfileScreenWrapper(
     onLogoutConfirm: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val sharedPreferences = context.getSharedPreferences(
+        "EnergyNestPrefs",
+        Context.MODE_PRIVATE
+    )
+    val currentIc = when {
+        userIc.isNotEmpty() -> userIc
+
+        UserSession.user?.icNumber?.isNotEmpty() == true ->
+            UserSession.user!!.icNumber
+
+        else ->
+            sharedPreferences.getString("USER_IC", "") ?: ""
+    }
     val coroutineScope = rememberCoroutineScope()
     var showEditProfile by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showLogOutDialog by remember { mutableStateOf(false) }
-    var userProfile by remember { mutableStateOf<User?>(null) }
+    var userProfile by remember { mutableStateOf<User?>(UserSession.user) }
     var isLoading by remember { mutableStateOf(true) }
 
-    LaunchedEffect(userIc) {
-        if (userIc.isNotEmpty()) {
+    LaunchedEffect(currentIc) {
+
+        if (currentIc.isNotEmpty()) {
+
             try {
+
                 val result = withContext(Dispatchers.IO) {
-                    SupabaseClient.client.from("User")
+
+                    SupabaseClient.client
+                        .from("User")
                         .select {
-                            filter { eq("ic_number", userIc) }
+                            filter {
+                                eq("ic_number", currentIc)
+                            }
                         }
                         .decodeSingleOrNull<User>()
                 }
-                userProfile = result
+
+                if (result != null) {
+
+                    // Restore user after app restart
+                    UserSession.user = result
+
+                    // Display user profile
+                    userProfile = result
+                }
+
             } catch (e: Exception) {
-                Toast.makeText(context, "Error loading profile: \${e.message}", Toast.LENGTH_SHORT).show()
+
+                Toast.makeText(
+                    context,
+                    "Error loading profile: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+
             } finally {
+
                 isLoading = false
             }
+
         } else {
+
             isLoading = false
         }
     }
@@ -383,10 +422,11 @@ fun ProfileScreenWrapper(
                                     set("house_no", updatedProfile.houseNo)
                                     set("street", updatedProfile.street)
                                 }) {
-                                    filter { eq("ic_number", userIc) }
+                                    filter { eq("ic_number", currentIc) }
                                 }
                         }
                         userProfile = updatedProfile
+                        UserSession.user = updatedProfile
                         showEditProfile = false
                         Toast.makeText(context, "Profile updated successfully!", Toast.LENGTH_SHORT).show()
                     } catch (e: Exception) {
@@ -425,14 +465,16 @@ fun ProfileScreenWrapper(
                                     tables.forEach { tableName ->
                                         try {
                                             SupabaseClient.client.from(tableName).delete {
-                                                filter { eq("ic_number", userIc) }
+                                                filter { eq("ic_number", currentIc) }
                                             }
                                         } catch (e: Exception) {}
                                     }
 
                                     // 2. Delete the User record itself
                                     SupabaseClient.client.from("User").delete {
-                                        filter { eq("ic_number", userIc) }
+                                        filter {
+                                            eq("ic_number", currentIc)
+                                        }
                                     }
                                 }
 
@@ -452,8 +494,11 @@ fun ProfileScreenWrapper(
 
             if (showLogOutDialog) {
                 LogOutDialog(
-                    onDismiss = { showLogOutDialog = false },
+                    onDismiss = {
+                        showLogOutDialog = false
+                    },
                     onConfirm = {
+                        sharedPreferences.edit().clear().apply()
                         UserSession.user = null
                         showLogOutDialog = false
                         onLogoutConfirm()

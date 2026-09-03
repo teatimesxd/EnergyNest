@@ -63,23 +63,23 @@ fun HelpNSupportPage(
     // FAQ List
     val faqList = listOf(
         FaqItem(
-            question = "How can I pay my electricity bill?",
+            question = "How can I pay my electricity bill ?",
             answer = "You can pay your electricity bill through EnergyNest by selecting your bill and choosing a payment method such as Visa, Mastercard, or Touch 'n Go eWallet."
         ),
         FaqItem(
-            question = "How do I link my TNB account?",
-            answer = "Go to your account section and select Link with TNB Account. Enter your TNB account number and follow the instructions to connect your account."
+            question = "How do I update my profile ?",
+            answer = "Go to Settings and select Profile. You can view and update your personal information."
         ),
         FaqItem(
-            question = "How can I reset my password?",
+            question = "How can I reset my password ?",
             answer = "On the login page, press Forgot Password. Enter your registered email address and follow the instructions sent to your email."
         ),
         FaqItem(
-            question = "Why is my payment still processing?",
+            question = "Why is my payment still processing ?",
             answer = "Some payments may take a few minutes to be processed. Please check your payment status again later. If your payment remains pending for a long time, please contact EnergyNest Support."
         ),
         FaqItem(
-            question = "How do I contact EnergyNest Support?",
+            question = "How do I contact EnergyNest Support ?",
             answer = "You can contact us by email or phone. Press Email Support to send us an email or Call Us to contact our support team directly."
         )
     )
