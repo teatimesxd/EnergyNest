@@ -41,6 +41,11 @@ import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.imePadding
 
 // Check Email Format
 fun isValidLoginEmail(email: String): Boolean {
@@ -55,6 +60,27 @@ fun LoginPage(
     onNavigateToForgotPassword: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val scrollState = rememberScrollState()
+
+    val sharedPreferences = remember {
+        context.getSharedPreferences(
+            "EnergyNestPrefs",
+            Context.MODE_PRIVATE
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        val isLoggedIn = sharedPreferences.getBoolean(
+            "is_logged_in",
+            false
+        )
+
+        if (isLoggedIn) {
+            onLoginSuccess()
+        }
+    }
+
     var account by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -76,6 +102,8 @@ fun LoginPage(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
+            .verticalScroll(scrollState)
             .background(Color(0xFFE2E8F0))
             .padding(20.dp)
             .background(
@@ -237,7 +265,7 @@ fun LoginPage(
                         try {
                             isLoading = true
                             loginMessage = "Checking credentials..."
-                            
+
                             val cleanEmail = account.trim()
                             val cleanPassword = password.trim()
 
@@ -254,9 +282,24 @@ fun LoginPage(
                             }
 
                             if (result != null) {
+
+                                // Save current user session
                                 UserSession.user = result
+
+                                // Save login state into SharedPreferences
+                                val sharedPreferences = context.getSharedPreferences(
+                                    "EnergyNestPrefs",
+                                    android.content.Context.MODE_PRIVATE
+                                )
+
+                                sharedPreferences.edit()
+                                    .putBoolean("is_logged_in", true)
+                                    .putString("user_ic", result.icNumber)
+                                    .apply()
+
                                 loginMessage = "Login successful!"
                                 isLoginError = false
+
                                 onLoginSuccess()
                             } else {
                                 loginMessage = "Invalid email or password."

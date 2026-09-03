@@ -58,8 +58,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.example.SupabaseClient
 import com.example.energynest.ui.theme.EnergyNestTheme
-import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.auth.providers.builtin.Email
+import androidx.compose.foundation.layout.imePadding
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -352,6 +351,8 @@ fun RegisterPage(
                         Color.White,
                         shape = RoundedCornerShape(24.dp)
                     )
+                    .verticalScroll(rememberScrollState())
+                    .imePadding()
                     .padding(horizontal = 28.dp, vertical = 36.dp)
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(14.dp),

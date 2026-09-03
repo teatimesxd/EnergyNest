@@ -28,6 +28,9 @@ import com.example.energynest.UserSession
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.imePadding
 
 // <-- adjust column name if your table doesn't call it "password"
 @Serializable
@@ -42,6 +45,7 @@ fun ChangePasswordScreen(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
 
     var oldPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
@@ -190,6 +194,8 @@ fun ChangePasswordScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding()
+                .verticalScroll(scrollState)
                 .padding(
                     horizontal = 24.dp,
                     vertical = 32.dp

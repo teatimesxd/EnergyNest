@@ -32,6 +32,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 private val Background = Color(0xFFF6F8F7)
 private val TextDark = Color(0xFF191C1E)
@@ -113,7 +115,8 @@ fun SmartSellScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Background),
+            .background(Background)
+            .imePadding(),
         contentPadding = PaddingValues(bottom = 24.dp)
     ) {
         // ---- Top App Bar ----
@@ -509,9 +512,12 @@ fun SmartSellScreen(
             sheetState = rememberModalBottomSheetState(),
             containerColor = White
         ) {
+            val scrollState = rememberScrollState()
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .verticalScroll(scrollState)
+                    .imePadding()
                     .padding(horizontal = 24.dp)
                     .padding(bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp)

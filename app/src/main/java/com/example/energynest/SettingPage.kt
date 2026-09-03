@@ -38,6 +38,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
 import com.example.energynest.ui.theme.EnergyNestTheme
 
 @Composable
@@ -51,6 +53,12 @@ fun SettingPage(
     onLogoutConfirmed: () -> Unit = {}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    val sharedPreferences = context.getSharedPreferences(
+        "EnergyNestPrefs",
+        Context.MODE_PRIVATE
+    )
 
     val userProfile = UserSession.user
     val userName = userProfile?.name ?: "Loading..."
@@ -291,7 +299,13 @@ fun SettingPage(
                 confirmButton = {
                     TextButton(
                         onClick = {
+                            sharedPreferences.edit().clear().apply()
+
+                            // Clear current user session
+                            UserSession.user = null
                             showLogoutDialog = false
+
+                            // Navigate back to Login Page
                             onLogoutConfirmed()
                         }
                     ) {
