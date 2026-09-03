@@ -59,6 +59,7 @@ import androidx.core.content.ContextCompat
 import com.example.SupabaseClient
 import com.example.energynest.ui.theme.EnergyNestTheme
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.saveable.rememberSaveable
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
@@ -787,14 +788,20 @@ fun RegisterPage(
                     onClick = {
                         validateAndRegister()
                     },
-                    enabled = !isLoading,
+
+                    enabled = privacyAccepted && !isLoading,
+
                     colors = ButtonDefaults.buttonColors(
                         containerColor = primaryGreen,
-                        contentColor = Color.White
+                        disabledContainerColor = Color(0xFFBDBDBD),
+                        contentColor = Color.White,
+                        disabledContentColor = Color(0xFFE0E0E0)
                     ),
+
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
+
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
@@ -802,7 +809,7 @@ fun RegisterPage(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         if (isLoading) {
-                            androidx.compose.material3.CircularProgressIndicator(
+                            CircularProgressIndicator(
                                 modifier = Modifier.size(24.dp),
                                 color = Color.White,
                                 strokeWidth = 2.dp
@@ -813,7 +820,9 @@ fun RegisterPage(
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
+
                             Spacer(Modifier.width(8.dp))
+
                             Icon(
                                 painter = painterResource(id = R.drawable.arrow_icon),
                                 contentDescription = null
