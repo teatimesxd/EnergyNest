@@ -272,6 +272,11 @@ fun RegisterPage(
             valid = false
         }
 
+        if (zipcode.length != 5) {
+            zipcodeError = true
+            valid = false
+        }
+
         if (city.isBlank()) {
             cityError = true
             valid = false
@@ -540,7 +545,7 @@ fun RegisterPage(
                     OutlinedTextField(
                         value = zipcode,
                         onValueChange = {
-                            zipcode = it.filter { char -> char.isDigit() }
+                            zipcode = it.filter { char -> char.isDigit() }.take(5)
                             zipcodeError = false
                         },
                         label = { Text("Zipcode") },
