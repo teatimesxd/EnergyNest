@@ -6,7 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import android.os.Build
@@ -19,17 +21,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -38,15 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,37 +60,39 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+// --- Explicit Join Models (Aliases match query) ---
+
 @Serializable
 data class SmartSellWithPayment(
     @SerialName("smart_sell_id") val smartSellId: Int,
-    @SerialName("Payment") val payment: PaymentData
+    @SerialName("payment") val payment: PaymentData? = null
 )
 
 @Serializable
 data class BookingWithServiceAndPayment(
     @SerialName("booking_id") val bookingId: Int,
-    @SerialName("Service") val service: ServiceWithPayment
+    @SerialName("service") val service: ServiceWithPayment? = null
 )
 
 @Serializable
 data class ServiceWithPayment(
     @SerialName("service_id") val serviceId: Int,
-    @SerialName("Payment") val payment: PaymentData
+    @SerialName("payment") val payment: PaymentData? = null
 )
 
 @Serializable
 data class PropertyWithCreamAndPayment(
     @SerialName("ic_number") val icNumber: String,
-    @SerialName("Cream") val cream: CreamWithPayment
+    @SerialName("cream") val cream: CreamWithPayment? = null
 )
 
 @Serializable
 data class CreamWithPayment(
     @SerialName("cream_id") val creamId: Int,
-    @SerialName("Payment") val payment: PaymentData
+    @SerialName("payment") val payment: PaymentData? = null
 )
 
-// Data Classes
+// UI Data Classes
 data class PaymentHistoryItem(
     val id: Int,
     val title: String,
@@ -127,12 +113,12 @@ data class PaymentDetail(
     val total: Double
 )
 
-// Main Screen
 @Composable
 fun PaymentHistoryScreen(
     userIc: String,
     onBack: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     var currentScreen by remember { mutableStateOf("list") }
     var selectedItemId by remember { mutableStateOf<Int?>(null) }
     var historyItems by remember { mutableStateOf<List<PaymentHistoryItem>>(emptyList()) }
@@ -145,36 +131,44 @@ fun PaymentHistoryScreen(
         }
         try {
             val items = withContext(Dispatchers.IO) {
-                // 1. Fetch from Smart_Sell (Credits & Sales)
+                // 1. Fetch from Smart_Sell (Using alias "payment")
                 val sellPayments = SupabaseClient.client.from("Smart_Sell")
-                    .select(Columns.raw("*, Payment(*)")) {
+                    .select(Columns.raw("*, payment:Payment(*)")) {
                         filter { eq("ic_number", userIc) }
                     }.decodeList<SmartSellWithPayment>()
 
-                // 2. Fetch from Booking (Maintenance/Cleaning/Consultation)
+                // 2. Fetch from Booking (Nested aliases "service" and "payment")
                 val bookingPayments = SupabaseClient.client.from("Booking")
-                    .select(Columns.raw("*, Service(*, Payment(*))")) {
+                    .select(Columns.raw("*, service:Service(*, payment:Payment(*))")) {
                         filter { eq("ic_number", userIc) }
                     }.decodeList<BookingWithServiceAndPayment>()
 
-                // 3. Fetch from Property (CREAM Roof Assessment)
+                // 3. Fetch from Property (Nested aliases "cream" and "payment")
                 val propertyPayments = SupabaseClient.client.from("Property")
-                    .select(Columns.raw("*, Cream(*, Payment(*))")) {
+                    .select(Columns.raw("*, cream:Cream(*, payment:Payment(*))")) {
                         filter { eq("ic_number", userIc) }
                     }.decodeList<PropertyWithCreamAndPayment>()
                 
                 val allMappedItems = mutableListOf<PaymentHistoryItem>()
 
-                sellPayments.forEach { allMappedItems.add(createHistoryItem(it.payment)) }
-                bookingPayments.forEach { allMappedItems.add(createHistoryItem(it.service.payment)) }
-                propertyPayments.forEach { allMappedItems.add(createHistoryItem(it.cream.payment)) }
+                sellPayments.forEach { item ->
+                    item.payment?.let { allMappedItems.add(createHistoryItem(it)) }
+                }
+                bookingPayments.forEach { item ->
+                    item.service?.payment?.let { allMappedItems.add(createHistoryItem(it)) }
+                }
+                propertyPayments.forEach { item ->
+                    item.cream?.payment?.let { allMappedItems.add(createHistoryItem(it)) }
+                }
 
                 // Sort by date descending
                 allMappedItems.sortedByDescending { it.date }
             }
             historyItems = items
         } catch (e: Exception) {
-            // Error handling
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Database Error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         } finally {
             isLoading = false
         }
@@ -182,7 +176,7 @@ fun PaymentHistoryScreen(
 
     if (isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            androidx.compose.material3.CircularProgressIndicator(color = Color(0xFF10B981))
+            CircularProgressIndicator(color = Color(0xFF10B981))
         }
         return
     }
@@ -210,14 +204,12 @@ fun PaymentHistoryScreen(
     }
 }
 
-// Helper to convert DB Payment to History Item
 private fun createHistoryItem(p: PaymentData): PaymentHistoryItem {
     return PaymentHistoryItem(
         id = p.paymentId ?: 0,
         title = p.title,
         amount = p.amount,
         date = p.date,
-        // Transaction is a credit if it involves selling to grid or discharging
         isCredit = p.title.contains("Sell", ignoreCase = true) || 
                    p.title.contains("Discharge", ignoreCase = true) || 
                    p.title.contains("Earnings", ignoreCase = true) ||
@@ -235,7 +227,6 @@ private fun createHistoryItem(p: PaymentData): PaymentHistoryItem {
     )
 }
 
-// List Screen
 @Composable
 fun PaymentHistoryListScreen(
     items: List<PaymentHistoryItem>,
@@ -262,10 +253,7 @@ fun PaymentHistoryListScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Color.White,
-                        shape = RoundedCornerShape(24.dp)
-                    )
+                    .background(Color.White, shape = RoundedCornerShape(24.dp))
                     .padding(horizontal = 20.dp, vertical = 24.dp)
             ) {
                 Spacer(modifier = Modifier.height(35.dp))
@@ -316,26 +304,15 @@ fun PaymentHistoryListScreen(
             }
         }
 
-        // Floating Back Button
         IconButton(
             onClick = onBack,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(start = 8.dp, top = 24.dp)
                 .size(46.dp)
-                .shadow(
-                    elevation = 4.dp,
-                    shape = CircleShape
-                )
-                .background(
-                    color = Color.White,
-                    shape = CircleShape
-                )
-                .border(
-                    width = 1.dp,
-                    color = Color(0xFFE2E8F0),
-                    shape = CircleShape
-                )
+                .shadow(elevation = 4.dp, shape = CircleShape)
+                .background(color = Color.White, shape = CircleShape)
+                .border(width = 1.dp, color = Color(0xFFE2E8F0), shape = CircleShape)
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.back_arrow),
@@ -412,20 +389,14 @@ fun PaymentHistoryCard(
     }
 }
 
-// Detail Screen
 @Composable
 fun PaymentHistoryDetailScreen(
     item: PaymentHistoryItem,
     onBack: () -> Unit
 ) {
     val isPreview = LocalInspectionMode.current
-
     if (isPreview) {
-        PaymentHistoryDetailContent(
-            item = item,
-            onBack = onBack,
-            onDownloadClick = { /* dummy */ }
-        )
+        PaymentHistoryDetailContent(item = item, onBack = onBack, onDownloadClick = {})
         return
     }
 
@@ -445,11 +416,7 @@ fun PaymentHistoryDetailScreen(
         onBack = onBack,
         onDownloadClick = {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-                if (ContextCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                     permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 } else {
                     generateAndSavePdf(context, item)
@@ -461,7 +428,6 @@ fun PaymentHistoryDetailScreen(
     )
 }
 
-// Detail content
 @Composable
 fun PaymentHistoryDetailContent(
     item: PaymentHistoryItem,
@@ -489,10 +455,7 @@ fun PaymentHistoryDetailContent(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Color.White,
-                        shape = RoundedCornerShape(24.dp)
-                    )
+                    .background(Color.White, shape = RoundedCornerShape(24.dp))
                     .padding(horizontal = 24.dp, vertical = 28.dp)
             ) {
                 Spacer(modifier = Modifier.height(35.dp))
@@ -542,88 +505,44 @@ fun PaymentHistoryDetailContent(
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = dividerColor)
 
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 10.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Amount",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textDark
-                    )
-                    Text(
-                        text = "RM ${String.format("%.2f", detail.total)}",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = primaryGreen
-                    )
+                    Text("Amount", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = textDark)
+                    Text("RM ${String.format("%.2f", detail.total)}", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryGreen)
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
 
                 Button(
                     onClick = onDownloadClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = primaryGreen,
-                        disabledContainerColor = Color.Gray
-                    ),
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryGreen, disabledContainerColor = Color.Gray),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.FileDownload,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = Color.White
-                    )
+                    Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Download Receipt",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    Text("Download Receipt", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
         }
 
-        // Floating Back Button
         IconButton(
             onClick = onBack,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(start = 8.dp, top = 24.dp)
                 .size(46.dp)
-                .shadow(
-                    elevation = 4.dp,
-                    shape = CircleShape
-                )
-                .background(
-                    color = Color.White,
-                    shape = CircleShape
-                )
-                .border(
-                    width = 1.dp,
-                    color = Color(0xFFE2E8F0),
-                    shape = CircleShape
-                )
+                .shadow(elevation = 4.dp, shape = CircleShape)
+                .background(color = Color.White, shape = CircleShape)
+                .border(width = 1.dp, color = Color(0xFFE2E8F0), shape = CircleShape)
         ) {
-            Icon(
-                painter = painterResource(id = R.drawable.back_arrow),
-                contentDescription = "Back",
-                tint = primaryGreen,
-                modifier = Modifier.size(22.dp)
-            )
+            Icon(painter = painterResource(id = R.drawable.back_arrow), contentDescription = "Back", tint = primaryGreen, modifier = Modifier.size(22.dp))
         }
     }
 }
 
-// Helper
 @Composable
 fun DetailRow(label: String, value: String) {
     val textDark = Color(0xFF1E293B)
@@ -632,22 +551,11 @@ fun DetailRow(label: String, value: String) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = label,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = textDark
-        )
-        Text(
-            text = value,
-            fontSize = 14.sp,
-            color = textDark,
-            textAlign = TextAlign.End
-        )
+        Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = textDark)
+        Text(text = value, fontSize = 14.sp, color = textDark, textAlign = TextAlign.End)
     }
 }
 
-// PDF Generation
 fun generateAndSavePdf(context: Context, item: PaymentHistoryItem) {
     var pdfDocument: PdfDocument? = null
     try {
@@ -660,44 +568,25 @@ fun generateAndSavePdf(context: Context, item: PaymentHistoryItem) {
         var logoBitmap: Bitmap? = null
         try {
             val drawable = ContextCompat.getDrawable(context, R.drawable.energynest_icon_1)
-            if (drawable is android.graphics.drawable.BitmapDrawable) {
+            if (drawable is BitmapDrawable) {
                 logoBitmap = drawable.bitmap
             } else if (drawable != null) {
                 val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 120
                 val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 120
                 logoBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                val canvas2 = android.graphics.Canvas(logoBitmap)
+                val canvas2 = Canvas(logoBitmap)
                 drawable.setBounds(0, 0, width, height)
                 drawable.draw(canvas2)
             }
         } catch (_: Exception) { }
 
-        val titlePaint = Paint().apply {
-            color = android.graphics.Color.BLACK
-            textSize = 24f
-            isFakeBoldText = true
-            textAlign = Paint.Align.CENTER
-        }
-        val headerPaint = Paint().apply {
-            color = android.graphics.Color.BLACK
-            textSize = 16f
-            isFakeBoldText = true
-        }
-        val valuePaint = Paint().apply {
-            color = android.graphics.Color.BLACK
-            textSize = 14f
-            textAlign = Paint.Align.RIGHT
-        }
-        val totalPaint = Paint().apply {
-            color = android.graphics.Color.parseColor("#10B981")
-            textSize = 20f
-            isFakeBoldText = true
-            textAlign = Paint.Align.RIGHT
-        }
+        val titlePaint = Paint().apply { color = android.graphics.Color.BLACK; textSize = 24f; isFakeBoldText = true; textAlign = Paint.Align.CENTER }
+        val headerPaint = Paint().apply { color = android.graphics.Color.BLACK; textSize = 16f; isFakeBoldText = true }
+        val valuePaint = Paint().apply { color = android.graphics.Color.BLACK; textSize = 14f; textAlign = Paint.Align.RIGHT }
+        val totalPaint = Paint().apply { color = android.graphics.Color.parseColor("#10B981"); textSize = 20f; isFakeBoldText = true; textAlign = Paint.Align.RIGHT }
         val linePaint = Paint().apply { color = android.graphics.Color.LTGRAY; strokeWidth = 1f }
 
         var y = 80
-
         if (logoBitmap != null) {
             val scaledLogo = Bitmap.createScaledBitmap(logoBitmap, 120, 120, true)
             val x = (pageInfo.pageWidth - scaledLogo.width) / 2f
@@ -708,19 +597,11 @@ fun generateAndSavePdf(context: Context, item: PaymentHistoryItem) {
             y += 40
         }
 
-        canvas.drawText("Payment Receipt", pageInfo.pageWidth / 2f, y.toFloat(), Paint().apply {
-            color = android.graphics.Color.GRAY
-            textSize = 14f
-            textAlign = Paint.Align.CENTER
-        })
+        canvas.drawText("Payment Receipt", pageInfo.pageWidth / 2f, y.toFloat(), Paint().apply { color = android.graphics.Color.GRAY; textSize = 14f; textAlign = Paint.Align.CENTER })
         y += 40
         canvas.drawLine(50f, y.toFloat(), pageInfo.pageWidth - 50f, y.toFloat(), linePaint)
         y += 30
-        canvas.drawText("✓ Payment Successful", 50f, y.toFloat(), Paint().apply {
-            color = android.graphics.Color.parseColor("#10B981")
-            textSize = 16f
-            isFakeBoldText = true
-        })
+        canvas.drawText("✓ Payment Successful", 50f, y.toFloat(), Paint().apply { color = android.graphics.Color.parseColor("#10B981"); textSize = 16f; isFakeBoldText = true })
         y += 40
 
         fun drawRow(label: String, value: String) {
@@ -739,93 +620,44 @@ fun generateAndSavePdf(context: Context, item: PaymentHistoryItem) {
         drawRow("Subtotal (Before Tax)", "RM ${String.format("%.2f", detail.subtotal)}")
         drawRow("SST 6%", "RM ${String.format("%.2f", detail.tax)}")
 
-        canvas.drawText("Amount", 50f, y.toFloat(), Paint().apply {
-            color = android.graphics.Color.BLACK
-            textSize = 16f
-            isFakeBoldText = true
-        })
+        canvas.drawText("Amount", 50f, y.toFloat(), Paint().apply { color = android.graphics.Color.BLACK; textSize = 16f; isFakeBoldText = true })
         canvas.drawText("RM ${String.format("%.2f", detail.total)}", pageInfo.pageWidth - 50f, y.toFloat(), totalPaint)
         y += 40
-        canvas.drawText("Thank you for your payment", pageInfo.pageWidth / 2f, y.toFloat(), Paint().apply {
-            color = android.graphics.Color.GRAY
-            textSize = 12f
-            textAlign = Paint.Align.CENTER
-        })
+        canvas.drawText("Thank you for your payment", pageInfo.pageWidth / 2f, y.toFloat(), Paint().apply { color = android.graphics.Color.GRAY; textSize = 12f; textAlign = Paint.Align.CENTER })
 
         pdfDocument.finishPage(page)
-
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         val fileName = "Receipt_${detail.referenceNumber}_$timestamp.pdf"
         var fileUri: Uri? = null
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val contentValues = ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
-                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-            }
+            val contentValues = ContentValues().apply { put(MediaStore.MediaColumns.DISPLAY_NAME, fileName); put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf"); put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS) }
             val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-            uri?.let {
-                context.contentResolver.openOutputStream(it)?.use { outputStream ->
-                    pdfDocument.writeTo(outputStream)
-                }
-                fileUri = it
-                Toast.makeText(context, "Receipt saved to Downloads", Toast.LENGTH_SHORT).show()
-            } ?: run {
-                Toast.makeText(context, "Failed to save receipt", Toast.LENGTH_SHORT).show()
-            }
+            uri?.let { context.contentResolver.openOutputStream(it)?.use { outputStream -> pdfDocument.writeTo(outputStream) }; fileUri = it; Toast.makeText(context, "Receipt saved to Downloads", Toast.LENGTH_SHORT).show() }
         } else {
             val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             if (downloadsDir != null && downloadsDir.exists()) {
                 val file = File(downloadsDir, fileName)
-                FileOutputStream(file).use { outputStream ->
-                    pdfDocument.writeTo(outputStream)
-                }
-                fileUri = try {
-                    FileProvider.getUriForFile(
-                        context,
-                        "${context.packageName}.fileprovider",
-                        file
-                    )
-                } catch (e: Exception) {
-                    Uri.fromFile(file)
-                }
+                FileOutputStream(file).use { outputStream -> pdfDocument.writeTo(outputStream) }
+                fileUri = try { FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file) } catch (e: Exception) { Uri.fromFile(file) }
                 Toast.makeText(context, "Receipt saved to Downloads", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(context, "Downloads folder not available", Toast.LENGTH_SHORT).show()
             }
         }
 
         fileUri?.let { uri ->
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, "application/pdf")
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
+            val intent = Intent(Intent.ACTION_VIEW).apply { setDataAndType(uri, "application/pdf"); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }
             val chooser = Intent.createChooser(intent, "Open PDF with")
-            if (intent.resolveActivity(context.packageManager) != null) {
-                context.startActivity(chooser)
-            } else {
-                Toast.makeText(context, "No PDF viewer app found", Toast.LENGTH_SHORT).show()
-            }
+            if (intent.resolveActivity(context.packageManager) != null) { context.startActivity(chooser) }
         }
-
     } catch (e: Exception) {
-        e.printStackTrace()
         Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
     } finally {
         pdfDocument?.close()
     }
 }
 
-// Preview
 @Preview(showBackground = true)
 @Composable
 fun PreviewPaymentHistoryScreen() {
-    MaterialTheme {
-        PaymentHistoryListScreen(
-            items = emptyList(),
-            onBack = {},
-            onItemClick = {}
-        )
-    }
+    MaterialTheme { PaymentHistoryListScreen(items = emptyList(), onBack = {}, onItemClick = {}) }
 }

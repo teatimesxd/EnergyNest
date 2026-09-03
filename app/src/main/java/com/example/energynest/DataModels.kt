@@ -47,9 +47,9 @@ data class SmartSellData(
     @SerialName("ic_number") val icNumber: String,
     @SerialName("payment_id") val paymentId: Int? = null,
     @SerialName("accumulated_credit") val accumulatedCredit: Double,
-    @SerialName("amountkwh") val amountKwh: Double, 
+    @SerialName("amountkwh") val amountKwh: Double, // SQL is amountkwh
     @SerialName("estimated_bill_credit") val estimatedBillCredit: Double,
-    @SerialName("auto_Sell_Enabled") val autoSellEnabled: Boolean? = false 
+    @SerialName("auto_Sell_Enabled") val autoSellEnabled: Boolean? = false // SQL is auto_Sell_Enabled
 )
 
 /**
@@ -90,10 +90,10 @@ data class PaymentData(
 data class CreamData(
     @SerialName("cream_id") val creamId: Int? = null,
     @SerialName("payment_id") val paymentId: Int? = null,
-    @SerialName("iseligible") val isEligible: Boolean, 
+    @SerialName("iseligible") val isEligible: Boolean, // SQL is iseligible
     @SerialName("estimated_income_min") val estimatedIncomeMin: Double,
     @SerialName("estimated_income_max") val estimatedIncomeMax: Double,
-    @SerialName("shading_level") val shadingLevel: String 
+    @SerialName("shading_level") val shadingLevel: String // SQL is shading_level
 )
 
 /**
@@ -104,7 +104,7 @@ data class PropertyData(
     @SerialName("ic_number") val icNumber: String,
     @SerialName("cream_id") val creamId: Int,
     @SerialName("property_type") val propertyType: String,
-    @SerialName("roofspacesqft") val roofSpaceSqFt: Double 
+    @SerialName("roofspacesqft") val roofSpaceSqFt: Double // SQL is roofspacesqft
 )
 
 /**
