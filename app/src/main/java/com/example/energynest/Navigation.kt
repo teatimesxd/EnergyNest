@@ -22,6 +22,7 @@ sealed class Screen(val route: String) {
     object LegaEligibility : Screen("lega_eligibility")
     object PaymentHistory : Screen("payment_history")
     object ResetPassword : Screen("reset_password")
+    object HelpSupport : Screen("help_support")
 }
 
 /**

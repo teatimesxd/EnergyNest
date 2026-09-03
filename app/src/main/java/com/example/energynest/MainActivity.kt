@@ -262,7 +262,14 @@ class MainActivity : ComponentActivity() {
 
                             composable(Screen.Feedback.route) {
                                 FeedbackPage(
+                                    userIc = userIc,
                                     onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            composable(Screen.HelpSupport.route) {
+                                HelpNSupportPage(
+                                    onBack = { navController.popBackStack() }
                                 )
                             }
 

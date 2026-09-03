@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -38,7 +39,6 @@ fun ProfileScreen(
     userProfile: User? = null
 ) {
     val context = LocalContext.current
-    var showLogoutDialog by remember { mutableStateOf(false) }
 
     val safeProfile = userProfile ?: User(
         icNumber = "000000000000",
@@ -50,7 +50,8 @@ fun ProfileScreen(
         zipCode = 0.0,
         city = "",
         state = "",
-        accountId = "0000 0000 0000",
+        password = "",
+        accountId = null,
         accountStatus = "Active"
     )
 
@@ -229,7 +230,7 @@ fun ProfileScreen(
 
 @Composable
 fun ProfileItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     title: String,
     iconColor: Color = Color(0xFF4CAF50),
     textColor: Color = Color.Black,
@@ -307,58 +308,24 @@ fun LogOutDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-
-        title = {
-            Text(
-                text = "Log Out",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFFFF5722)
-            )
-        },
-
+        title = { Text("Log Out", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF5722)) },
         text = {
             Column {
-                Text(
-                    text = "Are you sure want to log out?",
-                    fontSize = 15.sp,
-                    color = Color.Black
-                )
-
+                Text("Are you sure want to log out?", fontSize = 15.sp, color = Color.Black)
                 Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "You will need to login in again to access your account.",
-                    fontSize = 13.sp,
-                    color = Color.Gray
-                )
+                Text("You will need to login in again to access your account.", fontSize = 13.sp, color = Color.Gray)
             }
         },
-
         confirmButton = {
-            TextButton(
-                onClick = onConfirm
-            ) {
-                Text(
-                    text = "Log out",
-                    color = Color(0xFFFF5722),
-                    fontWeight = FontWeight.Bold
-                )
+            TextButton(onClick = onConfirm) {
+                Text("Log out", fontWeight = FontWeight.Bold, color = Color(0xFFFF5722))
             }
         },
-
         dismissButton = {
-            TextButton(
-                onClick = onDismiss
-            ) {
-                Text(
-                    text = "Cancel",
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF4CAF50)
-                )
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", fontWeight = FontWeight.Medium, color = Color(0xFF4CAF50))
             }
         },
-
         shape = RoundedCornerShape(16.dp),
         containerColor = Color.White
     )
@@ -388,11 +355,11 @@ fun ProfileScreenWrapper(
                         .select {
                             filter { eq("ic_number", userIc) }
                         }
-                        .decodeSingle<User>()
+                        .decodeSingleOrNull<User>()
                 }
                 userProfile = result
             } catch (e: Exception) {
-                Toast.makeText(context, "Error loading profile: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Error loading profile: \${e.message}", Toast.LENGTH_SHORT).show()
             } finally {
                 isLoading = false
             }
@@ -413,8 +380,6 @@ fun ProfileScreenWrapper(
                                     set("name", updatedProfile.name)
                                     set("email", updatedProfile.email)
                                     set("phone_number", updatedProfile.phoneNumber)
-                                    // Address updates are usually handled in Lega/Edit
-                                    // but we can add them here if EditProfile allows
                                     set("house_no", updatedProfile.houseNo)
                                     set("street", updatedProfile.street)
                                 }) {
@@ -425,7 +390,7 @@ fun ProfileScreenWrapper(
                         showEditProfile = false
                         Toast.makeText(context, "Profile updated successfully!", Toast.LENGTH_SHORT).show()
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Update failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Update failed: \${e.message}", Toast.LENGTH_SHORT).show()
                     }
                 }
             },
@@ -451,25 +416,44 @@ fun ProfileScreenWrapper(
                 DeleteAccountDialog(
                     onDismiss = { showDeleteDialog = false },
                     onConfirm = {
-                        showDeleteDialog = false
-                        Toast.makeText(context, "Account deleted", Toast.LENGTH_SHORT).show()
+                        coroutineScope.launch {
+                            try {
+                                isLoading = true
+                                withContext(Dispatchers.IO) {
+                                    // 1. Delete all related data first
+                                    val tables = listOf("Booking", "Property", "Home", "Electric_usage", "Smart_Sell", "Feedback")
+                                    tables.forEach { tableName ->
+                                        try {
+                                            SupabaseClient.client.from(tableName).delete {
+                                                filter { eq("ic_number", userIc) }
+                                            }
+                                        } catch (e: Exception) {}
+                                    }
+
+                                    // 2. Delete the User record itself
+                                    SupabaseClient.client.from("User").delete {
+                                        filter { eq("ic_number", userIc) }
+                                    }
+                                }
+
+                                UserSession.user = null
+                                showDeleteDialog = false
+                                onLogoutConfirm()
+                                Toast.makeText(context, "Account successfully deleted", Toast.LENGTH_LONG).show()
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Delete failed: \${e.message}", Toast.LENGTH_SHORT).show()
+                            } finally {
+                                isLoading = false
+                            }
+                        }
                     }
                 )
             }
 
             if (showLogOutDialog) {
                 LogOutDialog(
-                    onDismiss = {
-                        showLogOutDialog = false
-                    },
-
+                    onDismiss = { showLogOutDialog = false },
                     onConfirm = {
-                        val sharedPreferences = context.getSharedPreferences(
-                            "EnergyNestPrefs",
-                            android.content.Context.MODE_PRIVATE
-                        )
-
-                        sharedPreferences.edit().clear().apply()
                         UserSession.user = null
                         showLogOutDialog = false
                         onLogoutConfirm()

@@ -256,7 +256,7 @@ fun HomeScreen(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Text(
-                                    text = "${(stats.storedEnergyPct * 100).toInt()}%",
+                                    text = "${stats.storedEnergyPct.toInt()}%",
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = TextDark
@@ -270,7 +270,7 @@ fun HomeScreen(
                         }
 
                         LinearProgressIndicator(
-                            progress = { stats.storedEnergyPct.toFloat() },
+                            progress = { (stats.storedEnergyPct / 100f).toFloat() },
                             modifier = Modifier
                                 .width(100.dp)
                                 .height(8.dp)

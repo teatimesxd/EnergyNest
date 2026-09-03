@@ -2,8 +2,10 @@ package com.example.energynest
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -69,12 +71,14 @@ fun LegaEligibilityScreen(
     var city by remember { mutableStateOf("") }
     var state by remember { mutableStateOf("") }
     var propertyType by remember { mutableStateOf("Terrace") }
+    var roofSpace by remember { mutableStateOf("") }
     var showMapPicker by remember { mutableStateOf(false) }
 
     // Payment & Submission State
     var selectedPaymentMethod by remember { mutableStateOf("Touch 'n Go") }
     var showPaymentPage by remember { mutableStateOf(false) }
     var isSubmitted by remember { mutableStateOf(false) }
+    var isSavingToDb by remember { mutableStateOf(false) }
 
     // Location Permission Launcher
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -105,11 +109,82 @@ fun LegaEligibilityScreen(
         PaymentMethodType("Mastercard", painterResource(id = R.drawable.mastercard), Color(0xFFE65100))
     )
 
-    // Handle Active Payment Page Display
+    if (isSubmitted) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Background)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = White),
+                border = BorderStroke(1.dp, BrandGreen.copy(alpha = 0.5f))
+            ) {
+                Column(
+                    modifier = Modifier.padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.CheckCircle,
+                        contentDescription = null,
+                        tint = BrandGreen,
+                        modifier = Modifier.size(64.dp)
+                    )
+                    
+                    Text(
+                        text = "Assessment Submitted!",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark,
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Text(
+                        text = "Your RM 50.00 deposit via $selectedPaymentMethod has been processed successfully. Please wait 1-3 working days for the evaluation result.",
+                        fontSize = 15.sp,
+                        color = TextGray,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 22.sp
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            Button(
+                onClick = onCompleteAssessment,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = BrandGreen)
+            ) {
+                Text(
+                    text = "Return to Home",
+                    color = White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        return
+    }
+
     if (showPaymentPage) {
         val onPaymentSuccessAction = {
             coroutineScope.launch {
                 try {
+                    if (userIc.isBlank()) {
+                        Toast.makeText(context, "Error: User IC is missing. Please log in again.", Toast.LENGTH_LONG).show()
+                        return@launch
+                    }
+
+                    isSavingToDb = true
                     val now = Date()
                     val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now)
                     val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(now)
@@ -148,17 +223,17 @@ fun LegaEligibilityScreen(
                             .decodeSingle<CreamData>()
                     }
 
-                    // 3. Create Property Record
+                    // 3. Upsert Property Record
                     val property = PropertyData(
                         icNumber = userIc,
                         creamId = creamResult.creamId!!,
                         propertyType = propertyType,
-                        roofSpaceSqFt = 1200.0 
+                        roofSpaceSqFt = roofSpace.toDoubleOrNull() ?: 0.0
                     )
 
                     withContext(Dispatchers.IO) {
                         SupabaseClient.client.from("Property")
-                            .insert(property)
+                            .upsert(property)
                     }
 
                     // 4. Update User Address
@@ -177,8 +252,14 @@ fun LegaEligibilityScreen(
 
                     showPaymentPage = false
                     isSubmitted = true
+                    
                 } catch (e: Exception) {
-                    // Handle error
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Database Error: ${e.message}", Toast.LENGTH_LONG).show()
+                        showPaymentPage = false 
+                    }
+                } finally {
+                    isSavingToDb = false
                 }
             }
             Unit
@@ -186,17 +267,23 @@ fun LegaEligibilityScreen(
 
         when (selectedPaymentMethod) {
             "Visa" -> VisaPaymentPage(
-                onBack = { showPaymentPage = false },
+                onBack = { if (!isSavingToDb) showPaymentPage = false },
                 onPaymentSuccess = onPaymentSuccessAction
             )
             "Mastercard" -> MastercardPaymentPage(
-                onBack = { showPaymentPage = false },
+                onBack = { if (!isSavingToDb) showPaymentPage = false },
                 onPaymentSuccess = onPaymentSuccessAction
             )
             "Touch 'n Go" -> TnGPaymentPage(
-                onBack = { showPaymentPage = false },
+                onBack = { if (!isSavingToDb) showPaymentPage = false },
                 onPaymentSuccess = onPaymentSuccessAction
             )
+        }
+
+        if (isSavingToDb) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = BrandGreen)
+            }
         }
         return
     }
@@ -455,6 +542,20 @@ fun LegaEligibilityScreen(
                             }
                         }
                     }
+
+                    // Roof Space SqFt
+                    OutlinedTextField(
+                        value = roofSpace,
+                        onValueChange = { roofSpace = it.filter { char -> char.isDigit() || char == '.' } },
+                        label = { Text("Estimated Roof Space (SqFt)") },
+                        placeholder = { Text("Example: 1200") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = !isSubmitted,
+                        singleLine = true,
+                        colors = greenTextFieldColors
+                    )
                 }
 
                 // Map Picker Dialog
@@ -466,6 +567,7 @@ fun LegaEligibilityScreen(
                         Surface(modifier = Modifier.fillMaxSize()) {
                             MapPicker(
                                 onAddressSelected = { addressResult ->
+                                    houseNo = addressResult.houseNumber
                                     street = addressResult.street
                                     zipcode = addressResult.zipcode
                                     city = addressResult.city
@@ -492,7 +594,7 @@ fun LegaEligibilityScreen(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(containerColor = White),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, BorderLight)
+                            border = BorderStroke(1.dp, BorderLight)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -604,45 +706,8 @@ fun LegaEligibilityScreen(
                     }
                 }
 
-                // --- SUBMISSION CONFIRMATION CARD ---
-                if (isSubmitted) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = White),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, BrandGreen)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.CheckCircle,
-                                contentDescription = null,
-                                tint = BrandGreen,
-                                modifier = Modifier.size(44.dp)
-                            )
-                            Text(
-                                text = "Deposit Paid & Assessment Submitted!",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextDark,
-                                textAlign = TextAlign.Center
-                            )
-                            Text(
-                                text = "Your RM 50.00 deposit via $selectedPaymentMethod has been processed. Please wait 1-3 working days for the evaluation result.",
-                                fontSize = 13.sp,
-                                color = TextGray,
-                                textAlign = TextAlign.Center,
-                                lineHeight = 18.sp
-                            )
-                        }
-                    }
-                }
-
                 // Action Button
-                val isFormValid = houseNo.isNotBlank() && street.isNotBlank() && zipcode.isNotBlank() && city.isNotBlank() && state.isNotBlank() && propertyType.isNotBlank()
+                val isFormValid = houseNo.isNotBlank() && street.isNotBlank() && zipcode.isNotBlank() && city.isNotBlank() && state.isNotBlank() && propertyType.isNotBlank() && roofSpace.isNotBlank()
 
                 Button(
                     onClick = {

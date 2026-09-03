@@ -20,18 +20,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.layout.*
 
 @Composable
 fun EditProfileScreen(
-    initialProfile: User = User(icNumber = "", name = "", email = "", phoneNumber = "", houseNo = "", street = "", zipCode = 0.0, city = "", state = ""),
+    initialProfile: User = User(icNumber = "", name = "", email = "", phoneNumber = "", houseNo = "", street = "", zipCode = 0.0, city = "", state = "", password = ""),
     onSave: (User) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
@@ -252,7 +253,7 @@ fun EditField(
     isEditing: Boolean,
     onEditToggle: () -> Unit,
     onValueChange: (String) -> Unit,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     focusRequester: FocusRequester,
     error: String?,
     placeholder: String = ""
@@ -279,7 +280,7 @@ fun EditField(
                         focusedTextColor = if (error != null) Color.Red else Color.Black,
                         unfocusedTextColor = if (error != null) Color.Red else Color.Black
                     ),
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                    textStyle = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Medium)
                 )
             } else {
                 Text(value, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color.Black, modifier = Modifier.padding(vertical = 8.dp))

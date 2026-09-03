@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
@@ -27,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,15 +41,26 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.SupabaseClient
 import com.example.energynest.ui.theme.EnergyNestTheme
+import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun FeedbackPage(
+    userIc: String,
     onBackClick: () -> Unit = {}
 ) {
+    val coroutineScope = rememberCoroutineScope()
     var feedback by remember { mutableStateOf("") }
     var feedbackError by remember { mutableStateOf(false) }
     var feedbackMessage by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
     val primaryGreen = Color(0xFF10B981)
     val textDark = Color(0xFF1E293B)
@@ -156,12 +169,39 @@ fun FeedbackPage(
                         feedbackMessage =
                             "Please enter your feedback before submitting."
                     } else {
-                        feedbackError = false
-                        feedbackMessage =
-                            "Thank you! Your feedback has been submitted successfully."
-                        feedback = ""
+                        isLoading = true
+                        coroutineScope.launch {
+                            try {
+                                val now = Date()
+                                val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now)
+                                val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(now)
+
+                                val feedbackData = FeedbackData(
+                                    icNumber = userIc,
+                                    content = feedback,
+                                    date = dateStr,
+                                    time = timeStr
+                                )
+
+                                withContext(Dispatchers.IO) {
+                                    SupabaseClient.client.from("Feedback")
+                                        .insert(feedbackData)
+                                }
+
+                                feedbackError = false
+                                feedbackMessage =
+                                    "Thank you! Your feedback has been submitted successfully."
+                                feedback = ""
+                            } catch (e: Exception) {
+                                feedbackError = true
+                                feedbackMessage = "Failed to submit feedback: ${e.message}"
+                            } finally {
+                                isLoading = false
+                            }
+                        }
                     }
                 },
+                enabled = !isLoading,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = primaryGreen,
                     contentColor = Color.White
@@ -171,21 +211,29 @@ fun FeedbackPage(
                     .height(56.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Icon(
-                    painter = painterResource(
-                        id = R.drawable.send_icon
-                    ),
-                    contentDescription = "Submit Feedback",
-                    tint = Color.White
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(
+                            id = R.drawable.send_icon
+                        ),
+                        contentDescription = "Submit Feedback",
+                        tint = Color.White
+                    )
 
-                Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
 
-                Text(
-                    text = "Submit Feedback",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+                    Text(
+                        text = "Submit Feedback",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(30.dp))
@@ -228,6 +276,6 @@ fun FeedbackPage(
 @Composable
 fun FeedbackPreview() {
     EnergyNestTheme {
-        FeedbackPage()
+        FeedbackPage(userIc = "123456789012")
     }
 }

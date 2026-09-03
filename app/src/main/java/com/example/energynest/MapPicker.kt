@@ -83,6 +83,7 @@ import java.net.URLEncoder
 // =====================================================
 
 data class AddressResult(
+    val houseNumber: String,
     val street: String,
     val zipcode: String,
     val city: String,
@@ -595,9 +596,6 @@ fun parseAddress(addressJson: JSONObject?): AddressResult {
 
     val road = addressJson?.optString("road") ?: ""
     val houseNumber = addressJson?.optString("house_number") ?: ""
-    val fullStreet = listOf(houseNumber, road).filter {
-        it.isNotBlank()
-    }.joinToString(" ")
 
     val postcode = addressJson?.optString("postcode") ?: ""
     val city = when {
@@ -615,7 +613,8 @@ fun parseAddress(addressJson: JSONObject?): AddressResult {
     val state = addressJson?.optString("state") ?: ""
 
     return AddressResult(
-        street = fullStreet,
+        houseNumber = houseNumber,
+        street = road,
         zipcode = postcode,
         city = city,
         state = state

@@ -111,10 +111,9 @@ fun PaymentScreen(
                     },
                     onPaymentSuccess = {
                         val sdf = SimpleDateFormat(
-                            "dd MMM yyyy, hh:mm a",
+                            "yyyy-MM-dd HH:mm:ss",
                             Locale.US
                         )
-
                         paymentDateTime = sdf.format(Date())
                         referenceNo = generatePaymentReference()
                         currentScreen = "result"
@@ -127,10 +126,9 @@ fun PaymentScreen(
                     },
                     onPaymentSuccess = {
                         val sdf = SimpleDateFormat(
-                            "dd MMM yyyy, hh:mm a",
+                            "yyyy-MM-dd HH:mm:ss",
                             Locale.US
                         )
-
                         paymentDateTime = sdf.format(Date())
                         referenceNo = generatePaymentReference()
                         currentScreen = "result"
@@ -143,10 +141,9 @@ fun PaymentScreen(
                     },
                     onPaymentSuccess = {
                         val sdf = SimpleDateFormat(
-                            "dd MMM yyyy, hh:mm a",
+                            "yyyy-MM-dd HH:mm:ss",
                             Locale.US
                         )
-
                         paymentDateTime = sdf.format(Date())
                         referenceNo = generatePaymentReference()
                         currentScreen = "result"

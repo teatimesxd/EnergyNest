@@ -137,7 +137,7 @@ fun SidebarDrawerContent(
             // ---- Secondary Bottom Items ----
             val bottomItems = listOf(
                 DrawerMenuItem("Settings", R.drawable.settings_icon, Screen.Settings.route),
-                DrawerMenuItem("Terms & Conditions", R.drawable.description_icon, Screen.TermsAndConditions.route)
+                DrawerMenuItem("Help & Support", R.drawable.help_icon, Screen.HelpSupport.route)
             )
 
             bottomItems.forEachIndexed { index, item ->

@@ -12,14 +12,14 @@ data class User(
     @SerialName("name") val name: String,
     @SerialName("email") val email: String,
     @SerialName("phone_number") val phoneNumber: String,
-    @SerialName("house_no") val houseNo: String? = null,
     @SerialName("street") val street: String,
     @SerialName("zip_code") val zipCode: Double,
     @SerialName("city") val city: String,
     @SerialName("state") val state: String,
-    @SerialName("password") val password: String? = null,
-    @SerialName("account_id") val accountId: String? = null, // UUID string
-    @SerialName("account_status") val accountStatus: String = "Active"
+    @SerialName("password") val password: String,
+    @SerialName("account_id") val accountId: String? = null,
+    @SerialName("account_status") val accountStatus: String = "Active",
+    @SerialName("house_no") val houseNo: String
 )
 
 /**
@@ -47,9 +47,9 @@ data class SmartSellData(
     @SerialName("ic_number") val icNumber: String,
     @SerialName("payment_id") val paymentId: Int? = null,
     @SerialName("accumulated_credit") val accumulatedCredit: Double,
-    @SerialName("amountkwh") val amountKwh: Double,
+    @SerialName("amountkwh") val amountKwh: Double, 
     @SerialName("estimated_bill_credit") val estimatedBillCredit: Double,
-    @SerialName("auto_sell_enabled") val autoSellEnabled: Boolean? = false
+    @SerialName("auto_sell_enabled") val autoSellEnabled: Boolean? = false 
 )
 
 /**
@@ -73,7 +73,7 @@ data class ElectricUsage(
 data class PaymentData(
     @SerialName("payment_id") val paymentId: Int? = null,
     @SerialName("title") val title: String,
-    @SerialName("reference_no") val referenceNo: String, // UUID
+    @SerialName("reference_no") val referenceNo: String? = null,
     @SerialName("method") val method: String,
     @SerialName("date") val date: String,
     @SerialName("time") val time: String,
@@ -90,10 +90,10 @@ data class PaymentData(
 data class CreamData(
     @SerialName("cream_id") val creamId: Int? = null,
     @SerialName("payment_id") val paymentId: Int? = null,
-    @SerialName("iseligible") val isEligible: Boolean,
+    @SerialName("iseligible") val isEligible: Boolean, 
     @SerialName("estimated_income_min") val estimatedIncomeMin: Double,
     @SerialName("estimated_income_max") val estimatedIncomeMax: Double,
-    @SerialName("shading_level") val shadingLevel: String
+    @SerialName("shading_level") val shadingLevel: String 
 )
 
 /**
@@ -104,7 +104,7 @@ data class PropertyData(
     @SerialName("ic_number") val icNumber: String,
     @SerialName("cream_id") val creamId: Int,
     @SerialName("property_type") val propertyType: String,
-    @SerialName("roofspacesqft") val roofSpaceSqFt: Double
+    @SerialName("roofspacesqft") val roofSpaceSqFt: Double 
 )
 
 /**
@@ -114,10 +114,12 @@ data class PropertyData(
 data class ServiceData(
     @SerialName("service_id") val serviceId: Int? = null,
     @SerialName("payment_id") val paymentId: Int? = null,
+    @SerialName("is_free") val isFree: Boolean = false,
     @SerialName("type") val type: String,
     @SerialName("notes") val notes: String? = null,
-    @SerialName("location") val location: String? = null,
-    @SerialName("status") val status: String? = "Pending"
+    @SerialName("location") val location: String,
+    @SerialName("status") val status: String? = "Pending",
+    @SerialName("created_at") val createdAt: String? = null
 )
 
 /**
@@ -128,6 +130,18 @@ data class BookingData(
     @SerialName("booking_id") val bookingId: Int? = null,
     @SerialName("ic_number") val icNumber: String,
     @SerialName("service_id") val serviceId: Int,
+    @SerialName("date") val date: String,
+    @SerialName("time") val time: String
+)
+
+/**
+ * Maps to 'Feedback' table in Supabase
+ */
+@Serializable
+data class FeedbackData(
+    @SerialName("feedback_id") val feedbackId: Int? = null,
+    @SerialName("ic_number") val icNumber: String,
+    @SerialName("content") val content: String,
     @SerialName("date") val date: String,
     @SerialName("time") val time: String
 )

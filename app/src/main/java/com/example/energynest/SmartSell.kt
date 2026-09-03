@@ -34,6 +34,8 @@ import java.util.Locale
 import java.util.UUID
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 
 private val Background = Color(0xFFF6F8F7)
 private val TextDark = Color(0xFF191C1E)
@@ -53,6 +55,7 @@ fun SmartSellScreen(
     onOpenDrawer: () -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
     var accumulatedCredits by remember { mutableDoubleStateOf(0.0) }
@@ -60,6 +63,20 @@ fun SmartSellScreen(
     var storedEnergyPercent by remember { mutableFloatStateOf(0f) }
     var storedEnergyKwh by remember { mutableFloatStateOf(0f) }
     var isLoading by remember { mutableStateOf(true) }
+
+    // Manual Sell Bottom Sheet State
+    var showSellSheet by remember { mutableStateOf(false) }
+    var sellAmountKwh by remember { mutableFloatStateOf(0.5f) }
+    val tnbRatePerKwh = 0.38 
+
+    // Withdrawal Bottom Sheet State
+    var showWithdrawSheet by remember { mutableStateOf(false) }
+    var withdrawAmountText by remember { mutableStateOf("") }
+    var selectedPaymentMethod by remember { mutableStateOf("Touch 'n Go eWallet") }
+    var accountOrPhoneText by remember { mutableStateOf("") }
+    var withdrawSuccess by remember { mutableStateOf(false) }
+    var withdrawError by remember { mutableStateOf<String?>(null) }
+    var isSavingToDb by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         try {
@@ -89,6 +106,8 @@ fun SmartSellScreen(
             if (homeResult != null) {
                 storedEnergyPercent = homeResult.storedEnergyPct.toFloat()
                 storedEnergyKwh = homeResult.storedEnergyKwh.toFloat()
+                // Update slider max safely
+                sellAmountKwh = if (storedEnergyKwh > 0.5f) 5.0f.coerceIn(0.5f, storedEnergyKwh) else 0.5f
             }
         } catch (e: Exception) {
             // Error handling
@@ -96,21 +115,9 @@ fun SmartSellScreen(
             isLoading = false
         }
     }
+    
     val totalPowerUsage = 20
     val floors = remember { listOf("Floor 1", "Floor 2") }
-
-    // Manual Sell Bottom Sheet State
-    var showSellSheet by remember { mutableStateOf(false) }
-    var sellAmountKwh by remember { mutableFloatStateOf(5.0f) }
-    val tnbRatePerKwh = 0.38 // RM per kWh under ATAP program
-
-    // Withdrawal Bottom Sheet State
-    var showWithdrawSheet by remember { mutableStateOf(false) }
-    var withdrawAmountText by remember { mutableStateOf("") }
-    var selectedPaymentMethod by remember { mutableStateOf("Touch 'n Go eWallet") }
-    var accountOrPhoneText by remember { mutableStateOf("") }
-    var withdrawSuccess by remember { mutableStateOf(false) }
-    var withdrawError by remember { mutableStateOf<String?>(null) }
 
     LazyColumn(
         modifier = Modifier
@@ -205,7 +212,7 @@ fun SmartSellScreen(
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                text = "Earned: RM ${String.format("%.2f", accumulatedCredits)}",
+                                text = "Earned: RM ${String.format(Locale.US, "%.2f", accumulatedCredits)}",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = BrandGreenColour
@@ -261,7 +268,7 @@ fun SmartSellScreen(
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Text(
-                                        text = "${(storedEnergyPercent * 100).toInt()}%",
+                                        text = "${storedEnergyPercent.toInt()}%",
                                         fontSize = 20.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = TextDark
@@ -276,7 +283,7 @@ fun SmartSellScreen(
                         }
 
                         LinearProgressIndicator(
-                            progress = { storedEnergyPercent },
+                            progress = { storedEnergyPercent / 100f },
                             modifier = Modifier
                                 .width(110.dp)
                                 .height(8.dp)
@@ -335,7 +342,7 @@ fun SmartSellScreen(
                                             withContext(Dispatchers.IO) {
                                                 SupabaseClient.client.from("Smart_Sell")
                                                     .update({
-                                                        set("auto_sell_enabled", isChecked)
+                                                        set("auto_Sell_Enabled", isChecked)
                                                     }) {
                                                         filter { eq("ic_number", userIc) }
                                                     }
@@ -377,7 +384,7 @@ fun SmartSellScreen(
                                 color = TextGray
                             )
                             Text(
-                                text = "RM ${String.format("%.2f", accumulatedCredits)}",
+                                text = "RM ${String.format(Locale.US, "%.2f", accumulatedCredits)}",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = BrandGreenColour
@@ -455,7 +462,7 @@ fun SmartSellScreen(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
-                                            text = "${index + 1}",
+                                            text = (index + 1).toString(),
                                             fontSize = 18.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = TextGray
@@ -508,7 +515,7 @@ fun SmartSellScreen(
         val estimatedEarnings = sellAmountKwh * tnbRatePerKwh
 
         ModalBottomSheet(
-            onDismissRequest = { showSellSheet = false },
+            onDismissRequest = { if (!isSavingToDb) showSellSheet = false },
             sheetState = rememberModalBottomSheetState(),
             containerColor = White
         ) {
@@ -549,7 +556,7 @@ fun SmartSellScreen(
                             color = TextDark
                         )
                         Text(
-                            text = "${String.format("%.1f", sellAmountKwh)} kWh",
+                            text = "${String.format(Locale.US, "%.1f", sellAmountKwh)} kWh",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = BrandGreenColour
@@ -557,10 +564,11 @@ fun SmartSellScreen(
                     }
 
                     Slider(
-                        value = sellAmountKwh,
+                        value = sellAmountKwh.coerceIn(0.5f, maxOf(0.5f, storedEnergyKwh)),
                         onValueChange = { sellAmountKwh = it },
-                        valueRange = 0.5f..storedEnergyKwh,
-                        steps = 22,
+                        valueRange = 0.5f..maxOf(0.5f, storedEnergyKwh),
+                        steps = if (storedEnergyKwh > 0.5f) 22 else 0,
+                        enabled = !isSavingToDb,
                         colors = SliderDefaults.colors(
                             thumbColor = BrandGreenColour,
                             activeTrackColor = BrandGreenColour,
@@ -599,7 +607,7 @@ fun SmartSellScreen(
                         )
                     }
                     Text(
-                        text = "+ RM ${String.format("%.2f", estimatedEarnings)}",
+                        text = "+ RM ${String.format(Locale.US, "%.2f", estimatedEarnings)}",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = BrandGreenColour
@@ -612,6 +620,7 @@ fun SmartSellScreen(
                 ) {
                     OutlinedButton(
                         onClick = { showSellSheet = false },
+                        enabled = !isSavingToDb,
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp),
@@ -623,9 +632,9 @@ fun SmartSellScreen(
 
                     Button(
                         onClick = {
-                            val earnings = estimatedEarnings
                             coroutineScope.launch {
                                 try {
+                                    isSavingToDb = true
                                     val now = Date()
                                     val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now)
                                     val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(now)
@@ -636,9 +645,9 @@ fun SmartSellScreen(
                                         method = "Grid Sell",
                                         date = dateStr,
                                         time = timeStr,
-                                        subtotal = earnings.toDouble(),
+                                        subtotal = estimatedEarnings,
                                         sst = 0.0,
-                                        amount = earnings.toDouble(),
+                                        amount = estimatedEarnings,
                                         status = true
                                     )
 
@@ -651,9 +660,9 @@ fun SmartSellScreen(
                                     val smartSellEntry = SmartSellData(
                                         icNumber = userIc,
                                         paymentId = paymentResult.paymentId,
-                                        accumulatedCredit = accumulatedCredits + earnings,
+                                        accumulatedCredit = accumulatedCredits + estimatedEarnings,
                                         amountKwh = sellAmountKwh.toDouble(),
-                                        estimatedBillCredit = earnings.toDouble(),
+                                        estimatedBillCredit = estimatedEarnings,
                                         autoSellEnabled = autoSellEnabled
                                     )
 
@@ -662,30 +671,39 @@ fun SmartSellScreen(
                                             .insert(smartSellEntry)
                                     }
 
-                                    accumulatedCredits += earnings
+                                    accumulatedCredits += estimatedEarnings
                                     showSellSheet = false
+                                    Toast.makeText(context, "✅ Energy discharge successful!", Toast.LENGTH_SHORT).show()
                                 } catch (e: Exception) {
-                                    // Handle error
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(context, "Database Error: ${e.message}", Toast.LENGTH_LONG).show()
+                                    }
+                                } finally {
+                                    isSavingToDb = false
                                 }
                             }
                         },
+                        enabled = !isSavingToDb,
                         modifier = Modifier
                             .weight(1.5f)
                             .height(48.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = BrandGreenColour)
                     ) {
-                        Text(text = "Discharge Now", fontWeight = FontWeight.Bold, color = White)
+                        if (isSavingToDb) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = White, strokeWidth = 2.dp)
+                        } else {
+                            Text(text = "Discharge Now", fontWeight = FontWeight.Bold, color = White)
+                        }
                     }
                 }
             }
         }
     }
 
-    // ---- Withdrawal Modal Bottom Sheet ----
     if (showWithdrawSheet) {
         ModalBottomSheet(
-            onDismissRequest = { showWithdrawSheet = false },
+            onDismissRequest = { if (!isSavingToDb) showWithdrawSheet = false },
             sheetState = rememberModalBottomSheetState(),
             containerColor = White
         ) {
@@ -721,7 +739,7 @@ fun SmartSellScreen(
                             color = TextGray
                         )
                         Text(
-                            text = "RM ${String.format("%.2f", accumulatedCredits)}",
+                            text = "RM ${String.format(Locale.US, "%.2f", accumulatedCredits)}",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = BrandGreenColour
@@ -780,6 +798,7 @@ fun SmartSellScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
+                        enabled = !isSavingToDb,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.Black,
@@ -816,9 +835,9 @@ fun SmartSellScreen(
                                     color = if (selectedPaymentMethod == method) BrandGreenColour else CardBorderColor,
                                     shape = RoundedCornerShape(10.dp)
                                 )
-                                .clickable { 
+                                .clickable(enabled = !isSavingToDb) { 
                                     selectedPaymentMethod = method 
-                                    accountOrPhoneText = "" // Clear when switching
+                                    accountOrPhoneText = "" 
                                     withdrawError = null
                                 }
                                 .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -838,12 +857,12 @@ fun SmartSellScreen(
                                     accountOrPhoneText = ""
                                     withdrawError = null
                                 },
+                                enabled = !isSavingToDb,
                                 colors = RadioButtonDefaults.colors(selectedColor = BrandGreenColour)
                             )
                         }
                     }
 
-                    // ---- Dynamic Account/Phone Number Field ----
                     val label = when {
                         selectedPaymentMethod.contains("Touch 'n Go", ignoreCase = true) -> "Phone Number"
                         selectedPaymentMethod.contains("Bank", ignoreCase = true) -> "Bank Account Number"
@@ -867,8 +886,11 @@ fun SmartSellScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
+                        enabled = !isSavingToDb,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black,
                             focusedBorderColor = BrandGreenColour,
                             focusedLabelColor = BrandGreenColour,
                             cursorColor = BrandGreenColour
@@ -881,6 +903,7 @@ fun SmartSellScreen(
                     ) {
                         OutlinedButton(
                             onClick = { showWithdrawSheet = false },
+                            enabled = !isSavingToDb,
                             modifier = Modifier
                                 .weight(1f)
                                 .height(48.dp),
@@ -906,6 +929,7 @@ fun SmartSellScreen(
                                     else -> {
                                         coroutineScope.launch {
                                             try {
+                                                isSavingToDb = true
                                                 val now = Date()
                                                 val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now)
                                                 val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(now)
@@ -928,7 +952,6 @@ fun SmartSellScreen(
                                                         .decodeSingle<PaymentData>()
                                                 }
 
-                                                // Update accumulated credits in DB
                                                 val newBalance = accumulatedCredits - amount
                                                 withContext(Dispatchers.IO) {
                                                     SupabaseClient.client.from("Smart_Sell")
@@ -944,20 +967,28 @@ fun SmartSellScreen(
 
                                                 accumulatedCredits = newBalance
                                                 withdrawSuccess = true
+                                                Toast.makeText(context, "✅ Withdrawal successful!", Toast.LENGTH_SHORT).show()
                                             } catch (e: Exception) {
                                                 withdrawError = "Failed to process withdrawal: ${e.message}"
+                                            } finally {
+                                                isSavingToDb = false
                                             }
                                         }
                                     }
                                 }
                             },
+                            enabled = !isSavingToDb,
                             modifier = Modifier
                                 .weight(1.5f)
                                 .height(48.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = BrandGreenColour)
                         ) {
-                            Text(text = "Withdraw Now", fontWeight = FontWeight.Bold, color = White)
+                            if (isSavingToDb) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = White, strokeWidth = 2.dp)
+                            } else {
+                                Text(text = "Withdraw Now", fontWeight = FontWeight.Bold, color = White)
+                            }
                         }
                     }
                 }

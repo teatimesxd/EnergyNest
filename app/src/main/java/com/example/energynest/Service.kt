@@ -1,5 +1,6 @@
 package com.example.energynest
 
+import android.widget.Toast
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -18,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -28,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.SupabaseClient
 import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -724,7 +727,7 @@ private fun DateTimePickerField(
                 Color.LightGray
             }
         ),
-        elevation = CardDefaults.cardElevation(0.dp)
+        elevation = CardDefaults.cardElevation(0.0.dp)
     ) {
 
         Row(
@@ -823,7 +826,7 @@ private fun ServiceDatePickerDialog(
         }
     )
 
-    androidx.compose.material3.DatePickerDialog(
+    DatePickerDialog(
         onDismissRequest = onDismiss,
 
         confirmButton = {
@@ -1121,7 +1124,9 @@ private fun ServiceTimePickerDialog(
 @Composable
 private fun SubmitButton(
     text: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    isLoading: Boolean = false
 ) {
 
     Button(
@@ -1129,6 +1134,7 @@ private fun SubmitButton(
         modifier = Modifier
             .fillMaxWidth()
             .height(46.dp),
+        enabled = enabled && !isLoading,
         shape = RoundedCornerShape(10.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = BrandGreenColour,
@@ -1136,10 +1142,14 @@ private fun SubmitButton(
         )
     ) {
 
-        Text(
-            text,
-            fontWeight = FontWeight.Bold
-        )
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = White, strokeWidth = 2.dp)
+        } else {
+            Text(
+                text,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
 
@@ -1194,7 +1204,7 @@ private fun CustomerServicePage(
                     1.dp,
                     BorderLight
                 ),
-                elevation = CardDefaults.cardElevation(0.dp)
+                elevation = CardDefaults.cardElevation(0.0.dp)
             ) {
 
                 Column(
@@ -1334,10 +1344,10 @@ private fun CustomerServicePage(
 private fun ConsultationPage(
     onBack: () -> Unit,
     onOpenProfile: () -> Unit = {},
-    coroutineScope: kotlinx.coroutines.CoroutineScope,
+    coroutineScope: CoroutineScope,
     userIc: String
 ) {
-
+    val context = LocalContext.current
     var date by remember {
         mutableStateOf("")
     }
@@ -1357,6 +1367,8 @@ private fun ConsultationPage(
     var showTimePicker by remember {
         mutableStateOf(false)
     }
+    
+    var isSaving by remember { mutableStateOf(false) }
 
     ServiceFormPage(
         title = "Consultation",
@@ -1374,7 +1386,8 @@ private fun ConsultationPage(
             iconRes = R.drawable.calendar_month_icon,
             onClick = {
                 showDatePicker = true
-            }
+            },
+            enabled = !submitted && !isSaving
         )
 
         DateTimePickerField(
@@ -1388,7 +1401,7 @@ private fun ConsultationPage(
                     showTimePicker = true
                 }
             },
-            enabled = date.isNotEmpty()
+            enabled = date.isNotEmpty() && !submitted && !isSaving
         )
 
         SectionTitle(
@@ -1415,44 +1428,65 @@ private fun ConsultationPage(
                 } else {
                     "BOOK SESSION"
                 },
+            isLoading = isSaving,
+            enabled = !submitted && date.isNotEmpty() && time.isNotEmpty(),
             onClick = {
+                if (userIc.isBlank()) {
+                    Toast.makeText(context, "Error: User IC is missing. Please log in.", Toast.LENGTH_LONG).show()
+                    return@SubmitButton
+                }
 
-                if (
-                    date.isNotEmpty() &&
-                    time.isNotEmpty()
-                ) {
-                    coroutineScope.launch {
-                        try {
-                            // 1. Create Service Record
-                            val service = ServiceData(
-                                type = "Consultation",
-                                notes = "Energy consultation request",
-                                status = "Pending"
-                            )
+                coroutineScope.launch {
+                    try {
+                        isSaving = true
+                        // 1. Create Service Record
+                        val service = ServiceData(
+                            type = "Consultation",
+                            notes = "Energy consultation request",
+                            location = "Remote/Online", 
+                            status = "Pending",
+                            isFree = true,
+                            paymentId = null
+                        )
 
-                            val serviceResult = withContext(Dispatchers.IO) {
-                                SupabaseClient.client.from("Service")
-                                    .insert(service) { select() }
-                                    .decodeSingle<ServiceData>()
-                            }
-
-                            // 2. Create Booking Record
-                            val booking = BookingData(
-                                icNumber = userIc,
-                                serviceId = serviceResult.serviceId!!,
-                                date = date,
-                                time = time
-                            )
-
-                            withContext(Dispatchers.IO) {
-                                SupabaseClient.client.from("Booking")
-                                    .insert(booking)
-                            }
-
-                            submitted = true
-                        } catch (e: Exception) {
-                            // Handle error
+                        val serviceResult = withContext(Dispatchers.IO) {
+                            SupabaseClient.client.from("Service")
+                                .insert(service) { select() }
+                                .decodeSingle<ServiceData>()
                         }
+
+                        // 2. Create Booking Record
+                        val formattedDate = try {
+                            val inputFormat = SimpleDateFormat("dd MMM yyyy", Locale.US)
+                            val outputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                            outputFormat.format(inputFormat.parse(date)!!)
+                        } catch (e: Exception) { date }
+
+                        val formattedTime = try {
+                            val inputFormat = SimpleDateFormat("hh:mm a", Locale.US)
+                            val outputFormat = SimpleDateFormat("HH:mm:ss", Locale.US)
+                            outputFormat.format(inputFormat.parse(time)!!)
+                        } catch (e: Exception) { time }
+
+                        val booking = BookingData(
+                            icNumber = userIc,
+                            serviceId = serviceResult.serviceId!!,
+                            date = formattedDate,
+                            time = formattedTime
+                        )
+
+                        withContext(Dispatchers.IO) {
+                            SupabaseClient.client.from("Booking")
+                                .insert(booking)
+                        }
+
+                        submitted = true
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Database Error: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    } finally {
+                        isSaving = false
                     }
                 }
             }
@@ -1533,10 +1567,10 @@ private fun ConsultationPage(
 private fun MaintenancePage(
     onBack: () -> Unit,
     onOpenProfile: () -> Unit = {},
-    coroutineScope: kotlinx.coroutines.CoroutineScope,
+    coroutineScope: CoroutineScope,
     userIc: String
 ) {
-
+    val context = LocalContext.current
     var date by remember {
         mutableStateOf("")
     }
@@ -1569,6 +1603,8 @@ private fun MaintenancePage(
     var showPaymentPage by remember {
         mutableStateOf(false)
     }
+    
+    var isSaving by remember { mutableStateOf(false) }
 
     val paymentMethods = listOf(
         PaymentMethodType(
@@ -1593,6 +1629,7 @@ private fun MaintenancePage(
         val onPaymentSuccessAction = {
             coroutineScope.launch {
                 try {
+                    isSaving = true
                     val now = Date()
                     val dateStrLocal = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now)
                     val timeStrLocal = SimpleDateFormat("HH:mm:ss", Locale.US).format(now)
@@ -1621,7 +1658,9 @@ private fun MaintenancePage(
                         paymentId = paymentResult.paymentId,
                         type = "Maintenance",
                         notes = issue,
-                        status = "Confirmed"
+                        location = "User Registered Address", 
+                        status = "Confirmed",
+                        isFree = false
                     )
 
                     val serviceResult = withContext(Dispatchers.IO) {
@@ -1631,11 +1670,30 @@ private fun MaintenancePage(
                     }
 
                     // 3. Create Booking Record
+                    if (userIc.isBlank()) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Error: User IC is missing.", Toast.LENGTH_LONG).show()
+                        }
+                        return@launch
+                    }
+                    
+                    val formattedDate = try {
+                        val inputFormat = SimpleDateFormat("dd MMM yyyy", Locale.US)
+                        val outputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                        outputFormat.format(inputFormat.parse(date)!!)
+                    } catch (e: Exception) { date }
+
+                    val formattedTime = try {
+                        val inputFormat = SimpleDateFormat("hh:mm a", Locale.US)
+                        val outputFormat = SimpleDateFormat("HH:mm:ss", Locale.US)
+                        outputFormat.format(inputFormat.parse(time)!!)
+                    } catch (e: Exception) { time }
+
                     val booking = BookingData(
                         icNumber = userIc,
                         serviceId = serviceResult.serviceId!!,
-                        date = date,
-                        time = time
+                        date = formattedDate,
+                        time = formattedTime
                     )
 
                     withContext(Dispatchers.IO) {
@@ -1646,7 +1704,12 @@ private fun MaintenancePage(
                     showPaymentPage = false
                     submitted = true
                 } catch (e: Exception) {
-                    // Handle error
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Database Error: ${e.message}", Toast.LENGTH_LONG).show()
+                        showPaymentPage = false 
+                    }
+                } finally {
+                    isSaving = false
                 }
             }
             Unit
@@ -1655,25 +1718,25 @@ private fun MaintenancePage(
         when (selectedPaymentMethod) {
 
             "Visa" -> VisaPaymentPage(
-                onBack = {
-                    showPaymentPage = false
-                },
+                onBack = { if (!isSaving) showPaymentPage = false },
                 onPaymentSuccess = onPaymentSuccessAction
             )
 
             "Mastercard" -> MastercardPaymentPage(
-                onBack = {
-                    showPaymentPage = false
-                },
+                onBack = { if (!isSaving) showPaymentPage = false },
                 onPaymentSuccess = onPaymentSuccessAction
             )
 
             "Touch 'n Go" -> TnGPaymentPage(
-                onBack = {
-                    showPaymentPage = false
-                },
+                onBack = { if (!isSaving) showPaymentPage = false },
                 onPaymentSuccess = onPaymentSuccessAction
             )
+        }
+        
+        if (isSaving) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = BrandGreenColour)
+            }
         }
 
         return
@@ -1705,7 +1768,8 @@ private fun MaintenancePage(
             iconRes = R.drawable.calendar_month_icon,
             onClick = {
                 showDatePicker = true
-            }
+            },
+            enabled = !submitted && !isSaving
         )
 
         DateTimePickerField(
@@ -1719,7 +1783,7 @@ private fun MaintenancePage(
                     showTimePicker = true
                 }
             },
-            enabled = date.isNotEmpty()
+            enabled = date.isNotEmpty() && !submitted && !isSaving
         )
 
         FormTextField(
@@ -1765,7 +1829,7 @@ private fun MaintenancePage(
                     1.dp,
                     BorderLight
                 ),
-                elevation = CardDefaults.cardElevation(0.dp)
+                elevation = CardDefaults.cardElevation(0.0.dp)
             ) {
 
                 Row(
@@ -1833,7 +1897,7 @@ private fun MaintenancePage(
                         .clip(
                             RoundedCornerShape(12.dp)
                         )
-                        .clickable {
+                        .clickable(enabled = !isSaving) {
 
                             selectedPaymentMethod =
                                 method.name
@@ -1851,7 +1915,7 @@ private fun MaintenancePage(
                         }
                     ),
                     elevation =
-                        CardDefaults.cardElevation(0.dp)
+                        CardDefaults.cardElevation(0.0.dp)
                 ) {
 
                     Row(
@@ -1915,6 +1979,7 @@ private fun MaintenancePage(
                                 selectedPaymentMethod =
                                     method.name
                             },
+                            enabled = !isSaving,
                             colors =
                                 RadioButtonDefaults.colors(
                                     selectedColor =
@@ -1933,15 +1998,10 @@ private fun MaintenancePage(
                 } else {
                     "PROCEED TO PAYMENT (RM 50.00)"
                 },
+            isLoading = isSaving,
+            enabled = isFormValid && !submitted,
             onClick = {
-
-                if (
-                    isFormValid &&
-                    !submitted
-                ) {
-
-                    showPaymentPage = true
-                }
+                showPaymentPage = true
             }
         )
 
@@ -1958,7 +2018,7 @@ private fun MaintenancePage(
                     BrandGreenColour
                 ),
                 elevation =
-                    CardDefaults.cardElevation(0.dp)
+                    CardDefaults.cardElevation(0.0.dp)
             ) {
 
                 Column(
@@ -2064,10 +2124,10 @@ private fun MaintenancePage(
 private fun CleaningPage(
     onBack: () -> Unit,
     onOpenProfile: () -> Unit = {},
-    coroutineScope: kotlinx.coroutines.CoroutineScope,
+    coroutineScope: CoroutineScope,
     userIc: String
 ) {
-
+    val context = LocalContext.current
     var address by remember {
         mutableStateOf("")
     }
@@ -2099,6 +2159,8 @@ private fun CleaningPage(
     var showPaymentPage by remember {
         mutableStateOf(false)
     }
+    
+    var isSaving by remember { mutableStateOf(false) }
 
     val paymentMethods = listOf(
         PaymentMethodType(
@@ -2123,6 +2185,7 @@ private fun CleaningPage(
         val onPaymentSuccessAction = {
             coroutineScope.launch {
                 try {
+                    isSaving = true
                     val now = Date()
                     val dateStrLocal = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now)
                     val timeStrLocal = SimpleDateFormat("HH:mm:ss", Locale.US).format(now)
@@ -2152,7 +2215,8 @@ private fun CleaningPage(
                         type = "Cleaning",
                         notes = "Location: $address",
                         location = address,
-                        status = "Confirmed"
+                        status = "Confirmed",
+                        isFree = false
                     )
 
                     val serviceResult = withContext(Dispatchers.IO) {
@@ -2162,11 +2226,30 @@ private fun CleaningPage(
                     }
 
                     // 3. Create Booking Record
+                    if (userIc.isBlank()) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Error: User IC is missing.", Toast.LENGTH_LONG).show()
+                        }
+                        return@launch
+                    }
+                    
+                    val formattedDate = try {
+                        val inputFormat = SimpleDateFormat("dd MMM yyyy", Locale.US)
+                        val outputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                        outputFormat.format(inputFormat.parse(date)!!)
+                    } catch (e: Exception) { date }
+
+                    val formattedTime = try {
+                        val inputFormat = SimpleDateFormat("hh:mm a", Locale.US)
+                        val outputFormat = SimpleDateFormat("HH:mm:ss", Locale.US)
+                        outputFormat.format(inputFormat.parse(time)!!)
+                    } catch (e: Exception) { time }
+
                     val booking = BookingData(
                         icNumber = userIc,
                         serviceId = serviceResult.serviceId!!,
-                        date = date,
-                        time = time
+                        date = formattedDate,
+                        time = formattedTime
                     )
 
                     withContext(Dispatchers.IO) {
@@ -2177,7 +2260,12 @@ private fun CleaningPage(
                     showPaymentPage = false
                     submitted = true
                 } catch (e: Exception) {
-                    // Handle error
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Database Error: ${e.message}", Toast.LENGTH_LONG).show()
+                        showPaymentPage = false 
+                    }
+                } finally {
+                    isSaving = false
                 }
             }
             Unit
@@ -2186,25 +2274,25 @@ private fun CleaningPage(
         when (selectedPaymentMethod) {
 
             "Visa" -> VisaPaymentPage(
-                onBack = {
-                    showPaymentPage = false
-                },
+                onBack = { if (!isSaving) showPaymentPage = false },
                 onPaymentSuccess = onPaymentSuccessAction
             )
 
             "Mastercard" -> MastercardPaymentPage(
-                onBack = {
-                    showPaymentPage = false
-                },
+                onBack = { if (!isSaving) showPaymentPage = false },
                 onPaymentSuccess = onPaymentSuccessAction
             )
 
             "Touch 'n Go" -> TnGPaymentPage(
-                onBack = {
-                    showPaymentPage = false
-                },
+                onBack = { if (!isSaving) showPaymentPage = false },
                 onPaymentSuccess = onPaymentSuccessAction
             )
+        }
+
+        if (isSaving) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = BrandGreenColour)
+            }
         }
 
         return
@@ -2240,7 +2328,8 @@ private fun CleaningPage(
             iconRes = R.drawable.calendar_month_icon,
             onClick = {
                 showDatePicker = true
-            }
+            },
+            enabled = !submitted && !isSaving
         )
 
         DateTimePickerField(
@@ -2254,7 +2343,7 @@ private fun CleaningPage(
                     showTimePicker = true
                 }
             },
-            enabled = date.isNotEmpty()
+            enabled = date.isNotEmpty() && !submitted && !isSaving
         )
 
         InfoRow(
@@ -2279,7 +2368,7 @@ private fun CleaningPage(
                     1.dp,
                     BorderLight
                 ),
-                elevation = CardDefaults.cardElevation(0.dp)
+                elevation = CardDefaults.cardElevation(0.0.dp)
             ) {
 
                 Row(
@@ -2352,7 +2441,7 @@ private fun CleaningPage(
                         .clip(
                             RoundedCornerShape(12.dp)
                         )
-                        .clickable {
+                        .clickable(enabled = !isSaving) {
 
                             selectedPaymentMethod =
                                 method.name
@@ -2370,7 +2459,7 @@ private fun CleaningPage(
                         }
                     ),
                     elevation =
-                        CardDefaults.cardElevation(0.dp)
+                        CardDefaults.cardElevation(0.0.dp)
                 ) {
 
                     Row(
@@ -2434,6 +2523,7 @@ private fun CleaningPage(
                                 selectedPaymentMethod =
                                     method.name
                             },
+                            enabled = !isSaving,
                             colors =
                                 RadioButtonDefaults.colors(
                                     selectedColor =
@@ -2452,15 +2542,10 @@ private fun CleaningPage(
                 } else {
                     "PROCEED TO PAYMENT (RM 100.00)"
                 },
+            isLoading = isSaving,
+            enabled = isFormValid && !submitted,
             onClick = {
-
-                if (
-                    isFormValid &&
-                    !submitted
-                ) {
-
-                    showPaymentPage = true
-                }
+                showPaymentPage = true
             }
         )
 
@@ -2477,7 +2562,7 @@ private fun CleaningPage(
                     BrandGreenColour
                 ),
                 elevation =
-                    CardDefaults.cardElevation(0.dp)
+                    CardDefaults.cardElevation(0.0.dp)
             ) {
 
                 Column(
@@ -2622,7 +2707,7 @@ private fun ServiceFormPage(
                     BorderLight
                 ),
                 elevation =
-                    CardDefaults.cardElevation(0.dp)
+                    CardDefaults.cardElevation(0.0.dp)
             ) {
 
                 Column(
@@ -2812,7 +2897,7 @@ private fun FAQItem(
             BorderLight
         ),
         elevation =
-            CardDefaults.cardElevation(0.dp)
+            CardDefaults.cardElevation(0.0.dp)
     ) {
 
         Column(

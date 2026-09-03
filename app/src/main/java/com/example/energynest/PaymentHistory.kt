@@ -217,10 +217,14 @@ private fun createHistoryItem(p: PaymentData): PaymentHistoryItem {
         title = p.title,
         amount = p.amount,
         date = p.date,
-        isCredit = p.title.contains("Sell") || p.title.contains("Discharge") || p.title.contains("Earnings"),
+        // Transaction is a credit if it involves selling to grid or discharging
+        isCredit = p.title.contains("Sell", ignoreCase = true) || 
+                   p.title.contains("Discharge", ignoreCase = true) || 
+                   p.title.contains("Earnings", ignoreCase = true) ||
+                   p.method.contains("Grid", ignoreCase = true),
         details = PaymentDetail(
             paymentTime = p.time,
-            referenceNumber = p.referenceNo,
+            referenceNumber = p.referenceNo ?: "N/A", 
             mobileNumber = "", 
             paymentMethod = p.method,
             item = p.title,

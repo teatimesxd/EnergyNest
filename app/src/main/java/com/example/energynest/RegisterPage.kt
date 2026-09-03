@@ -172,6 +172,7 @@ fun RegisterPage(
     var icNumber by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
+    var houseNo by remember { mutableStateOf("") }
     var street by remember { mutableStateOf("") }
     var zipcode by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
@@ -248,8 +249,12 @@ fun RegisterPage(
             valid = false
         }
 
-        if (phoneNumber.length !in 9..10) {
+        if (phoneNumber.length !in 9..11) {
             phoneError = true
+            valid = false
+        }
+
+        if (houseNo.isBlank()) {
             valid = false
         }
 
@@ -303,7 +308,7 @@ fun RegisterPage(
                         name = fullName,
                         email = cleanEmail,
                         phoneNumber = phoneNumber,
-                        houseNo = "", 
+                        houseNo = houseNo, 
                         street = street,
                         zipCode = zipcode.toDoubleOrNull() ?: 0.0,
                         city = city,
@@ -494,20 +499,38 @@ fun RegisterPage(
                     modifier = Modifier.align(Alignment.Start)
                 )
 
-                OutlinedTextField(
-                    value = street,
-                    onValueChange = {
-                        street = it
-                        streetError = false
-                    },
-                    label = { Text("Street") },
-                    placeholder = { Text("Example: Jalan Ampang") },
-                    textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                    shape = RoundedCornerShape(12.dp),
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    isError = streetError,
-                    colors = greenTextFieldColors()
-                )
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = houseNo,
+                        onValueChange = {
+                            houseNo = it
+                        },
+                        label = { Text("House No.") },
+                        placeholder = { Text("No. 12") },
+                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(0.4f),
+                        colors = greenTextFieldColors()
+                    )
+
+                    OutlinedTextField(
+                        value = street,
+                        onValueChange = {
+                            street = it
+                            streetError = false
+                        },
+                        label = { Text("Street") },
+                        placeholder = { Text("Jalan Ampang") },
+                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(0.6f),
+                        isError = streetError,
+                        colors = greenTextFieldColors()
+                    )
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -607,6 +630,7 @@ fun RegisterPage(
                         ) {
                             MapPicker(
                                 onAddressSelected = { addressResult ->
+                                    houseNo = addressResult.houseNumber
                                     street = addressResult.street
                                     zipcode = addressResult.zipcode
                                     city = addressResult.city
