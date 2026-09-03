@@ -66,11 +66,13 @@ fun SmartSellScreen(
 
     // Manual Sell Bottom Sheet State
     var showSellSheet by remember { mutableStateOf(false) }
+    val sellSheetState = rememberModalBottomSheetState()
     var sellAmountKwh by remember { mutableFloatStateOf(0.5f) }
     val tnbRatePerKwh = 0.38 
 
     // Withdrawal Bottom Sheet State
     var showWithdrawSheet by remember { mutableStateOf(false) }
+    val withdrawSheetState = rememberModalBottomSheetState()
     var withdrawAmountText by remember { mutableStateOf("") }
     var selectedPaymentMethod by remember { mutableStateOf("Touch 'n Go eWallet") }
     var accountOrPhoneText by remember { mutableStateOf("") }
@@ -510,13 +512,12 @@ fun SmartSellScreen(
         }
     }
 
-    // ---- Manual Sell Modal Bottom Sheet ----
     if (showSellSheet) {
         val estimatedEarnings = sellAmountKwh * tnbRatePerKwh
 
         ModalBottomSheet(
             onDismissRequest = { if (!isSavingToDb) showSellSheet = false },
-            sheetState = rememberModalBottomSheetState(),
+            sheetState = sellSheetState,
             containerColor = White
         ) {
             val scrollState = rememberScrollState()
@@ -632,6 +633,11 @@ fun SmartSellScreen(
 
                     Button(
                         onClick = {
+                            if (userIc.isBlank()) {
+                                Toast.makeText(context, "Error: User IC is missing. Please log in again.", Toast.LENGTH_LONG).show()
+                                return@Button
+                            }
+
                             coroutineScope.launch {
                                 try {
                                     isSavingToDb = true
@@ -655,6 +661,10 @@ fun SmartSellScreen(
                                         SupabaseClient.client.from("Payment")
                                             .insert(payment) { select() }
                                             .decodeSingle<PaymentData>()
+                                    }
+
+                                    if (paymentResult.paymentId == null) {
+                                        throw Exception("Failed to retrieve Payment ID")
                                     }
 
                                     val smartSellEntry = SmartSellData(
@@ -704,7 +714,7 @@ fun SmartSellScreen(
     if (showWithdrawSheet) {
         ModalBottomSheet(
             onDismissRequest = { if (!isSavingToDb) showWithdrawSheet = false },
-            sheetState = rememberModalBottomSheetState(),
+            sheetState = withdrawSheetState,
             containerColor = White
         ) {
             Column(

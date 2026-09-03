@@ -49,7 +49,7 @@ data class SmartSellData(
     @SerialName("accumulated_credit") val accumulatedCredit: Double,
     @SerialName("amountkwh") val amountKwh: Double, 
     @SerialName("estimated_bill_credit") val estimatedBillCredit: Double,
-    @SerialName("auto_sell_enabled") val autoSellEnabled: Boolean? = false 
+    @SerialName("auto_Sell_Enabled") val autoSellEnabled: Boolean? = false 
 )
 
 /**
