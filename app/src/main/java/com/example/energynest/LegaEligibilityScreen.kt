@@ -70,15 +70,42 @@ fun LegaEligibilityScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    // Separated Address State
-    var houseNo by remember { mutableStateOf("") }
-    var street by remember { mutableStateOf("") }
-    var zipcode by remember { mutableStateOf("") }
-    var city by remember { mutableStateOf("") }
-    var state by remember { mutableStateOf("") }
+    // --- Address Autofill Logic ---
+    // We try to pull the current address from the global UserSession.
+    // This allows the "PROPERTY LOCATION" fields to be pre-filled with the user's saved data.
+    val currentUser = UserSession.user
+    
+    var houseNo by remember { mutableStateOf(currentUser?.houseNo ?: "") }
+    var street by remember { mutableStateOf(currentUser?.street ?: "") }
+    var zipcode by remember { mutableStateOf(if (currentUser != null && currentUser.zipCode > 0) currentUser.zipCode.toInt().toString() else "") }
+    var city by remember { mutableStateOf(currentUser?.city ?: "") }
+    var state by remember { mutableStateOf(currentUser?.state ?: "") }
     var propertyType by remember { mutableStateOf("Terrace") }
     var roofSpace by remember { mutableStateOf("") }
     var showMapPicker by remember { mutableStateOf(false) }
+
+    // Optional: Refresh from DB on enter to ensure we have the absolute latest address
+    LaunchedEffect(userIc) {
+        if (userIc.isNotBlank()) {
+            try {
+                val latestUser = withContext(Dispatchers.IO) {
+                    SupabaseClient.client.from("User")
+                        .select { filter { eq("ic_number", userIc) } }
+                        .decodeSingleOrNull<User>()
+                }
+                if (latestUser != null) {
+                    // Update states only if they are currently empty to avoid overwriting user edits
+                    if (houseNo.isBlank()) houseNo = latestUser.houseNo
+                    if (street.isBlank()) street = latestUser.street
+                    if (zipcode.isBlank() && latestUser.zipCode > 0) zipcode = latestUser.zipCode.toInt().toString()
+                    if (city.isBlank()) city = latestUser.city
+                    if (state.isBlank()) state = latestUser.state
+                }
+            } catch (e: Exception) {
+                // Silently fail, fallback to Session data
+            }
+        }
+    }
 
     // Payment & Submission State
     var selectedPaymentMethod by remember { mutableStateOf("Touch 'n Go") }
@@ -563,7 +590,13 @@ fun LegaEligibilityScreen(
                     // Roof Space SqFt
                     OutlinedTextField(
                         value = roofSpace,
-                        onValueChange = { roofSpace = it.filter { char -> char.isDigit() || char == '.' } },
+                        onValueChange = { input ->
+                            if (input.all { it.isDigit() || it == '.' }) {
+                                if (input.count { it == '.' } <= 1) {
+                                    roofSpace = input
+                                }
+                            }
+                        },
                         label = { Text("Estimated Roof Space (SqFt)") },
                         placeholder = { Text("Example: 1200") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),

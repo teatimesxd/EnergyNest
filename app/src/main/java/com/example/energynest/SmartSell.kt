@@ -64,12 +64,6 @@ fun SmartSellScreen(
     var storedEnergyKwh by remember { mutableFloatStateOf(0f) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // Issue: Power Usage from DB
-    var floorUsageList by remember { mutableStateOf<List<FloorUsage>>(emptyList()) }
-    val totalPowerUsage = remember(floorUsageList) {
-        floorUsageList.sumOf { it.energy_kwh }
-    }
-
     // Manual Sell Bottom Sheet State
     var showSellSheet by remember { mutableStateOf(false) }
     val sellSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -149,22 +143,6 @@ fun SmartSellScreen(
                     }
                 }
             }
-
-            // Fetch Floor Usage (Today's Latest)
-            val floorResult = withContext(Dispatchers.IO) {
-                SupabaseClient.client.from("Floor_usage")
-                    .select {
-                        filter { eq("ic_number", userIc) }
-                        order("created_at", order = Order.DESCENDING)
-                    }
-                    .decodeList<FloorUsage>()
-            }
-
-            // Filter for today's date and get latest per floor name
-            val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
-            floorUsageList = floorResult
-                .filter { it.created_at?.startsWith(todayStr) == true }
-                .distinctBy { it.floor_name }
 
         } catch (e: Exception) {
             // Error handling
@@ -480,120 +458,6 @@ fun SmartSellScreen(
                                 text = "Sell Excess Manually Now",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-
-                // ---- Power Usage Card ----
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = White),
-                    border = BorderStroke(1.dp, CardBorderColor),
-                    elevation = CardDefaults.cardElevation(0.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.arrow_split_icon),
-                                contentDescription = "Power Flow",
-                                tint = TextDark,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Text(
-                                text = "Power Usage",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextDark
-                            )
-                        }
-
-                        if (floorUsageList.isEmpty()) {
-                            Text(
-                                text = "No floor usage data found.",
-                                fontSize = 14.sp,
-                                color = TextGray,
-                                modifier = Modifier.padding(vertical = 10.dp)
-                            )
-                        }
-
-                        floorUsageList.forEachIndexed { index, floor ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .border(1.dp, CardBorderColor, RoundedCornerShape(12.dp))
-                                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(38.dp)
-                                            .clip(CircleShape)
-                                            .background(FloorCircleBg),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = (index + 1).toString(),
-                                            fontSize = 18.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = TextGray
-                                        )
-                                    }
-                                    Column {
-                                        Text(
-                                            text = floor.floor_name,
-                                            fontSize = 15.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = TextDark
-                                        )
-                                        Text(
-                                            text = "${floor.energy_kwh} kWh/day",
-                                            fontSize = 12.sp,
-                                            color = TextGray
-                                        )
-                                    }
-                                }
-
-                                Surface(
-                                    color = if (floor.source.contains("Solar", ignoreCase = true)) BrandGreenColour else Color.Gray,
-                                    shape = CircleShape
-                                ) {
-                                    Text(
-                                        text = floor.source,
-                                        color = White,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        HorizontalDivider(thickness = 1.dp, color = CardBorderColor)
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            Text(
-                                text = "Total : ${String.format(Locale.US, "%.2f", totalPowerUsage)}kWh/day",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextDark
                             )
                         }
                     }
