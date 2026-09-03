@@ -403,7 +403,7 @@ fun LegaEligibilityScreen(
                     ) {
                         OutlinedTextField(
                             value = zipcode,
-                            onValueChange = { input -> zipcode = input.filter { it.isDigit() } },
+                            onValueChange = { zipcode = it.filter { char -> char.isDigit() }.take(5) },
                             label = { Text("Zipcode") },
                             placeholder = { Text("50450") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
