@@ -1,6 +1,13 @@
 package com.example.energynest
 
 import android.util.Log
+import android.widget.Toast
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,22 +21,24 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,575 +46,538 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.SupabaseClient
 import com.example.energynest.ui.theme.EnergyNestTheme
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.auth.Auth
-import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.createSupabaseClient
-import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+
+@Serializable
+private data class ForgotPasswordEmailRecord(
+    val email: String
+)
 
 @Composable
 fun ForgotPasswordPage(
-    recoveryVerified: Boolean = false,
-    supabaseClient: SupabaseClient = remember {
-        createSupabaseClient(
-            supabaseUrl = "https://skanmdzsnfoquwljukfk.supabase.co",
-            supabaseKey = "sb_publishable_LTLKeWepLBaIi8RW3Fd23w_OVLDbLqZ"
-        ) {
-            install(Auth) {
-                host = "reset-password"
-                scheme = "energynest"
-            }
-            install(Postgrest)
-        }
-    },
     onBackToLogin: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
 
-    // PAGE FLOW (0: Enter Email, 1: Check Email, 2: Create New Password)
-    var currentStep by remember {
-        mutableStateOf(if (recoveryVerified) 2 else 0)
-    }
+    var currentStep by remember { mutableStateOf(0) }
 
-    LaunchedEffect(recoveryVerified) {
-        if (recoveryVerified) {
-            currentStep = 2
+    var userEmail by remember { mutableStateOf("") }
+    var emailError by remember { mutableStateOf<String?>(null) }
+
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+
+    var newPasswordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
+
+    var newPasswordError by remember { mutableStateOf<String?>(null) }
+    var confirmPasswordError by remember { mutableStateOf<String?>(null) }
+
+    var isLoading by remember { mutableStateOf(false) }
+
+    // Validate Email Format
+    fun validateEmail(value: String) {
+        userEmail = value
+        emailError = when {
+            value.isBlank() -> "Email address is required"
+            !value.contains("@") -> "Please enter a valid email address"
+            !value.contains(".") -> "Please enter a valid email address"
+            else -> null
         }
     }
 
-    var userEmail by remember { mutableStateOf("") }
-    var step1Error by remember { mutableStateOf(false) }
-    var step1Message by remember { mutableStateOf("") }
-    var newPassword by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var confirmVisible by remember { mutableStateOf(false) }
-    var passwordError by remember { mutableStateOf(false) }
-    var passwordMessage by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var passwordResetSuccess by remember { mutableStateOf(false) }
+    // Validate Password Format
+    fun validateNewPassword(value: String) {
+        newPassword = value
+        newPasswordError = when {
+            value.isBlank() -> "New password is required"
+            value.length < 6 -> "Password must be at least 6 characters"
+            else -> null
+        }
 
-    val primaryGreen = Color(0xFF10B981)
-    val textDark = Color(0xFF1E293B)
-    val textGray = Color(0xFF505F76)
-    val bgGray = Color(0xFFE2E8F0)
-    val errorRed = Color(0xFFEF4444)
-    val borderGray = Color(0xFFD1D5DB)
+        // Check Confirm Password
+        if (confirmPassword.isNotBlank()) {
+            confirmPasswordError = if (confirmPassword != newPassword) {
+                "Passwords do not match"
+            } else {
+                null
+            }
+        }
+    }
 
-    val context = LocalContext.current
-    val scrollState = rememberScrollState()
+    // Validate Confirm Password
+    fun validateConfirmPassword(value: String) {
+        confirmPassword = value
+        confirmPasswordError = when {
+            value.isBlank() -> "Please confirm your password"
+            value != newPassword -> "Passwords do not match"
+            else -> null
+        }
+    }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    fun validatePasswordForm(): Boolean {
+        validateNewPassword(newPassword)
+        validateConfirmPassword(confirmPassword)
+        return newPassword.isNotBlank() &&
+                confirmPassword.isNotBlank() &&
+                newPasswordError == null &&
+                confirmPasswordError == null
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF5F5F5))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // BACK BUTTON
+            IconButton(
+                onClick = {
+                    if (currentStep == 1) {
+                        currentStep = 0
+                        newPassword = ""
+                        confirmPassword = ""
+                        newPasswordError = null
+                        confirmPasswordError = null
+                    } else {
+                        onBackToLogin()
+                    }
+                },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.Black,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            // TITLE
+            Text(
+                text = if (currentStep == 0) "Forgot Password" else "Reset Password",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+
+            // EMPTY SPACE - KEEP TITLE CENTERED
+            Box(modifier = Modifier.size(40.dp))
+        }
+
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = Color.LightGray
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding()
                 .verticalScroll(scrollState)
-                .background(bgGray)
-                .padding(20.dp)
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Color.White,
-                        shape = RoundedCornerShape(24.dp)
-                    )
-                    .padding(horizontal = 28.dp, vertical = 36.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Step 0: Enter Email
-                if (currentStep == 0) {
-                    Text(
-                        text = "Forgot Password?",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textDark
-                    )
-
-                    Text(
-                        text = "Enter your email address and we will send you a password reset link.",
-                        fontSize = 14.sp,
-                        textAlign = TextAlign.Center,
-                        color = Color.Gray
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    OutlinedTextField(
-                        value = userEmail,
-                        onValueChange = {
-                            userEmail = it
-                            step1Error = false
-                            step1Message = ""
-                        },
-                        label = { Text(text = "Email Address") },
-                        placeholder = {
-                            Text(
-                                text = "user@example.com",
-                                color = Color.Gray
-                            )
-                        },
-                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                        isError = step1Error,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
-                            focusedBorderColor = if (step1Error) errorRed else primaryGreen,
-                            unfocusedBorderColor = if (step1Error) errorRed else borderGray,
-                            errorBorderColor = errorRed,
-                            focusedLabelColor = primaryGreen,
-                            unfocusedLabelColor = textGray,
-                            errorLabelColor = errorRed,
-                            cursorColor = primaryGreen
-                        )
-                    )
-
-                    if (step1Message.isNotEmpty()) {
-                        Text(
-                            text = step1Message,
-                            color = if (step1Error) errorRed else primaryGreen,
-                            fontSize = 14.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Button(
-                        onClick = {
-                            if (userEmail.isBlank()) {
-                                step1Error = true
-                                step1Message = "Please enter your email address."
-                            } else if (!userEmail.contains("@") || !userEmail.contains(".")) {
-                                step1Error = true
-                                step1Message = "Please enter a valid email address."
-                            } else {
-                                step1Error = false
-                                step1Message = ""
-                                isLoading = true
-                                coroutineScope.launch {
-                                    try {
-                                        supabaseClient.auth.resetPasswordForEmail(
-                                            email = userEmail,
-                                            redirectUrl = "energynest://reset-password"
-                                        )
-                                        isLoading = false
-                                        currentStep = 1
-                                    } catch (e: Exception) {
-                                        isLoading = false
-                                        step1Error = true
-                                        val errorMessage = e.message?.lowercase() ?: ""
-                                        if (errorMessage.contains("rate limit") ||
-                                            errorMessage.contains("too many requests") ||
-                                            errorMessage.contains("429")
-                                        ) {
-                                            step1Message = "Too many password reset emails have been requested. Please wait for one hour before trying again."
-                                        } else {
-                                            step1Message = "Unable to send the password reset email. Please check your internet connection and try again."
-                                        }
-                                        Log.e("RESET_EMAIL", "Supabase error: ${e.message}", e)
-                                    }
-                                }
-                            }
-                        },
-                        enabled = !isLoading,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = primaryGreen,
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Row(
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Send Reset Link",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Icon(
-                                    painter = painterResource(id = R.drawable.arrow_icon),
-                                    contentDescription = null
-                                )
-                            }
-                        }
-                    }
-
-                    Text(
-                        text = "Back to Login",
-                        color = primaryGreen,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable {
-                            onBackToLogin()
-                        }
-                    )
-                }
-
-                // Step 1: Check Email
-                else if (currentStep == 1) {
-                    Text(
-                        text = "Check Your Email",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textDark
-                    )
-
-                    Text(
-                        text = "We have sent a password reset link to:",
-                        textAlign = TextAlign.Center,
-                        color = Color.Gray
-                    )
-
-                    Text(
-                        text = userEmail,
-                        color = primaryGreen,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Text(
-                        text = "Open your email and click the password reset link. The EnergyNest app should open automatically.",
-                        textAlign = TextAlign.Center,
-                        color = textGray
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Button(
-                        onClick = {
-                            step1Error = false
-                            step1Message = ""
-                            isLoading = true
-                            coroutineScope.launch {
-                                try {
-                                    supabaseClient.auth.resetPasswordForEmail(
-                                        email = userEmail,
-                                        redirectUrl = "energynest://reset-password"
-                                    )
-                                    isLoading = false
-                                    step1Error = false
-                                    step1Message = "A new password reset link has been sent. Please check your email."
-                                } catch (e: Exception) {
-                                    isLoading = false
-                                    step1Error = true
-                                    val errorMessage = e.message?.lowercase() ?: ""
-                                    if (errorMessage.contains("rate limit") ||
-                                        errorMessage.contains("too many requests") ||
-                                        errorMessage.contains("email rate limit") ||
-                                        errorMessage.contains("429")
-                                    ) {
-                                        step1Message = "Too many password reset emails have been requested. Please wait for one hour before trying again."
-                                    } else {
-                                        step1Message = "Unable to resend the password reset email. Please check your internet connection and try again."
-                                    }
-                                    Log.e("RESEND_EMAIL", "Supabase error: ${e.message}", e)
-                                }
-                            }
-                        },
-                        enabled = !isLoading,
-                        colors = ButtonDefaults.buttonColors(containerColor = primaryGreen),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text(text = "Resend Email")
-                        }
-                    }
-
-                    if (step1Message.isNotEmpty()) {
-                        Text(
-                            text = step1Message,
-                            color = if (step1Error) errorRed else primaryGreen,
-                            fontSize = 14.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-
-                // Step 2: Create New Password
-                else if (currentStep == 2) {
-                    Text(
-                        text = "Create New Password",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textDark
-                    )
-
-                    Text(
-                        text = "Please enter your new password.",
-                        textAlign = TextAlign.Center,
-                        color = Color.Gray
-                    )
-
-                    OutlinedTextField(
-                        value = newPassword,
-                        onValueChange = {
-                            newPassword = it
-                            passwordError = false
-                            passwordMessage = ""
-                        },
-                        label = { Text(text = "New Password") },
-                        placeholder = {
-                            Text(
-                                text = "Enter your new password",
-                                color = Color.Gray
-                            )
-                        },
-                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (passwordVisible) R.drawable.visibility else R.drawable.non_visibility
-                                    ),
-                                    contentDescription = "Toggle password visibility"
-                                )
-                            }
-                        },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        isError = passwordError,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
-                            focusedBorderColor = if (passwordError) errorRed else primaryGreen,
-                            unfocusedBorderColor = if (passwordError) errorRed else borderGray,
-                            errorBorderColor = errorRed,
-                            focusedLabelColor = primaryGreen,
-                            unfocusedLabelColor = textGray,
-                            errorLabelColor = errorRed,
-                            cursorColor = primaryGreen
-                        )
-                    )
-
-                    OutlinedTextField(
-                        value = confirmPassword,
-                        onValueChange = {
-                            confirmPassword = it
-                            passwordError = false
-                            passwordMessage = ""
-                        },
-                        label = { Text(text = "Confirm Password") },
-                        placeholder = {
-                            Text(
-                                text = "Enter your new password again",
-                                color = Color.Gray
-                            )
-                        },
-                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        visualTransformation = if (confirmVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { confirmVisible = !confirmVisible }) {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (confirmVisible) R.drawable.visibility else R.drawable.non_visibility
-                                    ),
-                                    contentDescription = "Toggle password visibility"
-                                )
-                            }
-                        },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        isError = passwordError,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
-                            focusedBorderColor = if (passwordError) errorRed else primaryGreen,
-                            unfocusedBorderColor = if (passwordError) errorRed else borderGray,
-                            errorBorderColor = errorRed,
-                            focusedLabelColor = primaryGreen,
-                            unfocusedLabelColor = textGray,
-                            errorLabelColor = errorRed,
-                            cursorColor = primaryGreen
-                        )
-                    )
-
-                    if (passwordMessage.isNotEmpty()) {
-                        Text(
-                            text = passwordMessage,
-                            color = if (passwordError) errorRed else primaryGreen,
-                            fontSize = 14.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    Button(
-                        onClick = {
-                            passwordError = false
-                            passwordMessage = ""
-
-                            if (newPassword.isBlank()) {
-                                passwordError = true
-                                passwordMessage = "Please enter your new password."
-                            } else if (confirmPassword.isBlank()) {
-                                passwordError = true
-                                passwordMessage = "Please confirm your new password."
-                            } else if (newPassword.length < 6) {
-                                passwordError = true
-                                passwordMessage = "Your new password must contain at least 6 characters."
-                            } else if (newPassword != confirmPassword) {
-                                passwordError = true
-                                passwordMessage = "The passwords do not match. Please make sure both passwords are the same."
-                            } else {
-                                isLoading = true
-                                coroutineScope.launch {
-                                    try {
-                                        supabaseClient.auth.updateUser {
-                                            password = newPassword
-                                        }
-                                        isLoading = false
-                                        passwordError = false
-                                        passwordResetSuccess = true
-                                        passwordMessage = "Your password has been reset successfully!"
-                                    } catch (e: Exception) {
-                                        isLoading = false
-                                        passwordError = true
-                                        passwordMessage = "Unable to reset your password. Your reset link may have expired or is invalid. Please request a new password reset link and try again."
-                                        Log.e("RESET_PASSWORD", "Supabase reset password error: ${e.message}", e)
-                                    }
-                                }
-                            }
-                        },
-                        enabled = !isLoading,
-                        colors = ButtonDefaults.buttonColors(containerColor = primaryGreen),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text(
-                                text = "Reset Password",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-
-                    if (passwordError && passwordMessage.contains("expired")) {
-                        Button(
-                            onClick = {
-                                currentStep = 0
-                                passwordError = false
-                                passwordMessage = ""
-                                newPassword = ""
-                                confirmPassword = ""
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = primaryGreen),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(text = "Request New Reset Link")
-                        }
-                    }
-
-                    if (passwordResetSuccess) {
-                        Button(
-                            onClick = {
-                                onBackToLogin()
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = primaryGreen),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(text = "Back to Login")
-                        }
-                    }
-                }
-            }
-        }
-
-        // Top Back Button
-        IconButton(
-            onClick = {
-                when (currentStep) {
-                    1 -> {
-                        currentStep = 0
-                        step1Error = false
-                        step1Message = ""
-                    }
-                    else -> {
-                        onBackToLogin()
-                    }
-                }
-            },
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(start = 16.dp, top = 32.dp)
-                .size(60.dp)
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.back_arrow),
-                contentDescription = "Back",
-                tint = primaryGreen,
-                modifier = Modifier.size(32.dp)
+            val infiniteTransition = rememberInfiniteTransition(label = "logo_pulse")
+            val scale by infiniteTransition.animateFloat(
+                initialValue = 1f,
+                targetValue = 1.04f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "logo_scale"
             )
+
+            Icon(
+                imageVector = ImageVector.vectorResource(id = R.drawable.energynest_icon_1),
+                contentDescription = "EnergyNest Logo",
+                tint = Color.Unspecified,
+                modifier = Modifier
+                    .size(100.dp)
+                    .scale(scale)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = "EnergyNest",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF00B87C),
+                letterSpacing = 0.5.sp
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Email Verification Part
+            if (currentStep == 0) {
+                Text(
+                    text = "Reset your password",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                Text(
+                    text = "Please enter your email in the field",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // EMAIL FIELD
+                OutlinedTextField(
+                    value = userEmail,
+                    onValueChange = { validateEmail(it) },
+                    label = { Text("Email Address") },
+                    placeholder = { Text("Enter your email address") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    isError = emailError != null,
+                    supportingText = {
+                        if (emailError != null) {
+                            Text(
+                                text = emailError!!,
+                                fontSize = 12.sp,
+                                color = Color.Red
+                            )
+                        }
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = if (emailError != null) Color.Red else Color(0xFF4CAF50),
+                        unfocusedBorderColor = Color(0xFFD0D0D0),
+                        focusedLabelColor = if (emailError != null) Color.Red else Color(0xFF4CAF50),
+                        errorBorderColor = Color.Red,
+                        errorLabelColor = Color.Red,
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black,
+                        cursorColor = Color(0xFF4CAF50),
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Verify Email Button
+                val isEmailValid = userEmail.isNotBlank() && emailError == null
+
+                Button(
+                    onClick = {
+                        validateEmail(userEmail)
+                        if (userEmail.isBlank()) return@Button
+                        if (!userEmail.contains("@") || !userEmail.contains(".")) return@Button
+
+                        isLoading = true
+                        coroutineScope.launch {
+                            try {
+                                val emailToCheck = userEmail.trim().lowercase()
+
+                                // Validate email from supabase
+                                val existingUser = SupabaseClient
+                                    .client
+                                    .from("User")
+                                    .select {
+                                        filter { eq("email", emailToCheck) }
+                                    }
+                                    .decodeList<ForgotPasswordEmailRecord>()
+
+                                // If email not found
+                                if (existingUser.isEmpty()) {
+                                    emailError = "This email is not registered."
+                                    Toast.makeText(
+                                        context,
+                                        "This email is not registered.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                    isLoading = false
+                                    return@launch
+                                }
+
+                                emailError = null
+                                Toast.makeText(
+                                    context,
+                                    "Email verified successfully!",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                currentStep = 1
+
+                            } catch (e: Exception) {
+                                Log.e("FORGOT_PASSWORD", "Email verification error: ${e.message}", e)
+                                emailError = "Unable to verify email. Please try again."
+                                Toast.makeText(
+                                    context,
+                                    "Unable to verify email: ${e.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            } finally {
+                                isLoading = false
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    enabled = isEmailValid && !isLoading,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isEmailValid) Color(0xFF00B87C) else Color(0xFFA8D5B0),
+                        disabledContainerColor = Color(0xFFA8D5B0)
+                    ),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = "Verify Email",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White,
+                            letterSpacing = 0.3.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Back
+                Text(
+                    text = "Back to Login",
+                    color = Color(0xFF00B87C),
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { onBackToLogin() }
+                )
+            }
+
+            // Create New Password
+            else {
+                Text(
+                    text = "Create a new password",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = { validateNewPassword(it) },
+                    label = { Text("New Password") },
+                    placeholder = { Text("Enter your new password") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    isError = newPasswordError != null,
+                    visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(
+                            onClick = { newPasswordVisible = !newPasswordVisible },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (newPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = if (newPasswordVisible) "Hide password" else "Show password",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    },
+                    supportingText = {
+                        if (newPasswordError != null) {
+                            Text(
+                                text = newPasswordError!!,
+                                fontSize = 12.sp,
+                                color = Color.Red
+                            )
+                        } else {
+                            Text(
+                                text = "Minimum 6 characters required",
+                                fontSize = 11.sp,
+                                color = Color.Gray
+                            )
+                        }
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = if (newPasswordError != null) Color.Red else Color(0xFF4CAF50),
+                        unfocusedBorderColor = Color(0xFFD0D0D0),
+                        focusedLabelColor = if (newPasswordError != null) Color.Red else Color(0xFF4CAF50),
+                        errorBorderColor = Color.Red,
+                        errorLabelColor = Color.Red,
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black,
+                        cursorColor = Color(0xFF4CAF50),
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Confirm Password
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { validateConfirmPassword(it) },
+                    label = { Text("Confirm Password") },
+                    placeholder = { Text("Re-enter your new password") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    isError = confirmPasswordError != null,
+                    visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(
+                            onClick = { confirmPasswordVisible = !confirmPasswordVisible },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = if (confirmPasswordVisible) "Hide password" else "Show password",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    },
+                    supportingText = {
+                        if (confirmPasswordError != null) {
+                            Text(
+                                text = confirmPasswordError!!,
+                                fontSize = 12.sp,
+                                color = Color.Red
+                            )
+                        }
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = if (confirmPasswordError != null) Color.Red else Color(0xFF4CAF50),
+                        unfocusedBorderColor = Color(0xFFD0D0D0),
+                        focusedLabelColor = if (confirmPasswordError != null) Color.Red else Color(0xFF4CAF50),
+                        errorBorderColor = Color.Red,
+                        errorLabelColor = Color.Red,
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black,
+                        cursorColor = Color(0xFF4CAF50),
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                val isPasswordFormValid =
+                    newPassword.isNotBlank() &&
+                            confirmPassword.isNotBlank() &&
+                            newPasswordError == null &&
+                            confirmPasswordError == null
+
+                // Reset Password Button
+                Button(
+                    onClick = {
+                        if (!validatePasswordForm()) return@Button
+                        isLoading = true
+                        coroutineScope.launch {
+                            try {
+                                val emailToUpdate = userEmail.trim().lowercase()
+
+                                // Update password in table
+                                SupabaseClient
+                                    .client
+                                    .from("User")
+                                    .update(
+                                        mapOf("password" to newPassword)
+                                    ) {
+                                        filter { eq("email", emailToUpdate) }
+                                    }
+
+                                Toast.makeText(
+                                    context,
+                                    "Password reset successfully!",
+                                    Toast.LENGTH_LONG
+                                ).show()
+
+                                // Back
+                                onBackToLogin()
+
+                            } catch (e: Exception) {
+                                Log.e("FORGOT_PASSWORD", "Password reset error: ${e.message}", e)
+                                Toast.makeText(
+                                    context,
+                                    "Password reset failed: ${e.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            } finally {
+                                isLoading = false
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    enabled = isPasswordFormValid && !isLoading,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isPasswordFormValid) Color(0xFF00B87C) else Color(0xFFA8D5B0),
+                        disabledContainerColor = Color(0xFFA8D5B0)
+                    ),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = "Reset Password",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White,
+                            letterSpacing = 0.3.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Back
+                Text(
+                    text = "Back to Login",
+                    color = Color(0xFF00B87C),
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { onBackToLogin() }
+                )
+            }
         }
     }
 }
@@ -614,8 +586,6 @@ fun ForgotPasswordPage(
 @Composable
 fun ForgotPasswordPreview() {
     EnergyNestTheme {
-        ForgotPasswordPage(
-            recoveryVerified = false
-        )
+        ForgotPasswordPage()
     }
 }

@@ -131,24 +131,17 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onBackToLogin = {
                                         navController.popBackStack()
+                                    },
+                                    onNavigateToTerms = {
+                                        navController.navigate(Screen.TermsAndConditions.route){
+                                            popUpTo(Screen.TermsAndConditions.route) { inclusive = true }
+                                        }
                                     }
                                 )
                             }
 
-                            composable(
-                                route = Screen.ForgotPassword.route + "?recoveryVerified={recoveryVerified}",
-                                arguments = listOf(
-                                    navArgument("recoveryVerified") { defaultValue = "false" }
-                                ),
-                                deepLinks = listOf(
-                                    navDeepLink {
-                                        uriPattern = "energynest://reset-password"
-                                    }
-                                )
-                            ) { backStackEntry ->
-                                val recoveryVerified = backStackEntry.arguments?.getString("recoveryVerified") == "true"
+                            composable(Screen.ForgotPassword.route) {
                                 ForgotPasswordPage(
-                                    recoveryVerified = recoveryVerified,
                                     onBackToLogin = {
                                         navController.popBackStack()
                                     }

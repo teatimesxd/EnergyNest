@@ -59,6 +59,7 @@ import androidx.core.content.ContextCompat
 import com.example.SupabaseClient
 import com.example.energynest.ui.theme.EnergyNestTheme
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.runtime.saveable.rememberSaveable
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -168,36 +169,38 @@ fun RegisterPage(
 ) {
     val context = LocalContext.current
 
-    var fullName by remember { mutableStateOf("") }
-    var icNumber by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var phoneNumber by remember { mutableStateOf("") }
-    var street by remember { mutableStateOf("") }
-    var zipcode by remember { mutableStateOf("") }
-    var city by remember { mutableStateOf("") }
-    var state by remember { mutableStateOf("") }
-    var showMapPicker by remember { mutableStateOf(false) }
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var privacyAccepted by remember { mutableStateOf(false) }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var confirmPasswordVisible by remember { mutableStateOf(false) }
+    var fullName by rememberSaveable { mutableStateOf("") }
+    var icNumber by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var phoneNumber by rememberSaveable { mutableStateOf("") }
+    var houseNo by rememberSaveable { mutableStateOf("") }
+    var street by rememberSaveable { mutableStateOf("") }
+    var zipcode by rememberSaveable { mutableStateOf("") }
+    var city by rememberSaveable { mutableStateOf("") }
+    var state by rememberSaveable { mutableStateOf("") }
+    var showMapPicker by rememberSaveable { mutableStateOf(false) }
+    var password by rememberSaveable { mutableStateOf("") }
+    var confirmPassword by rememberSaveable { mutableStateOf("") }
+    var privacyAccepted by rememberSaveable { mutableStateOf(false) }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
 
     var isLoading by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
-    var nameError by remember { mutableStateOf(false) }
-    var icError by remember { mutableStateOf(false) }
-    var emailError by remember { mutableStateOf(false) }
-    var phoneError by remember { mutableStateOf(false) }
-    var streetError by remember { mutableStateOf(false) }
-    var zipcodeError by remember { mutableStateOf(false) }
-    var cityError by remember { mutableStateOf(false) }
-    var stateError by remember { mutableStateOf(false) }
-    var passwordError by remember { mutableStateOf(false) }
-    var confirmError by remember { mutableStateOf(false) }
-    var privacyError by remember { mutableStateOf(false) }
-    var registerMessage by remember { mutableStateOf("") }
+    var nameError by rememberSaveable { mutableStateOf(false) }
+    var icError by rememberSaveable { mutableStateOf(false) }
+    var emailError by rememberSaveable { mutableStateOf(false) }
+    var phoneError by rememberSaveable { mutableStateOf(false) }
+    var houseNoError by rememberSaveable { mutableStateOf(false) }
+    var streetError by rememberSaveable { mutableStateOf(false) }
+    var zipcodeError by rememberSaveable { mutableStateOf(false) }
+    var cityError by rememberSaveable { mutableStateOf(false) }
+    var stateError by rememberSaveable { mutableStateOf(false) }
+    var passwordError by rememberSaveable { mutableStateOf(false) }
+    var confirmError by rememberSaveable { mutableStateOf(false) }
+    var privacyError by rememberSaveable { mutableStateOf(false) }
+    var registerMessage by rememberSaveable { mutableStateOf("") }
 
     // Location Permission
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -222,6 +225,7 @@ fun RegisterPage(
         icError = false
         emailError = false
         phoneError = false
+        houseNoError = false
         streetError = false
         zipcodeError = false
         cityError = false
@@ -250,6 +254,11 @@ fun RegisterPage(
 
         if (phoneNumber.length !in 9..10) {
             phoneError = true
+            valid = false
+        }
+
+        if (houseNo.isBlank()) {
+            houseNoError = true
             valid = false
         }
 
@@ -293,7 +302,7 @@ fun RegisterPage(
                 try {
                     isLoading = true
                     registerMessage = "Creating account..."
-                    
+
                     val cleanEmail = email.trim()
                     val cleanPassword = password.trim()
 
@@ -303,13 +312,13 @@ fun RegisterPage(
                         name = fullName,
                         email = cleanEmail,
                         phoneNumber = phoneNumber,
-                        houseNo = "", 
+                        houseNo = houseNo,
                         street = street,
                         zipCode = zipcode.toDoubleOrNull() ?: 0.0,
                         city = city,
                         state = state,
                         password = cleanPassword,
-                        accountId = null, 
+                        accountId = null,
                         accountStatus = "Active"
                     )
 
@@ -351,10 +360,9 @@ fun RegisterPage(
                         Color.White,
                         shape = RoundedCornerShape(24.dp)
                     )
-                    .verticalScroll(rememberScrollState())
                     .imePadding()
-                    .padding(horizontal = 28.dp, vertical = 36.dp)
-                    .verticalScroll(rememberScrollState()),
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 28.dp, vertical = 36.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -492,6 +500,22 @@ fun RegisterPage(
                     fontWeight = FontWeight.Medium,
                     color = textGray,
                     modifier = Modifier.align(Alignment.Start)
+                )
+
+                OutlinedTextField(
+                    value = houseNo,
+                    onValueChange = {
+                        houseNo = it
+                        houseNoError = false
+                    },
+                    label = { Text("Unit / House No.") },
+                    placeholder = { Text("Example: No. 12A / Lot 34") },
+                    textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = houseNoError,
+                    colors = greenTextFieldColors()
                 )
 
                 OutlinedTextField(
@@ -796,8 +820,9 @@ fun RegisterPage(
                     Text(
                         text = registerMessage,
                         color = if (
-                            registerMessage.contains("successful") ||
-                            registerMessage.contains("picked")
+                            registerMessage.contains("successful", ignoreCase = true) ||
+                            registerMessage.contains("picked", ignoreCase = true) ||
+                            registerMessage.contains("creating", ignoreCase = true)
                         ) {
                             primaryGreen
                         } else {
