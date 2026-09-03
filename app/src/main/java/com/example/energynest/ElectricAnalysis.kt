@@ -291,8 +291,6 @@ fun ElectricAnalysisScreen(
             StatsGrid(report)
             Spacer(Modifier.height(16.dp))
             EnergyConsumptionCard(report = report, selectedPeriod = selectedPeriod, onPeriodSelected = { selectedPeriod = it })
-            Spacer(Modifier.height(16.dp))
-            UsageBreakdownCard(report.usageBreakdown)
             Spacer(Modifier.height(24.dp))
         }
     }

@@ -149,84 +149,44 @@ private fun ServicesHome(
     val faqs = remember {
         listOf(
             FAQData(
-                "How do I track my energy savings?",
-                "Open View Electric Analysis to see your energy usage, estimated savings, and recent performance."
+                "How does the 100kWh storage scale work?",
+                "The system uses a 100kWh base for easy monitoring. If your display shows 4.56kWh, it represents exactly 4% of your total capacity."
             ),
             FAQData(
-                "What is CREAM?",
-                "CREAM is the leasing service used to help customers access renewable energy solutions through a flexible leasing arrangement."
+                "What is Auto-Sell and how does it trigger?",
+                "Auto-Sell automatically sells excess energy to the grid when your battery exceeds 80kWh (80%), helping you earn credits without manual input."
             ),
             FAQData(
-                "How long does customer service take to respond?",
-                "Most general enquiries are reviewed within one business day. Urgent service issues may be prioritised."
+                "Is my LEGA Roof Assessment deposit refundable?",
+                "Yes. The RM 50.00 deposit is fully refundable if your property is found to be ineligible for solar installation after our professional evaluation."
             ),
             FAQData(
-                "How can I book an energy consultation?",
-                "Tap Consultation on this page, select a preferred date and time, and submit the request."
+                "How do I sell energy back to the grid manually?",
+                "Go to the Smart Sell page, use the slider to select an amount, and tap 'Discharge Now'. Your battery will be deducted and credits added instantly."
             ),
             FAQData(
-                "Can I reschedule a consultation?",
-                "Yes. Contact Customer Service with your booking details and preferred new time."
+                "How can I download a receipt for my payment?",
+                "Open Payment History from the menu, tap on any successful transaction, and use the 'Download Receipt' button to generate a professional PDF."
             ),
             FAQData(
-                "How often should solar panels be maintained?",
-                "A routine inspection is recommended periodically to check system performance, connections, and panel condition."
+                "What should I do if my home stats aren't updating?",
+                "You can tap the Refresh icon next to your name on the Home screen to force a real-time sync with the database."
             ),
             FAQData(
-                "Why does my energy production change?",
-                "Production can change because of sunlight, weather, panel condition, system performance, and household usage."
+                "Why can't I withdraw my full credit balance?",
+                "Ensure you have selected a bank and entered exactly 16 digits. The system also uses high-precision rounding to ensure you can withdraw every cent."
             ),
             FAQData(
-                "How do I request solar panel cleaning?",
-                "Tap Cleaning, choose a preferred date, provide your location, and submit the cleaning request."
+                "What is the CREAM Roof yield evaluation?",
+                "It is a professional assessment where we analyze your roof space and shading levels to estimate how much solar income you can generate."
             ),
             FAQData(
-                "What happens during maintenance?",
-                "A technician can inspect the solar panels, connections, battery equipment, and general system condition."
+                "How long does it take for a maintenance booking to be confirmed?",
+                "Once you pay the fee, the status is set to 'Confirmed'. A technician will typically call you within 24 hours to finalize the arrival time."
             ),
             FAQData(
-                "Can I contact support about billing?",
-                "Yes. Customer Service can assist with general billing questions and direct you to the appropriate account information."
-            ),
-            FAQData(
-                "Where can I view my payment history?",
-                "Payment History is available from the main navigation menu of the EnergyNest application."
-            ),
-            FAQData(
-                "Where can I view my electricity analysis?",
-                "Use View Electric Analysis from the main navigation menu to review your electricity information."
-            ),
-            FAQData(
-                "Can I request a service for another date?",
-                "Yes. Choose your preferred date when submitting a consultation, maintenance, or cleaning request."
-            ),
-            FAQData(
-                "What information should I provide to support?",
-                "Providing a short description of the issue can help support assist you faster."
-            ),
-            FAQData(
-                "Do I need to be at home for maintenance?",
-                "It depends on the type of service and access required."
-            ),
-            FAQData(
-                "How do I cancel a service request?",
-                "Contact Customer Service with your request details before the scheduled appointment."
-            ),
-            FAQData(
-                "How can I improve my household energy efficiency?",
-                "Review your electricity analysis, identify high-usage periods, and consider energy-efficient appliances and habits."
-            ),
-            FAQData(
-                "Can I request help choosing a service?",
-                "Yes. Customer Service can explain the available services and help you choose the most suitable option."
-            ),
-            FAQData(
-                "How will I know if my service request is submitted?",
-                "A confirmation message will appear after a request is successfully submitted."
-            ),
-            FAQData(
-                "Where can I get more help?",
-                "Use Customer Service to contact the EnergyNest support team for account, service, or general assistance."
+                "Can I update my house address after registration?",
+                "Yes. Go to your Profile and update your address. The new address will be automatically used for all future LEGA assessments and service bookings."
             )
         )
     }
@@ -1233,7 +1193,7 @@ private fun CustomerServicePage(
                     InfoRow(
                         R.drawable.calendar_month_icon,
                         "Support hours",
-                        "Mon – Fri, 9:00 AM – 5:00 PM"
+                        "9:00 AM – 5:00 PM"
                     )
 
                     SectionTitle(
@@ -2850,84 +2810,44 @@ private fun FAQPage(
 
         listOf(
             FAQData(
-                "How do I track my energy savings?",
-                "Open View Electric Analysis to see your energy usage, estimated savings, and recent performance."
+                "How does the 100kWh storage scale work?",
+                "The system uses a 100kWh base for easy monitoring. If your display shows 4.56kWh, it represents exactly 4% of your total capacity."
             ),
             FAQData(
-                "What is CREAM?",
-                "CREAM is the leasing service used to help customers access renewable energy solutions through a flexible leasing arrangement."
+                "What is Auto-Sell and how does it trigger?",
+                "Auto-Sell automatically sells excess energy to the grid when your battery exceeds 80kWh (80%), helping you earn credits without manual input."
             ),
             FAQData(
-                "How long does customer service take to respond?",
-                "Most general enquiries are reviewed within one business day."
+                "Is my LEGA Roof Assessment deposit refundable?",
+                "Yes. The RM 50.00 deposit is fully refundable if your property is found to be ineligible for solar installation after our professional evaluation."
             ),
             FAQData(
-                "How can I book an energy consultation?",
-                "Tap Consultation on the Services page, select a preferred date and time, and submit the request."
+                "How do I sell energy back to the grid manually?",
+                "Go to the Smart Sell page, use the slider to select an amount, and tap 'Discharge Now'. Your battery will be deducted and credits added instantly."
             ),
             FAQData(
-                "Can I reschedule a consultation?",
-                "Yes. Contact Customer Service with your booking details and preferred new time."
+                "How can I download a receipt for my payment?",
+                "Open Payment History from the menu, tap on any successful transaction, and use the 'Download Receipt' button to generate a professional PDF."
             ),
             FAQData(
-                "How often should solar panels be maintained?",
-                "A routine inspection is recommended periodically."
+                "What should I do if my home stats aren't updating?",
+                "You can tap the Refresh icon next to your name on the Home screen to force a real-time sync with the database."
             ),
             FAQData(
-                "Why does my energy production change?",
-                "Production can change because of sunlight, weather, panel condition, system performance, and household usage."
+                "Why can't I withdraw my full credit balance?",
+                "Ensure you have selected a bank and entered exactly 16 digits. The system also uses high-precision rounding to ensure you can withdraw every cent."
             ),
             FAQData(
-                "How do I request solar panel cleaning?",
-                "Tap Cleaning, choose a preferred date, provide your location, and submit the cleaning request."
+                "What is the CREAM Roof yield evaluation?",
+                "It is a professional assessment where we analyze your roof space and shading levels to estimate how much solar income you can generate."
             ),
             FAQData(
-                "What happens during maintenance?",
-                "A technician can inspect the solar panels, connections, battery equipment, and general system condition."
+                "How long does it take for a maintenance booking to be confirmed?",
+                "Once you pay the fee, the status is set to 'Confirmed'. A technician will typically call you within 24 hours to finalize the arrival time."
             ),
             FAQData(
-                "Can I contact support about billing?",
-                "Yes. Customer Service can assist with general billing questions."
-            ),
-            FAQData(
-                "Where can I view my payment history?",
-                "Payment History is available from the main navigation menu."
-            ),
-            FAQData(
-                "Where can I view my electricity analysis?",
-                "Use View Electric Analysis from the main navigation menu."
-            ),
-            FAQData(
-                "Can I request a service for another date?",
-                "Yes. Choose your preferred date when submitting a service request."
-            ),
-            FAQData(
-                "What information should I provide to support?",
-                "Providing a short description of the issue can help support assist you faster."
-            ),
-            FAQData(
-                "Do I need to be at home for maintenance?",
-                "It depends on the type of service and access required."
-            ),
-            FAQData(
-                "How do I cancel a service request?",
-                "Contact Customer Service with your request details before the scheduled appointment."
-            ),
-            FAQData(
-                "How can I improve my household energy efficiency?",
-                "Review your electricity analysis and identify high-usage periods."
-            ),
-            FAQData(
-                "Can I request help choosing a service?",
-                "Yes. Customer Service can explain the available services."
-            ),
-            FAQData(
-                "How will I know if my service request is submitted?",
-                "A confirmation message will appear after a request is successfully submitted."
-            ),
-            FAQData(
-                "Where can I get more help?",
-                "Use Customer Service to contact the EnergyNest support team."
+                "Can I update my house address after registration?",
+                "Yes. Go to your Profile and update your address. The new address will be automatically used for all future LEGA assessments and service bookings."
             )
         )
     }
