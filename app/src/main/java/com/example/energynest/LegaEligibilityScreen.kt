@@ -55,6 +55,12 @@ private val BorderLight = Color(0xFFE2E8F0)
 private val White = Color.White
 private val LightGreenBg = Color(0xFFD8F3E5)
 
+// SST rate used across the app: 6% of the subtotal.
+// Kept identical to the rate used in PaymentHistoryScreen.kt (and
+// ServicesScreen.kt) so the amount shown here at checkout is always the
+// same amount shown later in Payment History.
+private const val SST_RATE = 0.06
+
 @Composable
 fun LegaEligibilityScreen(
     userIc: String,
@@ -79,6 +85,15 @@ fun LegaEligibilityScreen(
     var showPaymentPage by remember { mutableStateOf(false) }
     var isSubmitted by remember { mutableStateOf(false) }
     var isSavingToDb by remember { mutableStateOf(false) }
+
+    // Deposit fee breakdown: base fee + 6% SST = total charged.
+    // This MUST match the calculation used in PaymentHistoryScreen.kt
+    // (tax = subtotal * SST_RATE, total = subtotal + tax) so the amount
+    // shown here at checkout is identical to the amount shown later in
+    // Payment History.
+    val depositBaseFee = 50.0
+    val depositSst = remember { depositBaseFee * SST_RATE }
+    val depositTotal = remember { depositBaseFee + depositSst }
 
     // Location Permission Launcher
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -135,7 +150,7 @@ fun LegaEligibilityScreen(
                         tint = BrandGreen,
                         modifier = Modifier.size(64.dp)
                     )
-                    
+
                     Text(
                         text = "Assessment Submitted!",
                         fontSize = 24.sp,
@@ -143,9 +158,9 @@ fun LegaEligibilityScreen(
                         color = TextDark,
                         textAlign = TextAlign.Center
                     )
-                    
+
                     Text(
-                        text = "Your RM 50.00 deposit via $selectedPaymentMethod has been processed successfully. Please wait 1-3 working days for the evaluation result.",
+                        text = "Your RM ${String.format("%.2f", depositTotal)} deposit via $selectedPaymentMethod has been processed successfully. Please wait 1-3 working days for the evaluation result.",
                         fontSize = 15.sp,
                         color = TextGray,
                         textAlign = TextAlign.Center,
@@ -153,9 +168,9 @@ fun LegaEligibilityScreen(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(32.dp))
-            
+
             Button(
                 onClick = onCompleteAssessment,
                 modifier = Modifier
@@ -190,15 +205,16 @@ fun LegaEligibilityScreen(
                     val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(now)
 
                     // 1. Create Payment Record
+                    // subtotal/sst/amount now match what Payment History will show.
                     val payment = PaymentData(
                         title = "LEGA Roof Assessment Deposit",
                         referenceNo = UUID.randomUUID().toString(),
                         method = selectedPaymentMethod,
                         date = dateStr,
                         time = timeStr,
-                        subtotal = 50.0,
-                        sst = 0.0,
-                        amount = 50.0,
+                        subtotal = depositBaseFee,
+                        sst = depositSst,
+                        amount = depositTotal,
                         status = true
                     )
 
@@ -252,11 +268,11 @@ fun LegaEligibilityScreen(
 
                     showPaymentPage = false
                     isSubmitted = true
-                    
+
                 } catch (e: Exception) {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(context, "Database Error: ${e.message}", Toast.LENGTH_LONG).show()
-                        showPaymentPage = false 
+                        showPaymentPage = false
                     }
                 } finally {
                     isSavingToDb = false
@@ -352,7 +368,7 @@ fun LegaEligibilityScreen(
                                 fontSize = 15.sp
                             )
                             Text(
-                                text = "Submit property details and place a RM 50 deposit to request a rooftop solar yield evaluation.",
+                                text = "Submit property details and place a RM ${String.format("%.2f", depositTotal)} deposit to request a rooftop solar yield evaluation.",
                                 fontSize = 13.sp,
                                 color = TextGray
                             )
@@ -483,7 +499,7 @@ fun LegaEligibilityScreen(
                         )
                         var expanded by remember { mutableStateOf(false) }
                         val propertyTypes = listOf("Terrace", "Semi-D", "Bungalow")
-                        
+
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -596,43 +612,82 @@ fun LegaEligibilityScreen(
                             colors = CardDefaults.cardColors(containerColor = White),
                             border = BorderStroke(1.dp, BorderLight)
                         ) {
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Payment,
-                                        contentDescription = null,
-                                        tint = BrandGreen,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                    Column {
-                                        Text(
-                                            text = "Roof Inspection Deposit",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = TextDark
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Payment,
+                                            contentDescription = null,
+                                            tint = BrandGreen,
+                                            modifier = Modifier.size(24.dp)
                                         )
-                                        Text(
-                                            text = "Refundable if ineligible",
-                                            fontSize = 11.sp,
-                                            color = TextGray
-                                        )
+                                        Column {
+                                            Text(
+                                                text = "Roof Inspection Deposit",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = TextDark
+                                            )
+                                            Text(
+                                                text = "Refundable if ineligible",
+                                                fontSize = 11.sp,
+                                                color = TextGray
+                                            )
+                                        }
                                     }
+                                    Text(
+                                        text = "RM ${String.format("%.2f", depositTotal)}",
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = BrandGreen
+                                    )
                                 }
-                                Text(
-                                    text = "RM 50.00",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = BrandGreen
-                                )
+
+                                HorizontalDivider(color = BorderLight)
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "Subtotal",
+                                        fontSize = 12.sp,
+                                        color = TextGray
+                                    )
+                                    Text(
+                                        text = "RM ${String.format("%.2f", depositBaseFee)}",
+                                        fontSize = 12.sp,
+                                        color = TextGray
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "SST 6%",
+                                        fontSize = 12.sp,
+                                        color = TextGray
+                                    )
+                                    Text(
+                                        text = "RM ${String.format("%.2f", depositSst)}",
+                                        fontSize = 12.sp,
+                                        color = TextGray
+                                    )
+                                }
                             }
                         }
 
@@ -725,7 +780,7 @@ fun LegaEligibilityScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = BrandGreen)
                 ) {
                     Text(
-                        text = if (isSubmitted) "Return to Home" else "Proceed to Payment (RM 50.00)",
+                        text = if (isSubmitted) "Return to Home" else "Proceed to Payment (RM ${String.format("%.2f", depositTotal)})",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = White

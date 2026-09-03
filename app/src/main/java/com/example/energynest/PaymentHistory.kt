@@ -113,6 +113,9 @@ data class PaymentDetail(
     val total: Double
 )
 
+// SST rate used across the app: 6% of the subtotal
+private const val SST_RATE = 0.06
+
 @Composable
 fun PaymentHistoryScreen(
     userIc: String,
@@ -204,11 +207,17 @@ fun PaymentHistoryScreen(
     }
 }
 
+// Helper to convert DB Payment to History Item
+// SST is now always calculated as 6% of the subtotal, and total = subtotal + SST.
 private fun createHistoryItem(p: PaymentData): PaymentHistoryItem {
+    val subtotal = p.subtotal
+    val calculatedSst = subtotal * SST_RATE
+    val calculatedTotal = subtotal + calculatedSst
+
     return PaymentHistoryItem(
         id = p.paymentId ?: 0,
         title = p.title,
-        amount = p.amount,
+        amount = calculatedTotal,
         date = p.date,
         isCredit = p.title.contains("Sell", ignoreCase = true) || 
                    p.title.contains("Discharge", ignoreCase = true) || 
@@ -220,9 +229,9 @@ private fun createHistoryItem(p: PaymentData): PaymentHistoryItem {
             mobileNumber = "", 
             paymentMethod = p.method,
             item = p.title,
-            subtotal = p.subtotal,
-            tax = p.sst,
-            total = p.amount
+            subtotal = subtotal,
+            tax = calculatedSst,
+            total = calculatedTotal
         )
     )
 }
