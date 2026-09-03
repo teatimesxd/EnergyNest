@@ -108,15 +108,19 @@ private fun buildReport(
     val savings = record.estimatedCost
     val avgDaily = record.averageDaily
 
-    // Comparison against the previous month in the dropdown list
-    val genChange = percentChange(totalGen, previousRecord?.totalEnergyKwh)
-    val savingsChange = percentChange(savings, previousRecord?.estimatedCost)
-    
-    // Filter home history specifically for THIS month
+    // --- REALISTIC COMPARISON LOGIC ---
+    // Instead of comparing sums (which causes 900% jumps), we compare Daily Averages.
+    // 1. Get the number of days for the currently selected month
     val monthHistory = allHomeHistory.filter {
         val d = try { LocalDate.parse(it.date.trim()) } catch(e:Exception) { null }
         d?.format(DateTimeFormatter.ofPattern("MMM yyyy", Locale.US)) == record.monthLabel
     }.sortedBy { it.date }
+    val dayCount = monthHistory.size.coerceAtLeast(1)
+
+    // 2. Compare Current Daily Avg vs Previous Month's Daily Avg
+    val genChange = percentChange(avgDaily, previousRecord?.averageDaily)
+    val savingsChange = percentChange(savings / dayCount, (previousRecord?.estimatedCost ?: 0.0) / 30.0)
+    val carbonChange = percentChange(carbon / dayCount, (previousRecord?.co2Emission ?: 0.0) / 30.0)
 
     val usageBreakdown = listOf(
         "Air Conditioning" to (record.acPercent ?: 0),
@@ -149,8 +153,7 @@ private fun buildReport(
         weeklyValues.add(weeklyMap[weekNum] ?: 0.0)
     }
 
-    // --- MONTHLY DATA (Trend) ---
-    // Placeholder for simplified trend line
+    // MONTHLY DATA
     val monthlySeries = ChartSeries(listOf(totalGen), listOf(record.monthLabel.take(3)))
 
     return MonthlyReport(
@@ -158,11 +161,11 @@ private fun buildReport(
         totalGenerated = totalGen,
         totalGeneratedChangePct = genChange,
         carbonReduced = carbon,
-        carbonReducedChangePct = percentChange(carbon, previousRecord?.co2Emission),
+        carbonReducedChangePct = carbonChange,
         todaySavingsRM = savings,
         todaySavingsChangePct = savingsChange,
         averageDaily = avgDaily,
-        averageDailyChangePct = percentChange(avgDaily, previousRecord?.averageDaily),
+        averageDailyChangePct = genChange,
         totalUsageKwh = totalGen,
         usageBreakdown = usageBreakdown,
         daily = ChartSeries(dailyValues, dailyLabels),
@@ -176,9 +179,8 @@ private fun formatAvgDaily(kwh: Double): String = String.format(Locale.US, "%.1f
 private fun formatCost(rm: Double): String = "RM " + String.format(Locale.US, "%,.2f", rm)
 private fun formatCo2(kg: Double): String = "${kg.toInt()} kg"
 private fun formatPercent(pct: Double): String {
-    // Cap at 100% for display as requested
-    val absPct = abs(pct).coerceAtMost(100.0)
-    return String.format(Locale.US, "%.1f%%", absPct)
+    // REMOVED CAP: Show real calculated math
+    return String.format(Locale.US, "%.1f%%", abs(pct))
 }
 
 @Composable
