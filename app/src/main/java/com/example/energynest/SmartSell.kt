@@ -63,7 +63,7 @@ fun SmartSellScreen(
     var storedEnergyPercent by remember { mutableFloatStateOf(0f) }
     var storedEnergyKwh by remember { mutableFloatStateOf(0f) }
     var isLoading by remember { mutableStateOf(true) }
-    
+
     // Issue: Power Usage from DB
     var floorUsageList by remember { mutableStateOf<List<FloorUsage>>(emptyList()) }
     val totalPowerUsage = remember(floorUsageList) {
@@ -72,15 +72,14 @@ fun SmartSellScreen(
 
     // Manual Sell Bottom Sheet State
     var showSellSheet by remember { mutableStateOf(false) }
-    val sellSheetState = rememberModalBottomSheetState()
+    val sellSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var sellAmountKwh by remember { mutableFloatStateOf(0.5f) }
-    val tnbRatePerKwh = 0.38 
+    val tnbRatePerKwh = 0.38
     val maxEnergyCapacity = 100.0 // Issue 2: Limit to 100kWh
 
     // Withdrawal Bottom Sheet State
     var showWithdrawSheet by remember { mutableStateOf(false) }
-    val withdrawSheetState = rememberModalBottomSheetState()
-    val withdrawScrollState = rememberScrollState()
+    val withdrawSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var withdrawAmountText by remember { mutableStateOf("") }
     var selectedPaymentMethod by remember { mutableStateOf("Touch 'n Go eWallet") }
     var accountOrPhoneText by remember { mutableStateOf("") }
@@ -118,7 +117,7 @@ fun SmartSellScreen(
             if (homeResult != null) {
                 latestHomeDate = homeResult.date
                 storedEnergyKwh = homeResult.storedEnergyKwh.toFloat()
-                
+
                 // Fixed: Calculate percentage based on 100kWh capacity
                 // 4.56 kWh / 100.0 * 100 = 4.56%
                 storedEnergyPercent = (storedEnergyKwh / 100f * 100f).coerceIn(0f, 100f)
@@ -160,7 +159,7 @@ fun SmartSellScreen(
                     }
                     .decodeList<FloorUsage>()
             }
-            
+
             // Filter for today's date and get latest per floor name
             val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
             floorUsageList = floorResult
@@ -173,7 +172,7 @@ fun SmartSellScreen(
             isLoading = false
         }
     }
-    
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -390,7 +389,7 @@ fun SmartSellScreen(
 
                             Switch(
                                 checked = autoSellEnabled,
-                                onCheckedChange = { isChecked -> 
+                                onCheckedChange = { isChecked ->
                                     autoSellEnabled = isChecked
                                     coroutineScope.launch {
                                         try {
@@ -402,7 +401,7 @@ fun SmartSellScreen(
                                                         filter { eq("ic_number", userIc) }
                                                     }
                                             }
-                                            
+
                                             // Trigger auto-sell immediately if turned ON and battery > 80%
                                             if (isChecked && storedEnergyPercent > 80f) {
                                                 val excessKwh = (storedEnergyKwh * ((storedEnergyPercent - 80f) / storedEnergyPercent)).toDouble()
@@ -615,8 +614,8 @@ fun SmartSellScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(scrollState)
                     .imePadding()
+                    .verticalScroll(scrollState)
                     .padding(horizontal = 24.dp)
                     .padding(bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp)
@@ -780,11 +779,12 @@ fun SmartSellScreen(
             sheetState = withdrawSheetState,
             containerColor = White
         ) {
+            val withdrawScrollState = rememberScrollState()
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(withdrawScrollState)
                     .imePadding()
+                    .verticalScroll(withdrawScrollState)
                     .padding(horizontal = 24.dp)
                     .padding(bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -910,9 +910,9 @@ fun SmartSellScreen(
                                     color = if (selectedPaymentMethod == method) BrandGreenColour else CardBorderColor,
                                     shape = RoundedCornerShape(10.dp)
                                 )
-                                .clickable(enabled = !isSavingToDb) { 
-                                    selectedPaymentMethod = method 
-                                    accountOrPhoneText = "" 
+                                .clickable(enabled = !isSavingToDb) {
+                                    selectedPaymentMethod = method
+                                    accountOrPhoneText = ""
                                     withdrawError = null
                                 }
                                 .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -927,8 +927,8 @@ fun SmartSellScreen(
                             )
                             RadioButton(
                                 selected = (selectedPaymentMethod == method),
-                                onClick = { 
-                                    selectedPaymentMethod = method 
+                                onClick = {
+                                    selectedPaymentMethod = method
                                     accountOrPhoneText = ""
                                     withdrawError = null
                                 },
@@ -950,7 +950,7 @@ fun SmartSellScreen(
                             fontWeight = FontWeight.Bold,
                             color = TextDark
                         )
-                        
+
                         Box(modifier = Modifier.fillMaxWidth()) {
                             OutlinedButton(
                                 onClick = { showBankDropdown = true },
@@ -974,11 +974,11 @@ fun SmartSellScreen(
                             ) {
                                 bankList.forEach { bank ->
                                     DropdownMenuItem(
-                                        text = { 
+                                        text = {
                                             Text(
                                                 text = bank,
                                                 color = Color.Black // Issue 1: Fix selection color
-                                            ) 
+                                            )
                                         },
                                         onClick = {
                                             selectedBank = bank
@@ -996,7 +996,7 @@ fun SmartSellScreen(
                         selectedPaymentMethod.contains("Bank", ignoreCase = true) -> "Bank Account Number (16 digits)"
                         else -> "Account Detail"
                     }
-                    
+
                     val placeholder = when {
                         selectedPaymentMethod.contains("Touch 'n Go", ignoreCase = true) -> "0123456789"
                         selectedPaymentMethod.contains("Bank", ignoreCase = true) -> "1234 5678 1234 5678"
@@ -1018,7 +1018,7 @@ fun SmartSellScreen(
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
                         enabled = !isSavingToDb,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        keyboardOptions = KeyboardOptions(keyboardType = if (selectedPaymentMethod.contains("Bank")) KeyboardType.Number else KeyboardType.Phone),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.Black,
                             unfocusedTextColor = Color.Black,
@@ -1048,7 +1048,7 @@ fun SmartSellScreen(
                             onClick = {
                                 val amount = withdrawAmountText.toDoubleOrNull()
                                 val isBank = selectedPaymentMethod.contains("Bank")
-                                
+
                                 // Issue 2: Fixed decimal precision comparison
                                 val roundedAmount = if (amount != null) (Math.round(amount * 100.0) / 100.0) else 0.0
                                 val roundedBalance = Math.round(accumulatedCredits * 100.0) / 100.0
@@ -1196,9 +1196,9 @@ private suspend fun performSellTransaction(
             icNumber = ic,
             paymentId = paymentResult.paymentId,
             accumulatedCredit = currentCredits + earnings,
-            amountKwh = amountKwh, 
+            amountKwh = amountKwh,
             estimatedBillCredit = earnings,
-            autoSellEnabled = globalAutoEnabled 
+            autoSellEnabled = globalAutoEnabled
         )
 
         withContext(Dispatchers.IO) {
