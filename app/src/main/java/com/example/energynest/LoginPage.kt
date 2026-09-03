@@ -42,10 +42,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.content.Context
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.material3.CircularProgressIndicator
 
 // Check Email Format
 fun isValidLoginEmail(email: String): Boolean {
@@ -62,6 +64,7 @@ fun LoginPage(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    var isCheckingSession by remember { mutableStateOf(true) }
 
     val sharedPreferences = remember {
         context.getSharedPreferences(
@@ -83,24 +86,44 @@ fun LoginPage(
         ) ?: ""
 
         if (isLoggedIn && savedIc.isNotEmpty()) {
+
             try {
+
                 val savedUser = withContext(Dispatchers.IO) {
-                    SupabaseClient.client.from("User").select {
+                    SupabaseClient.client
+                        .from("User")
+                        .select {
                             filter {
                                 eq("ic_number", savedIc)
                             }
-                        }.decodeSingleOrNull<User>()
+                        }
+                        .decodeSingleOrNull<User>()
                 }
 
                 if (savedUser != null) {
+                    // Restore temporary session
                     UserSession.user = savedUser
+                    // Navigate directly to Home
                     onLoginSuccess()
+                } else {
+                    // Cached user no longer exists
+                    sharedPreferences.edit()
+                        .clear()
+                        .apply()
                 }
-
             } catch (e: Exception) {
+                isCheckingSession = false
             }
+        } else {
+            isCheckingSession = false
         }
     }
+
+    if (isCheckingSession) {
+        SessionLoadingScreen()
+        return
+    }
+
 
     var account by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -285,7 +308,7 @@ fun LoginPage(
                     coroutineScope.launch {
                         try {
                             isLoading = true
-                            loginMessage = "Checking credentials..."
+                            loginMessage = "Checking..."
 
                             val cleanEmail = account.trim()
                             val cleanPassword = password.trim()
@@ -398,6 +421,37 @@ fun LoginPage(
                 modifier = Modifier.clickable {
                     onNavigateToRegister()
                 }
+            )
+        }
+    }
+}
+
+@Composable
+fun SessionLoadingScreen() {
+
+    val primaryGreen = Color(0xFF10B981)
+
+    Box(
+        modifier = Modifier.fillMaxSize().background(Color.White),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.energynest_icon_1),
+                contentDescription = "EnergyNest logo",
+                modifier = Modifier.size(160.dp)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            CircularProgressIndicator(color = primaryGreen)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(text = "Loading...",
+                fontSize = 16.sp,
+                color = Color.Gray
             )
         }
     }
