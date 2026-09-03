@@ -63,22 +63,32 @@ fun SmartSellScreen(
     var storedEnergyPercent by remember { mutableFloatStateOf(0f) }
     var storedEnergyKwh by remember { mutableFloatStateOf(0f) }
     var isLoading by remember { mutableStateOf(true) }
+    
+    // Issue: Power Usage from DB
+    var floorUsageList by remember { mutableStateOf<List<FloorUsage>>(emptyList()) }
+    val totalPowerUsage = remember(floorUsageList) {
+        floorUsageList.sumOf { it.energy_kwh }
+    }
 
     // Manual Sell Bottom Sheet State
     var showSellSheet by remember { mutableStateOf(false) }
     val sellSheetState = rememberModalBottomSheetState()
     var sellAmountKwh by remember { mutableFloatStateOf(0.5f) }
     val tnbRatePerKwh = 0.38 
+    val maxEnergyCapacity = 100.0 // Issue 2: Limit to 100kWh
 
     // Withdrawal Bottom Sheet State
     var showWithdrawSheet by remember { mutableStateOf(false) }
     val withdrawSheetState = rememberModalBottomSheetState()
+    val withdrawScrollState = rememberScrollState()
     var withdrawAmountText by remember { mutableStateOf("") }
     var selectedPaymentMethod by remember { mutableStateOf("Touch 'n Go eWallet") }
     var accountOrPhoneText by remember { mutableStateOf("") }
     var withdrawSuccess by remember { mutableStateOf(false) }
     var withdrawError by remember { mutableStateOf<String?>(null) }
     var isSavingToDb by remember { mutableStateOf(false) }
+
+    var latestHomeDate by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         try {
@@ -93,7 +103,7 @@ fun SmartSellScreen(
             }
             if (sellResult != null) {
                 accumulatedCredits = sellResult.accumulatedCredit
-                autoSellEnabled = sellResult.autoSellEnabled ?: false
+                autoSellEnabled = sellResult.autoSellEnabled
             }
 
             val homeResult = withContext(Dispatchers.IO) {
@@ -106,11 +116,57 @@ fun SmartSellScreen(
                     .firstOrNull()
             }
             if (homeResult != null) {
-                storedEnergyPercent = homeResult.storedEnergyPct.toFloat()
+                latestHomeDate = homeResult.date
                 storedEnergyKwh = homeResult.storedEnergyKwh.toFloat()
+                
+                // Fixed: Calculate percentage based on 100kWh capacity
+                // 4.56 kWh / 100.0 * 100 = 4.56%
+                storedEnergyPercent = (storedEnergyKwh / 100f * 100f).coerceIn(0f, 100f)
+
                 // Update slider max safely
                 sellAmountKwh = if (storedEnergyKwh > 0.5f) 5.0f.coerceIn(0.5f, storedEnergyKwh) else 0.5f
+
+                // Issue 2: Auto Sell Logic (Run once on enter if enabled)
+                if (autoSellEnabled && (storedEnergyKwh > 80f)) { // 80% is 80kWh now
+                    val excessKwh = (storedEnergyKwh - 80f).toDouble()
+                    if (excessKwh >= 0.1) {
+                        coroutineScope.launch {
+                            performSellTransaction(
+                                ic = userIc,
+                                amountKwh = excessKwh,
+                                currentCredits = accumulatedCredits,
+                                currentKwh = storedEnergyKwh.toDouble(),
+                                currentPct = storedEnergyPercent.toDouble(),
+                                isAuto = true,
+                                globalAutoEnabled = true,
+                                homeDate = homeResult.date,
+                                onResult = { newCredits: Double, newKwh: Double, newPct: Double ->
+                                    accumulatedCredits = newCredits
+                                    storedEnergyKwh = newKwh.toFloat()
+                                    storedEnergyPercent = newPct.toFloat()
+                                }
+                            )
+                        }
+                    }
+                }
             }
+
+            // Fetch Floor Usage (Today's Latest)
+            val floorResult = withContext(Dispatchers.IO) {
+                SupabaseClient.client.from("Floor_usage")
+                    .select {
+                        filter { eq("ic_number", userIc) }
+                        order("created_at", order = Order.DESCENDING)
+                    }
+                    .decodeList<FloorUsage>()
+            }
+            
+            // Filter for today's date and get latest per floor name
+            val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+            floorUsageList = floorResult
+                .filter { it.created_at?.startsWith(todayStr) == true }
+                .distinctBy { it.floor_name }
+
         } catch (e: Exception) {
             // Error handling
         } finally {
@@ -118,9 +174,6 @@ fun SmartSellScreen(
         }
     }
     
-    val totalPowerUsage = 20
-    val floors = remember { listOf("Floor 1", "Floor 2") }
-
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -349,6 +402,28 @@ fun SmartSellScreen(
                                                         filter { eq("ic_number", userIc) }
                                                     }
                                             }
+                                            
+                                            // Trigger auto-sell immediately if turned ON and battery > 80%
+                                            if (isChecked && storedEnergyPercent > 80f) {
+                                                val excessKwh = (storedEnergyKwh * ((storedEnergyPercent - 80f) / storedEnergyPercent)).toDouble()
+                                                if (excessKwh >= 0.1) {
+                                                    performSellTransaction(
+                                                        ic = userIc,
+                                                        amountKwh = excessKwh,
+                                                        currentCredits = accumulatedCredits,
+                                                        currentKwh = storedEnergyKwh.toDouble(),
+                                                        currentPct = storedEnergyPercent.toDouble(),
+                                                        isAuto = true,
+                                                        globalAutoEnabled = true,
+                                                        homeDate = latestHomeDate ?: SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()),
+                                                        onResult = { newCredits: Double, newKwh: Double, newPct: Double ->
+                                                            accumulatedCredits = newCredits
+                                                            storedEnergyKwh = newKwh.toFloat()
+                                                            storedEnergyPercent = newPct.toFloat()
+                                                        }
+                                                    )
+                                                }
+                                            }
                                         } catch (e: Exception) {
                                             // Handle error
                                         }
@@ -443,7 +518,16 @@ fun SmartSellScreen(
                             )
                         }
 
-                        floors.forEachIndexed { index, floor ->
+                        if (floorUsageList.isEmpty()) {
+                            Text(
+                                text = "No floor usage data found.",
+                                fontSize = 14.sp,
+                                color = TextGray,
+                                modifier = Modifier.padding(vertical = 10.dp)
+                            )
+                        }
+
+                        floorUsageList.forEachIndexed { index, floor ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -470,20 +554,27 @@ fun SmartSellScreen(
                                             color = TextGray
                                         )
                                     }
-                                    Text(
-                                        text = floor,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = TextDark
-                                    )
+                                    Column {
+                                        Text(
+                                            text = floor.floor_name,
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextDark
+                                        )
+                                        Text(
+                                            text = "${floor.energy_kwh} kWh/day",
+                                            fontSize = 12.sp,
+                                            color = TextGray
+                                        )
+                                    }
                                 }
 
                                 Surface(
-                                    color = BrandGreenColour,
+                                    color = if (floor.source.contains("Solar", ignoreCase = true)) BrandGreenColour else Color.Gray,
                                     shape = CircleShape
                                 ) {
                                     Text(
-                                        text = "Solar",
+                                        text = floor.source,
                                         color = White,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
@@ -500,7 +591,7 @@ fun SmartSellScreen(
                             horizontalArrangement = Arrangement.End
                         ) {
                             Text(
-                                text = "Total : ${totalPowerUsage}kWh/day",
+                                text = "Total : ${String.format(Locale.US, "%.2f", totalPowerUsage)}kWh/day",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextDark
@@ -568,7 +659,7 @@ fun SmartSellScreen(
                         value = sellAmountKwh.coerceIn(0.5f, maxOf(0.5f, storedEnergyKwh)),
                         onValueChange = { sellAmountKwh = it },
                         valueRange = 0.5f..maxOf(0.5f, storedEnergyKwh),
-                        steps = if (storedEnergyKwh > 0.5f) 22 else 0,
+                        steps = if (storedEnergyKwh > 0.5f) ((maxOf(0.5f, storedEnergyKwh) - 0.5f) / 0.1f).toInt() else 0,
                         enabled = !isSavingToDb,
                         colors = SliderDefaults.colors(
                             thumbColor = BrandGreenColour,
@@ -639,58 +730,30 @@ fun SmartSellScreen(
                             }
 
                             coroutineScope.launch {
-                                try {
-                                    isSavingToDb = true
-                                    val now = Date()
-                                    val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now)
-                                    val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(now)
-                                    
-                                    val payment = PaymentData(
-                                        title = "Manual Energy Discharge",
-                                        referenceNo = UUID.randomUUID().toString(),
-                                        method = "Grid Sell",
-                                        date = dateStr,
-                                        time = timeStr,
-                                        subtotal = estimatedEarnings,
-                                        sst = 0.0,
-                                        amount = estimatedEarnings,
-                                        status = true
-                                    )
-
-                                    val paymentResult = withContext(Dispatchers.IO) {
-                                        SupabaseClient.client.from("Payment")
-                                            .insert(payment) { select() }
-                                            .decodeSingle<PaymentData>()
+                                isSavingToDb = true
+                                performSellTransaction(
+                                    ic = userIc,
+                                    amountKwh = sellAmountKwh.toDouble(),
+                                    currentCredits = accumulatedCredits,
+                                    currentKwh = storedEnergyKwh.toDouble(),
+                                    currentPct = storedEnergyPercent.toDouble(),
+                                    isAuto = false,
+                                    globalAutoEnabled = autoSellEnabled,
+                                    homeDate = latestHomeDate ?: SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()),
+                                    onResult = { newCredits: Double, newKwh: Double, newPct: Double ->
+                                        accumulatedCredits = newCredits
+                                        storedEnergyKwh = newKwh.toFloat()
+                                        storedEnergyPercent = newPct.toFloat()
+                                        showSellSheet = false
+                                        Toast.makeText(context, "✅ Energy discharge successful!", Toast.LENGTH_SHORT).show()
+                                    },
+                                    onError = { msg: String ->
+                                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                    },
+                                    onComplete = {
+                                        isSavingToDb = false
                                     }
-
-                                    if (paymentResult.paymentId == null) {
-                                        throw Exception("Failed to retrieve Payment ID")
-                                    }
-
-                                    val smartSellEntry = SmartSellData(
-                                        icNumber = userIc,
-                                        paymentId = paymentResult.paymentId,
-                                        accumulatedCredit = accumulatedCredits + estimatedEarnings,
-                                        amountKwh = sellAmountKwh.toDouble(),
-                                        estimatedBillCredit = estimatedEarnings,
-                                        autoSellEnabled = autoSellEnabled
-                                    )
-
-                                    withContext(Dispatchers.IO) {
-                                        SupabaseClient.client.from("Smart_Sell")
-                                            .insert(smartSellEntry)
-                                    }
-
-                                    accumulatedCredits += estimatedEarnings
-                                    showSellSheet = false
-                                    Toast.makeText(context, "✅ Energy discharge successful!", Toast.LENGTH_SHORT).show()
-                                } catch (e: Exception) {
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(context, "Database Error: ${e.message}", Toast.LENGTH_LONG).show()
-                                    }
-                                } finally {
-                                    isSavingToDb = false
-                                }
+                                )
                             }
                         },
                         enabled = !isSavingToDb,
@@ -720,6 +783,8 @@ fun SmartSellScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .verticalScroll(withdrawScrollState)
+                    .imePadding()
                     .padding(horizontal = 24.dp)
                     .padding(bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -873,22 +938,78 @@ fun SmartSellScreen(
                         }
                     }
 
+                    // Issue 1: Bank Selection
+                    var showBankDropdown by remember { mutableStateOf(false) }
+                    val bankList = listOf("Maybank", "CIMB Bank", "Public Bank", "RHB Bank", "Hong Leong Bank", "AmBank")
+                    var selectedBank by remember { mutableStateOf("") }
+
+                    if (selectedPaymentMethod.contains("Bank", ignoreCase = true)) {
+                        Text(
+                            text = "Select Bank",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextDark
+                        )
+                        
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedButton(
+                                onClick = { showBankDropdown = true },
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, if (selectedBank.isEmpty()) Color.Red else BrandGreenColour)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(if (selectedBank.isEmpty()) "Choose your bank" else selectedBank, color = if (selectedBank.isEmpty()) Color.Gray else Color.Black)
+                                    Icon(painterResource(id = R.drawable.arrow_drop_down), null, tint = Color.Black)
+                                }
+                            }
+                            DropdownMenu(
+                                expanded = showBankDropdown,
+                                onDismissRequest = { showBankDropdown = false },
+                                modifier = Modifier.fillMaxWidth(0.85f).background(White)
+                            ) {
+                                bankList.forEach { bank ->
+                                    DropdownMenuItem(
+                                        text = { 
+                                            Text(
+                                                text = bank,
+                                                color = Color.Black // Issue 1: Fix selection color
+                                            ) 
+                                        },
+                                        onClick = {
+                                            selectedBank = bank
+                                            showBankDropdown = false
+                                            withdrawError = null
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     val label = when {
                         selectedPaymentMethod.contains("Touch 'n Go", ignoreCase = true) -> "Phone Number"
-                        selectedPaymentMethod.contains("Bank", ignoreCase = true) -> "Bank Account Number"
+                        selectedPaymentMethod.contains("Bank", ignoreCase = true) -> "Bank Account Number (16 digits)"
                         else -> "Account Detail"
                     }
                     
                     val placeholder = when {
                         selectedPaymentMethod.contains("Touch 'n Go", ignoreCase = true) -> "0123456789"
-                        selectedPaymentMethod.contains("Bank", ignoreCase = true) -> "1234567890"
+                        selectedPaymentMethod.contains("Bank", ignoreCase = true) -> "1234 5678 1234 5678"
                         else -> "Enter details"
                     }
 
                     OutlinedTextField(
                         value = accountOrPhoneText,
-                        onValueChange = { 
-                            accountOrPhoneText = it.filter { char -> char.isDigit() }
+                        onValueChange = { input ->
+                            val digitsOnly = input.filter { char -> char.isDigit() }
+                            // Limit bank account to 16, phone to 11
+                            val limit = if (selectedPaymentMethod.contains("Bank")) 16 else 11
+                            accountOrPhoneText = digitsOnly.take(limit)
                             withdrawError = null
                         },
                         label = { Text(label) },
@@ -926,15 +1047,29 @@ fun SmartSellScreen(
                         Button(
                             onClick = {
                                 val amount = withdrawAmountText.toDoubleOrNull()
+                                val isBank = selectedPaymentMethod.contains("Bank")
+                                
+                                // Issue 2: Fixed decimal precision comparison
+                                val roundedAmount = if (amount != null) (Math.round(amount * 100.0) / 100.0) else 0.0
+                                val roundedBalance = Math.round(accumulatedCredits * 100.0) / 100.0
+                                val withdrawAmount = roundedAmount
+                                val availableBalance = roundedBalance
+
                                 when {
                                     amount == null || amount <= 0 -> {
                                         withdrawError = "Please enter a valid amount."
                                     }
-                                    amount > accumulatedCredits -> {
+                                    withdrawAmount > (availableBalance + 0.001) -> {
                                         withdrawError = "Amount exceeds available balance."
                                     }
+                                    isBank && selectedBank.isEmpty() -> {
+                                        withdrawError = "Please select a bank."
+                                    }
+                                    isBank && accountOrPhoneText.length != 16 -> {
+                                        withdrawError = "Bank account must be 16 digits."
+                                    }
                                     accountOrPhoneText.isBlank() -> {
-                                        withdrawError = "Please enter your $label."
+                                        withdrawError = "Please enter your details."
                                     }
                                     else -> {
                                         coroutineScope.launch {
@@ -945,14 +1080,14 @@ fun SmartSellScreen(
                                                 val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(now)
 
                                                 val payment = PaymentData(
-                                                    title = "Withdrawal - $selectedPaymentMethod",
+                                                    title = "Withdrawal - ${if(isBank) selectedBank else selectedPaymentMethod}",
                                                     referenceNo = UUID.randomUUID().toString(),
                                                     method = selectedPaymentMethod,
                                                     date = dateStr,
                                                     time = timeStr,
-                                                    subtotal = amount,
+                                                    subtotal = roundedAmount,
                                                     sst = 0.0,
-                                                    amount = amount,
+                                                    amount = roundedAmount,
                                                     status = true
                                                 )
 
@@ -962,7 +1097,7 @@ fun SmartSellScreen(
                                                         .decodeSingle<PaymentData>()
                                                 }
 
-                                                val newBalance = accumulatedCredits - amount
+                                                val newBalance = Math.max(0.0, (Math.round((accumulatedCredits - roundedAmount) * 100.0) / 100.0))
                                                 withContext(Dispatchers.IO) {
                                                     SupabaseClient.client.from("Smart_Sell")
                                                         .insert(SmartSellData(
@@ -970,7 +1105,7 @@ fun SmartSellScreen(
                                                             paymentId = paymentResult.paymentId,
                                                             accumulatedCredit = newBalance,
                                                             amountKwh = 0.0,
-                                                            estimatedBillCredit = -amount,
+                                                            estimatedBillCredit = -roundedAmount,
                                                             autoSellEnabled = autoSellEnabled
                                                         ))
                                                 }
@@ -1011,4 +1146,88 @@ fun SmartSellScreen(
 @Composable
 fun PreviewSmartSellScreen() {
     SmartSellScreen(userIc = "123456789012")
+}
+
+private suspend fun performSellTransaction(
+    ic: String,
+    amountKwh: Double,
+    currentCredits: Double,
+    currentKwh: Double,
+    currentPct: Double,
+    isAuto: Boolean,
+    globalAutoEnabled: Boolean,
+    homeDate: String,
+    onResult: (Double, Double, Double) -> Unit,
+    onError: (String) -> Unit = {},
+    onComplete: () -> Unit = {}
+) {
+    try {
+        val tnbRatePerKwh = 0.38
+        val earnings = amountKwh * tnbRatePerKwh
+        val now = Date()
+        val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now)
+        val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(now)
+
+        val payment = PaymentData(
+            title = if (isAuto) "Auto Energy Discharge" else "Manual Energy Discharge",
+            referenceNo = UUID.randomUUID().toString(),
+            method = "Grid Sell",
+            date = dateStr,
+            time = timeStr,
+            subtotal = earnings,
+            sst = 0.0,
+            amount = earnings,
+            status = true
+        )
+
+        // 1. Insert Payment
+        val paymentResult = withContext(Dispatchers.IO) {
+            SupabaseClient.client.from("Payment")
+                .insert(payment) { select() }
+                .decodeSingle<PaymentData>()
+        }
+
+        if (paymentResult.paymentId == null) {
+            throw Exception("Failed to retrieve Payment ID")
+        }
+
+        // 2. Insert Smart Sell record (Issue 3 fix: keep globalAutoEnabled)
+        val smartSellEntry = SmartSellData(
+            icNumber = ic,
+            paymentId = paymentResult.paymentId,
+            accumulatedCredit = currentCredits + earnings,
+            amountKwh = amountKwh, 
+            estimatedBillCredit = earnings,
+            autoSellEnabled = globalAutoEnabled 
+        )
+
+        withContext(Dispatchers.IO) {
+            SupabaseClient.client.from("Smart_Sell")
+                .insert(smartSellEntry)
+        }
+
+        // 3. Deduct from Home Stats (Issue 1 fix: use date filter)
+        val newKwh = (currentKwh - amountKwh).coerceAtLeast(0.0)
+        // Fixed capacity to 100kWh: Percentage is numerically equal to kWh (e.g. 4.56kWh = 4.56%)
+        val newPct = newKwh.coerceIn(0.0, 100.0)
+
+        withContext(Dispatchers.IO) {
+            SupabaseClient.client.from("Home")
+                .update({
+                    set("stored_energy_kwh", newKwh)
+                    set("stored_energy_pct", newPct)
+                }) {
+                    filter {
+                        eq("ic_number", ic)
+                        eq("date", homeDate)
+                    }
+                }
+        }
+
+        onResult(currentCredits + earnings, newKwh, newPct)
+    } catch (e: Exception) {
+        onError("Database Error: ${e.message}")
+    } finally {
+        onComplete()
+    }
 }

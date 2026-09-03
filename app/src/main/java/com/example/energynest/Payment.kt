@@ -7,6 +7,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -1508,6 +1510,7 @@ fun VisaPaymentPage(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(
                     horizontal = 20.dp,
                     vertical = 16.dp
@@ -1952,7 +1955,7 @@ fun VisaPaymentPage(
             }
 
             Spacer(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.height(20.dp)
             )
 
             Button(
@@ -2363,6 +2366,7 @@ fun MastercardPaymentPage(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(
                     horizontal = 20.dp,
                     vertical = 16.dp
@@ -2807,7 +2811,7 @@ fun MastercardPaymentPage(
             }
 
             Spacer(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.height(20.dp)
             )
 
             Button(
@@ -3126,6 +3130,7 @@ fun TnGPaymentPage(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(
                     horizontal = 20.dp,
                     vertical = 24.dp
@@ -3524,7 +3529,7 @@ fun TnGPaymentPage(
             }
 
             Spacer(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.height(20.dp)
             )
 
             Button(

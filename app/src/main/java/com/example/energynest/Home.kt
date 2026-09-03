@@ -25,6 +25,7 @@ import com.example.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -47,16 +48,18 @@ fun HomeScreen(
 ) {
     var stats by remember { mutableStateOf(cachedStats ?: HomeStats(icNumber = "demo", date = "", generatedKwh = 0.0, storedEnergyPct = 0.0, storedEnergyKwh = 0.0, estimatedUsageDuration = 0.0, co2Emission = 0.0, totalSavings = 0.0)) }
     var isLoading by remember { mutableStateOf(cachedStats == null) }
+    var isRefreshing by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
 
-    suspend fun fetchHomeStats() {
-        if (cachedStats != null) {
+    suspend fun fetchHomeStats(forceRefresh: Boolean = false) {
+        if (!forceRefresh && cachedStats != null) {
             isLoading = false
             return
         }
 
         try {
-            isLoading = true
+            if (forceRefresh) isRefreshing = true else isLoading = true
             errorMessage = null
 
             val result = withContext(Dispatchers.IO) {
@@ -77,6 +80,7 @@ fun HomeScreen(
             errorMessage = "Fetch failed: " + e.message
         } finally {
             isLoading = false
+            isRefreshing = false
         }
     }
 
@@ -137,8 +141,7 @@ fun HomeScreen(
                                 tint = TextDark
                             )
                         }
-
-                        // ---- Profile Icon ----
+                        
                         IconButton(onClick = onProfileClick) {
                             Icon(
                                 painter = painterResource(id = R.drawable.profile_icon),
@@ -158,12 +161,39 @@ fun HomeScreen(
                         .padding(horizontal = 20.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    Text(
-                        text = "Hello, Homeowner",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextDark
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Hello, Homeowner",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextDark
+                        )
+
+                        // Issue 3: Refresh Button moved here
+                        IconButton(
+                            onClick = { 
+                                coroutineScope.launch { 
+                                    fetchHomeStats(forceRefresh = true) 
+                                } 
+                            },
+                            enabled = !isRefreshing
+                        ) {
+                            if (isRefreshing) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = BrandGreenColour)
+                            } else {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.history_icon),
+                                    contentDescription = "Refresh",
+                                    tint = BrandGreenColour,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                    }
 
                     Box(
                         modifier = Modifier
@@ -255,8 +285,11 @@ fun HomeScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
+                                // Issue: Use 100kWh limit for display calculation
+                                // Numerically kWh = Percentage (e.g. 4.56kWh = 4%)
+                                val displayPct = stats.storedEnergyKwh.coerceIn(0.0, 100.0)
                                 Text(
-                                    text = "${stats.storedEnergyPct.toInt()}%",
+                                    text = "${displayPct.toInt()}%",
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = TextDark
@@ -270,7 +303,7 @@ fun HomeScreen(
                         }
 
                         LinearProgressIndicator(
-                            progress = { (stats.storedEnergyPct / 100f).toFloat() },
+                            progress = { (stats.storedEnergyKwh.coerceIn(0.0, 100.0) / 100f).toFloat() },
                             modifier = Modifier
                                 .width(100.dp)
                                 .height(8.dp)

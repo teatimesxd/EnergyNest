@@ -47,9 +47,9 @@ data class SmartSellData(
     @SerialName("ic_number") val icNumber: String,
     @SerialName("payment_id") val paymentId: Int? = null,
     @SerialName("accumulated_credit") val accumulatedCredit: Double,
-    @SerialName("amountkwh") val amountKwh: Double, // SQL is amountkwh
+    @SerialName("amountkwh") val amountKwh: Double, 
     @SerialName("estimated_bill_credit") val estimatedBillCredit: Double,
-    @SerialName("auto_Sell_Enabled") val autoSellEnabled: Boolean? = false // SQL is auto_Sell_Enabled
+    @SerialName("auto_Sell_Enabled") val autoSellEnabled: Boolean
 )
 
 /**
@@ -90,10 +90,10 @@ data class PaymentData(
 data class CreamData(
     @SerialName("cream_id") val creamId: Int? = null,
     @SerialName("payment_id") val paymentId: Int? = null,
-    @SerialName("iseligible") val isEligible: Boolean, // SQL is iseligible
+    @SerialName("iseligible") val isEligible: Boolean, 
     @SerialName("estimated_income_min") val estimatedIncomeMin: Double,
     @SerialName("estimated_income_max") val estimatedIncomeMax: Double,
-    @SerialName("shading_level") val shadingLevel: String // SQL is shading_level
+    @SerialName("shading_level") val shadingLevel: String 
 )
 
 /**
@@ -104,7 +104,7 @@ data class PropertyData(
     @SerialName("ic_number") val icNumber: String,
     @SerialName("cream_id") val creamId: Int,
     @SerialName("property_type") val propertyType: String,
-    @SerialName("roofspacesqft") val roofSpaceSqFt: Double // SQL is roofspacesqft
+    @SerialName("roofspacesqft") val roofSpaceSqFt: Double 
 )
 
 /**
@@ -144,4 +144,17 @@ data class FeedbackData(
     @SerialName("content") val content: String,
     @SerialName("date") val date: String,
     @SerialName("time") val time: String
+)
+
+/**
+ * Maps to 'Floor_usage' table in Supabase
+ */
+@Serializable
+data class FloorUsage(
+    @SerialName("usage_id") val usage_id: Int? = null,
+    @SerialName("ic_number") val ic_number: String,
+    @SerialName("floor_name") val floor_name: String,
+    @SerialName("energy_kwh") val energy_kwh: Double,
+    @SerialName("source") val source: String = "Solar",
+    @SerialName("created_at") val created_at: String? = null
 )

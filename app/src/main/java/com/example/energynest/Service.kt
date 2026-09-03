@@ -51,6 +51,11 @@ private val White = Color.White
 private val IconBg = Color(0xFFE8ECE9)
 private val BorderLight = Color(0xFFE2E8F0)
 
+// SST rate used across the app: 6% of the subtotal.
+// Kept identical to the rate used in PaymentHistoryScreen.kt so the amount
+// shown at checkout always matches the amount shown later in Payment History.
+private const val SST_RATE = 0.06
+
 private enum class ServicePage {
     HOME,
     CUSTOMER_SERVICE,
@@ -1367,7 +1372,7 @@ private fun ConsultationPage(
     var showTimePicker by remember {
         mutableStateOf(false)
     }
-    
+
     var isSaving by remember { mutableStateOf(false) }
 
     ServiceFormPage(
@@ -1443,7 +1448,7 @@ private fun ConsultationPage(
                         val service = ServiceData(
                             type = "Consultation",
                             notes = "Energy consultation request",
-                            location = "Remote/Online", 
+                            location = "Remote/Online",
                             status = "Pending",
                             isFree = true,
                             paymentId = null
@@ -1603,8 +1608,17 @@ private fun MaintenancePage(
     var showPaymentPage by remember {
         mutableStateOf(false)
     }
-    
+
     var isSaving by remember { mutableStateOf(false) }
+
+    // Fee breakdown: base fee + 6% SST = total charged.
+    // This MUST match the calculation used in PaymentHistoryScreen.kt
+    // (tax = subtotal * SST_RATE, total = subtotal + tax) so the amount
+    // shown here at checkout is identical to the amount shown later in
+    // Payment History.
+    val maintenanceBaseFee = 50.0
+    val maintenanceSst = remember { maintenanceBaseFee * SST_RATE }
+    val maintenanceTotal = remember { maintenanceBaseFee + maintenanceSst }
 
     val paymentMethods = listOf(
         PaymentMethodType(
@@ -1635,15 +1649,16 @@ private fun MaintenancePage(
                     val timeStrLocal = SimpleDateFormat("HH:mm:ss", Locale.US).format(now)
 
                     // 1. Create Payment Record
+                    // subtotal/sst/amount now match what Payment History will show.
                     val payment = PaymentData(
                         title = "Solar Maintenance Fee",
                         referenceNo = UUID.randomUUID().toString(),
                         method = selectedPaymentMethod,
                         date = dateStrLocal,
                         time = timeStrLocal,
-                        subtotal = 50.0,
-                        sst = 0.0,
-                        amount = 50.0,
+                        subtotal = maintenanceBaseFee,
+                        sst = maintenanceSst,
+                        amount = maintenanceTotal,
                         status = true
                     )
 
@@ -1658,7 +1673,7 @@ private fun MaintenancePage(
                         paymentId = paymentResult.paymentId,
                         type = "Maintenance",
                         notes = issue,
-                        location = "User Registered Address", 
+                        location = "User Registered Address",
                         status = "Confirmed",
                         isFree = false
                     )
@@ -1676,7 +1691,7 @@ private fun MaintenancePage(
                         }
                         return@launch
                     }
-                    
+
                     val formattedDate = try {
                         val inputFormat = SimpleDateFormat("dd MMM yyyy", Locale.US)
                         val outputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
@@ -1706,7 +1721,7 @@ private fun MaintenancePage(
                 } catch (e: Exception) {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(context, "Database Error: ${e.message}", Toast.LENGTH_LONG).show()
-                        showPaymentPage = false 
+                        showPaymentPage = false
                     }
                 } finally {
                     isSaving = false
@@ -1732,7 +1747,7 @@ private fun MaintenancePage(
                 onPaymentSuccess = onPaymentSuccessAction
             )
         }
-        
+
         if (isSaving) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = BrandGreenColour)
@@ -1832,53 +1847,93 @@ private fun MaintenancePage(
                 elevation = CardDefaults.cardElevation(0.0.dp)
             ) {
 
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    horizontalArrangement =
-                        Arrangement.SpaceBetween,
-                    verticalAlignment =
-                        Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
 
                     Row(
-                        verticalAlignment =
-                            Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement =
-                            Arrangement.spacedBy(10.dp)
+                            Arrangement.SpaceBetween,
+                        verticalAlignment =
+                            Alignment.CenterVertically
                     ) {
 
-                        Icon(
-                            imageVector = Icons.Filled.Payment,
-                            contentDescription = null,
-                            tint = BrandGreenColour,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        Row(
+                            verticalAlignment =
+                                Alignment.CenterVertically,
+                            horizontalArrangement =
+                                Arrangement.spacedBy(10.dp)
+                        ) {
 
-                        Column {
-
-                            Text(
-                                text = "Maintenance Fee",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextDark
+                            Icon(
+                                imageVector = Icons.Filled.Payment,
+                                contentDescription = null,
+                                tint = BrandGreenColour,
+                                modifier = Modifier.size(24.dp)
                             )
 
-                            Text(
-                                text = "Payable to confirm booking",
-                                fontSize = 11.sp,
-                                color = TextGray
-                            )
+                            Column {
+
+                                Text(
+                                    text = "Maintenance Fee",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextDark
+                                )
+
+                                Text(
+                                    text = "Payable to confirm booking",
+                                    fontSize = 11.sp,
+                                    color = TextGray
+                                )
+                            }
                         }
+
+                        Text(
+                            text = "RM ${String.format("%.2f", maintenanceTotal)}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BrandGreenColour
+                        )
                     }
 
-                    Text(
-                        text = "RM 50.00",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = BrandGreenColour
-                    )
+                    HorizontalDivider(color = BorderLight)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Subtotal",
+                            fontSize = 12.sp,
+                            color = TextGray
+                        )
+                        Text(
+                            text = "RM ${String.format("%.2f", maintenanceBaseFee)}",
+                            fontSize = 12.sp,
+                            color = TextGray
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "SST 6%",
+                            fontSize = 12.sp,
+                            color = TextGray
+                        )
+                        Text(
+                            text = "RM ${String.format("%.2f", maintenanceSst)}",
+                            fontSize = 12.sp,
+                            color = TextGray
+                        )
+                    }
                 }
             }
 
@@ -1996,7 +2051,7 @@ private fun MaintenancePage(
                 if (submitted) {
                     "BOOKING CONFIRMED"
                 } else {
-                    "PROCEED TO PAYMENT (RM 50.00)"
+                    "PROCEED TO PAYMENT (RM ${String.format("%.2f", maintenanceTotal)})"
                 },
             isLoading = isSaving,
             enabled = isFormValid && !submitted,
@@ -2048,7 +2103,7 @@ private fun MaintenancePage(
 
                     Text(
                         text =
-                            "Your RM 50.00 fee via $selectedPaymentMethod has been processed. Your appointment will be confirmed by support.",
+                            "Your RM ${String.format("%.2f", maintenanceTotal)} fee via $selectedPaymentMethod has been processed. Your appointment will be confirmed by support.",
                         fontSize = 12.sp,
                         color = TextGray,
                         textAlign = TextAlign.Center,
@@ -2159,8 +2214,17 @@ private fun CleaningPage(
     var showPaymentPage by remember {
         mutableStateOf(false)
     }
-    
+
     var isSaving by remember { mutableStateOf(false) }
+
+    // Fee breakdown: base fee + 6% SST = total charged.
+    // This MUST match the calculation used in PaymentHistoryScreen.kt
+    // (tax = subtotal * SST_RATE, total = subtotal + tax) so the amount
+    // shown here at checkout is identical to the amount shown later in
+    // Payment History.
+    val cleaningBaseFee = 100.0
+    val cleaningSst = remember { cleaningBaseFee * SST_RATE }
+    val cleaningTotal = remember { cleaningBaseFee + cleaningSst }
 
     val paymentMethods = listOf(
         PaymentMethodType(
@@ -2191,15 +2255,16 @@ private fun CleaningPage(
                     val timeStrLocal = SimpleDateFormat("HH:mm:ss", Locale.US).format(now)
 
                     // 1. Create Payment Record
+                    // subtotal/sst/amount now match what Payment History will show.
                     val payment = PaymentData(
                         title = "Solar Cleaning Fee",
                         referenceNo = UUID.randomUUID().toString(),
                         method = selectedPaymentMethod,
                         date = dateStrLocal,
                         time = timeStrLocal,
-                        subtotal = 100.0,
-                        sst = 0.0,
-                        amount = 100.0,
+                        subtotal = cleaningBaseFee,
+                        sst = cleaningSst,
+                        amount = cleaningTotal,
                         status = true
                     )
 
@@ -2232,7 +2297,7 @@ private fun CleaningPage(
                         }
                         return@launch
                     }
-                    
+
                     val formattedDate = try {
                         val inputFormat = SimpleDateFormat("dd MMM yyyy", Locale.US)
                         val outputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
@@ -2262,7 +2327,7 @@ private fun CleaningPage(
                 } catch (e: Exception) {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(context, "Database Error: ${e.message}", Toast.LENGTH_LONG).show()
-                        showPaymentPage = false 
+                        showPaymentPage = false
                     }
                 } finally {
                     isSaving = false
@@ -2371,58 +2436,98 @@ private fun CleaningPage(
                 elevation = CardDefaults.cardElevation(0.0.dp)
             ) {
 
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    horizontalArrangement =
-                        Arrangement.SpaceBetween,
-                    verticalAlignment =
-                        Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
 
                     Row(
-                        verticalAlignment =
-                            Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement =
-                            Arrangement.spacedBy(10.dp)
+                            Arrangement.SpaceBetween,
+                        verticalAlignment =
+                            Alignment.CenterVertically
                     ) {
 
-                        Icon(
-                            imageVector =
-                                Icons.Filled.Payment,
-                            contentDescription = null,
-                            tint = BrandGreenColour,
-                            modifier =
-                                Modifier.size(24.dp)
-                        )
+                        Row(
+                            verticalAlignment =
+                                Alignment.CenterVertically,
+                            horizontalArrangement =
+                                Arrangement.spacedBy(10.dp)
+                        ) {
 
-                        Column {
-
-                            Text(
-                                text =
-                                    "Solar Panel Cleaning Fee",
-                                fontSize = 14.sp,
-                                fontWeight =
-                                    FontWeight.SemiBold,
-                                color = TextDark
+                            Icon(
+                                imageVector =
+                                    Icons.Filled.Payment,
+                                contentDescription = null,
+                                tint = BrandGreenColour,
+                                modifier =
+                                    Modifier.size(24.dp)
                             )
 
-                            Text(
-                                text =
-                                    "Payable to confirm booking",
-                                fontSize = 11.sp,
-                                color = TextGray
-                            )
+                            Column {
+
+                                Text(
+                                    text =
+                                        "Solar Panel Cleaning Fee",
+                                    fontSize = 14.sp,
+                                    fontWeight =
+                                        FontWeight.SemiBold,
+                                    color = TextDark
+                                )
+
+                                Text(
+                                    text =
+                                        "Payable to confirm booking",
+                                    fontSize = 11.sp,
+                                    color = TextGray
+                                )
+                            }
                         }
+
+                        Text(
+                            text = "RM ${String.format("%.2f", cleaningTotal)}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BrandGreenColour
+                        )
                     }
 
-                    Text(
-                        text = "RM 100.00",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = BrandGreenColour
-                    )
+                    HorizontalDivider(color = BorderLight)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Subtotal",
+                            fontSize = 12.sp,
+                            color = TextGray
+                        )
+                        Text(
+                            text = "RM ${String.format("%.2f", cleaningBaseFee)}",
+                            fontSize = 12.sp,
+                            color = TextGray
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "SST 6%",
+                            fontSize = 12.sp,
+                            color = TextGray
+                        )
+                        Text(
+                            text = "RM ${String.format("%.2f", cleaningSst)}",
+                            fontSize = 12.sp,
+                            color = TextGray
+                        )
+                    }
                 }
             }
 
@@ -2540,7 +2645,7 @@ private fun CleaningPage(
                 if (submitted) {
                     "BOOKING CONFIRMED"
                 } else {
-                    "PROCEED TO PAYMENT (RM 100.00)"
+                    "PROCEED TO PAYMENT (RM ${String.format("%.2f", cleaningTotal)})"
                 },
             isLoading = isSaving,
             enabled = isFormValid && !submitted,
@@ -2592,7 +2697,7 @@ private fun CleaningPage(
 
                     Text(
                         text =
-                            "Your RM 100.00 fee via $selectedPaymentMethod has been processed. Your appointment will be confirmed by support.",
+                            "Your RM ${String.format("%.2f", cleaningTotal)} fee via $selectedPaymentMethod has been processed. Your appointment will be confirmed by support.",
                         fontSize = 12.sp,
                         color = TextGray,
                         textAlign = TextAlign.Center,
