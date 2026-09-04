@@ -65,11 +65,12 @@ fun SmartSellScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    var accumulatedCredits by remember { mutableDoubleStateOf(0.0) }
-    var autoSellEnabled by remember { mutableStateOf(false) }
-    var storedEnergyPercent by remember { mutableFloatStateOf(0f) }
-    var storedEnergyKwh by remember { mutableFloatStateOf(0f) }
-    var isLoading by remember { mutableStateOf(true) }
+    // Keying state by userIc ensures data is cleared when the user logs out/switches
+    var accumulatedCredits by remember(userIc) { mutableDoubleStateOf(0.0) }
+    var autoSellEnabled by remember(userIc) { mutableStateOf(false) }
+    var storedEnergyPercent by remember(userIc) { mutableFloatStateOf(0f) }
+    var storedEnergyKwh by remember(userIc) { mutableFloatStateOf(0f) }
+    var isLoading by remember(userIc) { mutableStateOf(true) }
 
     // Manual Sell Bottom Sheet State
     var showSellSheet by remember { mutableStateOf(false) }
@@ -90,7 +91,8 @@ fun SmartSellScreen(
 
     var latestHomeDate by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(userIc) {
+        isLoading = true
         try {
             val sellResult = withContext(Dispatchers.IO) {
                 SupabaseClient.client.from("Smart_Sell")

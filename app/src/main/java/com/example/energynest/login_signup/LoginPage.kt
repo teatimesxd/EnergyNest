@@ -115,6 +115,7 @@ fun LoginPage(
                     sharedPreferences.edit()
                         .clear()
                         .apply()
+                    isCheckingSession = false
                 }
             } catch (e: Exception) {
                 isCheckingSession = false

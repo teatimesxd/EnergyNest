@@ -33,7 +33,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-private var cachedStats: HomeStats? = null
 
 private val Background = Color(0xFFF6F8F7)
 private val TextDark = Color(0xFF191C1E)
@@ -49,18 +48,16 @@ fun HomeScreen(
     onOpenDrawer: () -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
-    var stats by remember { mutableStateOf(cachedStats ?: HomeStats(icNumber = "demo", date = "", generatedKwh = 0.0, storedEnergyPct = 0.0, storedEnergyKwh = 0.0, estimatedUsageDuration = 0.0, co2Emission = 0.0, totalSavings = 0.0)) }
-    var isLoading by remember { mutableStateOf(cachedStats == null) }
+    // Reset state to prevent seeing previous user's data
+    var stats by remember(userIc) { 
+        mutableStateOf(HomeStats(icNumber = userIc, date = "", generatedKwh = 0.0, storedEnergyPct = 0.0, storedEnergyKwh = 0.0, estimatedUsageDuration = 0.0, co2Emission = 0.0, totalSavings = 0.0)) 
+    }
+    var isLoading by remember(userIc) { mutableStateOf(true) }
     var isRefreshing by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
     suspend fun fetchHomeStats(forceRefresh: Boolean = false) {
-        if (!forceRefresh && cachedStats != null) {
-            isLoading = false
-            return
-        }
-
         try {
             if (forceRefresh) isRefreshing = true else isLoading = true
             errorMessage = null
@@ -77,7 +74,6 @@ fun HomeScreen(
 
             if (result != null) {
                 stats = result
-                cachedStats = result
             }
         } catch (e: Exception) {
             errorMessage = "Fetch failed: " + e.message
@@ -87,7 +83,7 @@ fun HomeScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(userIc) {
         fetchHomeStats()
     }
 

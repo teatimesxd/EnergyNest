@@ -60,10 +60,12 @@ fun FeedbackPage(
     onBackClick: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
-    var feedback by remember { mutableStateOf("") }
-    var feedbackError by remember { mutableStateOf(false) }
-    var feedbackMessage by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
+    
+    // Keying state by userIc ensures data is cleared when the user logs out/switches
+    var feedback by remember(userIc) { mutableStateOf("") }
+    var feedbackError by remember(userIc) { mutableStateOf(false) }
+    var feedbackMessage by remember(userIc) { mutableStateOf("") }
+    var isLoading by remember(userIc) { mutableStateOf(false) }
 
     val primaryGreen = Color(0xFF10B981)
     val textDark = Color(0xFF1E293B)

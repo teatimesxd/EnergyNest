@@ -127,8 +127,10 @@ fun PaymentHistoryScreen(
     val context = LocalContext.current
     var currentScreen by remember { mutableStateOf("list") }
     var selectedItemId by remember { mutableStateOf<Int?>(null) }
-    var historyItems by remember { mutableStateOf<List<PaymentHistoryItem>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    
+    // Keying state by userIc ensures data is cleared when the user logs out/switches
+    var historyItems by remember(userIc) { mutableStateOf<List<PaymentHistoryItem>>(emptyList()) }
+    var isLoading by remember(userIc) { mutableStateOf(true) }
 
     LaunchedEffect(userIc) {
         if (userIc.isEmpty()) {

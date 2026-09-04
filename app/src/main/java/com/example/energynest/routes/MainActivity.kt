@@ -262,6 +262,12 @@ class MainActivity : ComponentActivity() {
                                         navController.navigate(Screen.Login.route) {
                                             popUpTo(0) { inclusive = true }
                                         }
+                                    },
+                                    onDeleteAccountConfirmed = {
+                                        UserSession.logout()
+                                        navController.navigate(Screen.Login.route) {
+                                            popUpTo(0) { inclusive = true }
+                                        }
                                     }
                                 )
                             }

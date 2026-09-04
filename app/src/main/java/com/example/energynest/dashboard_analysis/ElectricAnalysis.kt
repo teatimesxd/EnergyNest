@@ -90,7 +90,7 @@ private fun percentChange(current: Double, previous: Double?): Double? {
     return ((current - previous) / previous) * 100.0
 }
 
-// Helper to sort labels like "Sep 2026" chronologically
+// Helper to sort labels like "Sep 2026"
 private fun parseMonthLabelToDate(label: String): LocalDate {
     return try {
         val formatter = DateTimeFormatter.ofPattern("MMM yyyy", Locale.US)
@@ -114,10 +114,18 @@ private fun buildReport(
     val avgDaily = record.averageDaily
 
     // --- REALISTIC COMPARISON LOGIC ---
-    // Instead of comparing sums (which causes 900% jumps), we compare Daily Averages.
     // 1. Get the number of days for the currently selected month
     val monthHistory = allHomeHistory.filter {
-        val d = try { LocalDate.parse(it.date.trim()) } catch(e:Exception) { null }
+        val d = try { 
+            // Support multiple date formats for safety
+            val trimmed = it.date.trim()
+            if (trimmed.contains("-")) {
+                if (trimmed.split("-").first().length == 4) LocalDate.parse(trimmed)
+                else LocalDate.parse(trimmed, DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+            } else if (trimmed.contains("/")) {
+                LocalDate.parse(trimmed, DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+            } else null
+        } catch(e:Exception) { null }
         d?.format(DateTimeFormatter.ofPattern("MMM yyyy", Locale.US)) == record.monthLabel
     }.sortedBy { it.date }
     val dayCount = monthHistory.size.coerceAtLeast(1)
@@ -139,7 +147,7 @@ private fun buildReport(
     val dailyValues = monthHistory.takeLast(10).map { it.generatedKwh }
     val dailyLabels = monthHistory.takeLast(10).map { it.date.trim().split("-").last().toInt().toString() }
 
-    // --- WEEKLY DATA (CALENDAR AWARE: Sept 1-6 = Wk 1, 7-13 = Wk 2) ---
+    // WEEKLY DATA
     val weeklyMap = mutableMapOf<Int, Double>()
     val weekFields = WeekFields.of(Locale.UK) // Monday start
     
@@ -184,8 +192,9 @@ private fun formatAvgDaily(kwh: Double): String = String.format(Locale.US, "%.1f
 private fun formatCost(rm: Double): String = "RM " + String.format(Locale.US, "%,.2f", rm)
 private fun formatCo2(kg: Double): String = "${kg.toInt()} kg"
 private fun formatPercent(pct: Double): String {
-    // REMOVED CAP: Show real calculated math
-    return String.format(Locale.US, "%.1f%%", abs(pct))
+    // Capped at 100% for display as requested to keep numbers professional
+    val absPct = abs(pct).coerceAtMost(100.0)
+    return String.format(Locale.US, "%.1f%%", absPct)
 }
 
 @Composable
@@ -195,11 +204,13 @@ fun ElectricAnalysisScreen(
     onProfileClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    var usageRecords by remember { mutableStateOf<List<ElectricUsage>>(emptyList()) }
-    var homeHistory by remember { mutableStateOf<List<HomeStats>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var selectedMonthIndex by remember { mutableIntStateOf(0) }
-    var selectedPeriod by remember { mutableStateOf(ConsumptionPeriod.DAILY) }
+    
+    // Keying state by userIc ensures data is cleared when the user logs out/switches
+    var usageRecords by remember(userIc) { mutableStateOf<List<ElectricUsage>>(emptyList()) }
+    var homeHistory by remember(userIc) { mutableStateOf<List<HomeStats>>(emptyList()) }
+    var isLoading by remember(userIc) { mutableStateOf(true) }
+    var selectedMonthIndex by remember(userIc) { mutableIntStateOf(0) }
+    var selectedPeriod by remember(userIc) { mutableStateOf(ConsumptionPeriod.DAILY) }
 
     val isPreview = LocalInspectionMode.current
 
@@ -251,7 +262,15 @@ fun ElectricAnalysisScreen(
     // MERGE HOME DATA INTO DROPDOWN (DETECTS OCT, SEPT, ETC)
     val effectiveRecords = remember(usageRecords, homeHistory) {
         val groupedHome = homeHistory.groupBy {
-            val d = try { LocalDate.parse(it.date.trim()) } catch(e:Exception) { LocalDate.now() }
+            val d = try { 
+                val trimmed = it.date.trim()
+                if (trimmed.contains("-")) {
+                    if (trimmed.split("-").first().length == 4) LocalDate.parse(trimmed)
+                    else LocalDate.parse(trimmed, DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+                } else if (trimmed.contains("/")) {
+                    LocalDate.parse(trimmed, DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                } else LocalDate.now()
+            } catch(e:Exception) { LocalDate.now() }
             d.format(DateTimeFormatter.ofPattern("MMM yyyy", Locale.US))
         }
 

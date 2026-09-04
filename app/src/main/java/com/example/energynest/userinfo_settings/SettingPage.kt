@@ -32,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,8 +43,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.content.Context
+import android.widget.Toast
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.platform.LocalContext
+import com.example.energynest.backend_models.SupabaseClient
 import com.example.energynest.ui.theme.EnergyNestTheme
+import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun SettingPage(
@@ -53,10 +61,15 @@ fun SettingPage(
     onNavigateToPrivacyPolicy: () -> Unit = {},
     onNavigateToTerms: () -> Unit = {},
     onNavigateToFeedback: () -> Unit = {},
-    onLogoutConfirmed: () -> Unit = {}
+    onLogoutConfirmed: () -> Unit = {},
+    onDeleteAccountConfirmed: () -> Unit = {}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var isDeleting by remember { mutableStateOf(false) }
+    
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     val sharedPreferences = context.getSharedPreferences(
         "EnergyNestPrefs",
@@ -209,7 +222,9 @@ fun SettingPage(
 
             // Delete Account
             Surface(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showDeleteDialog = true },
                 shape = RoundedCornerShape(14.dp),
                 color = Color(0xFFFEF2F2)
             ) {
@@ -294,6 +309,17 @@ fun SettingPage(
             )
         }
 
+        if (isDeleting) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = primaryGreen)
+            }
+        }
+
         if (showLogoutDialog) {
             AlertDialog(
                 onDismissRequest = { showLogoutDialog = false },
@@ -317,6 +343,67 @@ fun SettingPage(
                 },
                 dismissButton = {
                     TextButton(onClick = { showLogoutDialog = false }) {
+                        Text(text = "Cancel", color = primaryGreen, fontWeight = FontWeight.Bold)
+                    }
+                }
+            )
+        }
+
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text(text = "Delete Account", fontWeight = FontWeight.Bold, color = deleteRed) },
+                text = { Text(text = "Are you sure you want to delete your account? This action cannot be undone.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val currentIc = UserSession.icNumber
+                            if (currentIc.isBlank()) {
+                                Toast.makeText(context, "Error: User IC missing", Toast.LENGTH_SHORT).show()
+                                return@TextButton
+                            }
+
+                            coroutineScope.launch {
+                                try {
+                                    isDeleting = true
+                                    showDeleteDialog = false
+                                    
+                                    withContext(Dispatchers.IO) {
+                                        // 1. Delete all related data first
+                                        val tables = listOf("Booking", "Property", "Home", "Electric_usage", "Smart_Sell", "Feedback")
+                                        tables.forEach { tableName ->
+                                            try {
+                                                SupabaseClient.client.from(tableName).delete {
+                                                    filter { eq("ic_number", currentIc) }
+                                                }
+                                            } catch (e: Exception) { }
+                                        }
+
+                                        // 2. Delete the User record itself
+                                        SupabaseClient.client.from("User").delete {
+                                            filter { eq("ic_number", currentIc) }
+                                        }
+                                    }
+
+                                    // Clear session and preferences
+                                    sharedPreferences.edit().clear().apply()
+                                    UserSession.user = null
+                                    
+                                    Toast.makeText(context, "Account successfully deleted", Toast.LENGTH_LONG).show()
+                                    onDeleteAccountConfirmed()
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Delete failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                } finally {
+                                    isDeleting = false
+                                }
+                            }
+                        }
+                    ) {
+                        Text(text = "Delete", color = deleteRed, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
                         Text(text = "Cancel", color = primaryGreen, fontWeight = FontWeight.Bold)
                     }
                 }
